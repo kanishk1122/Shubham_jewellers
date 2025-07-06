@@ -10,6 +10,8 @@ import { EnhancedScrapingTestPanel } from "@/components/EnhancedScrapingTestPane
 import BeautifulSoupTestPanel from "@/components/BeautifulSoupTestPanel";
 import SPAScrapingTestPanel from "@/components/SPAScrapingTestPanel";
 import PuppeteerTestPanel from "@/components/PuppeteerTestPanel";
+import EnhancedPuppeteerRatesDisplay from "@/components/EnhancedPuppeteerRatesDisplay";
+import PuppeteerLiveRatesWidget from "@/components/PuppeteerLiveRatesWidget";
 
 interface LocalRate {
   id: string;
@@ -169,10 +171,10 @@ export const EnhancedMetalRatesManager: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-            Metal Rates
+            Metal Rates Management
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
-            Live rates from Jaipur Sarafa Market and custom local rates
+            Live rates from Narnoli Corporation and local rate management
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -183,15 +185,6 @@ export const EnhancedMetalRatesManager: React.FC = () => {
             onExport={() => console.log("Metal rates exported")}
           />
           <Button
-            onClick={refreshRates}
-            disabled={loading}
-            variant="secondary"
-            className="flex items-center gap-2"
-          >
-            <span className={loading ? "animate-spin" : ""}>🔄</span>
-            Refresh Live Rates
-          </Button>
-          <Button
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-2"
           >
@@ -201,63 +194,112 @@ export const EnhancedMetalRatesManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Live Rates from Jaipur Sarafa */}
-      <Card className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
-            🌟 Live Jaipur Sarafa Rates
-          </h2>
-          {lastUpdated && (
-            <span className="text-sm text-zinc-500 dark:text-zinc-400">
-              Last updated: {lastUpdated}
-            </span>
-          )}
+      {/* PRIMARY: Live Rates from Narnoli Corporation (Puppeteer) */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
+            <span className="text-xl">�</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+              Live Metal Rates - Narnoli Corporation
+            </h2>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              Real-time rates extracted via Puppeteer server-side scraping
+            </p>
+          </div>
         </div>
+        <EnhancedPuppeteerRatesDisplay />
+      </div>
 
-        {loading && (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-zinc-600 dark:text-zinc-400">
-              Loading live rates...
-            </span>
+      {/* Secondary: Quick Live Rates Widget */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <PuppeteerLiveRatesWidget />
+
+        {/* Legacy Live Rates (Jaipur Sarafa) */}
+        <Card className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+              📊 Legacy Jaipur Sarafa Rates
+            </h3>
+            <Button
+              onClick={refreshRates}
+              disabled={loading}
+              variant="secondary"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <span className={loading ? "animate-spin" : ""}>🔄</span>
+              Refresh
+            </Button>
           </div>
-        )}
 
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4">
-            <p className="text-red-800 dark:text-red-300">Error: {error}</p>
-          </div>
-        )}
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <span className="ml-2 text-sm text-zinc-600 dark:text-zinc-400">
+                Loading...
+              </span>
+            </div>
+          )}
 
-        {success && liveRates.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {liveRates.map((rate, index) => (
-              <div
-                key={index}
-                className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-2xl">
-                    {rate.metal === "gold" ? "🥇" : "🥈"}
-                  </span>
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-800 px-2 py-1 rounded">
-                    Live
-                  </span>
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-3">
+              <p className="text-red-800 dark:text-red-300 text-sm">
+                Error: {error}
+              </p>
+            </div>
+          )}
+
+          {success && liveRates.length > 0 && (
+            <div className="space-y-3">
+              {liveRates.slice(0, 3).map((rate, index) => (
+                <div
+                  key={index}
+                  className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">
+                        {rate.metal === "gold" ? "🥇" : "🥈"}
+                      </span>
+                      <div>
+                        <div className="font-medium text-zinc-900 dark:text-white capitalize text-sm">
+                          {rate.metal} {rate.purity}
+                        </div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {rate.unit}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-yellow-600 dark:text-yellow-400">
+                        ₹{rate.rate.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Legacy Source
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-zinc-900 dark:text-white capitalize">
-                  {rate.metal} {rate.purity}
-                </h3>
-                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                  ₹{rate.rate.toLocaleString()}
+              ))}
+              {liveRates.length > 3 && (
+                <p className="text-xs text-zinc-500 text-center">
+                  +{liveRates.length - 3} more rates available
                 </p>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {rate.unit}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              )}
+            </div>
+          )}
+
+          {success && liveRates.length === 0 && (
+            <div className="text-center py-6">
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+                No legacy rates available
+              </p>
+            </div>
+          )}
+        </Card>
+      </div>
 
       {/* Narnoli Corporation Live Rates */}
       <NarnoliRatesDisplay />
@@ -411,12 +453,12 @@ export const EnhancedMetalRatesManager: React.FC = () => {
       </Card>
 
       {/* Web Scraping & Debug Tools */}
-      <Card className="p-6">
+      {/* <Card className="p-6">
         <h2 className="text-xl font-semibold mb-4 text-zinc-900 dark:text-white">
           🔧 Web Scraping & Debug Tools
         </h2>
 
-        {/* Debug Tabs */}
+       
         <div className="border-b border-zinc-200 dark:border-zinc-700 mb-6">
           <nav className="flex space-x-8">
             {[
@@ -443,7 +485,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
           </nav>
         </div>
 
-        {/* Debug Tab Content */}
+      
         {activeDebugTab === "live" && (
           <div className="space-y-6">
             <NarnoliRatesDisplay />
@@ -479,7 +521,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
             <SPAScrapingTestPanel />
           </div>
         )}
-      </Card>
+      </Card> */}
     </div>
   );
 };
