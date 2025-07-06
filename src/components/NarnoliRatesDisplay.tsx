@@ -332,7 +332,7 @@ export const NarnoliRatesDisplay: React.FC = () => {
         )}
 
       {/* Data Source Info */}
-      <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+      {/* <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
         <div className="flex items-start gap-3">
           <span className="text-blue-600 dark:text-blue-400 text-lg">ℹ️</span>
           <div>
@@ -354,7 +354,7 @@ export const NarnoliRatesDisplay: React.FC = () => {
             )}
           </div>
         </div>
-      </Card>
+      </Card> */}
     </div>
   );
 };
