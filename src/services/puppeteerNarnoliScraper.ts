@@ -23,10 +23,15 @@ export interface NarnoliScrapingResult {
 
 export class PuppeteerNarnoliScraper {
   private browser: Browser | null = null;
-  private readonly baseUrl = "http://narnolicorporation.in/";
+  private readonly baseUrls = [
+    "http://narnolicorporation.in/",
+    "https://narnolicorporation.in/",
+    "http://www.narnolicorporation.in/",
+    "https://www.narnolicorporation.in/",
+  ];
   private readonly timeout = 30000; // 30 seconds
   private readonly userAgent =
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
   async initialize(): Promise<void> {
     if (this.browser) {
@@ -44,6 +49,21 @@ export class PuppeteerNarnoliScraper {
           "--no-first-run",
           "--no-zygote",
           "--disable-gpu",
+          "--disable-web-security",
+          "--disable-features=site-per-process",
+          "--disable-extensions",
+          "--disable-plugins",
+          "--disable-default-apps",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-field-trial-config",
+          "--disable-back-forward-cache",
+          "--disable-ipc-flooding-protection",
+          "--allow-running-insecure-content",
+          "--ignore-certificate-errors",
+          "--ignore-ssl-errors",
+          "--ignore-certificate-errors-spki-list",
         ],
         timeout: this.timeout,
       });
@@ -66,31 +86,87 @@ export class PuppeteerNarnoliScraper {
       page = await this.browser.newPage();
       await page.setUserAgent(this.userAgent);
 
+      // Set extra HTTP headers to appear more like a regular browser
+      await page.setExtraHTTPHeaders({
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate",
+        DNT: "1",
+        Connection: "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Cache-Control": "max-age=0",
+      });
+
       // Set viewport
       await page.setViewport({ width: 1920, height: 1080 });
 
-      // Enable request interception to block images and other resources for faster loading
-      await page.setRequestInterception(true);
-      page.on("request", (req) => {
-        const resourceType = req.resourceType();
-        if (
-          resourceType === "stylesheet" ||
-          resourceType === "image" ||
-          resourceType === "font"
-        ) {
-          req.abort();
-        } else {
-          req.continue();
-        }
-      });
-
+      // Disable request interception initially to avoid blocking issues
+      // We'll re-enable it after the initial page load if needed
       console.log("Navigating to Narnoli Corporation...");
 
-      // Navigate to the page
-      await page.goto(this.baseUrl, {
-        waitUntil: "networkidle2",
-        timeout: this.timeout,
-      });
+      // Navigate to the page with multiple retry attempts and URLs
+      let navigationSuccess = false;
+      let lastError: Error | null = null;
+      let successfulUrl = "";
+
+      for (const url of this.baseUrls) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            console.log(`Trying ${url} (attempt ${attempt}/2)...`);
+
+            // First try standard navigation
+            await page.goto(url, {
+              waitUntil: "networkidle0",
+              timeout: this.timeout,
+            });
+
+            navigationSuccess = true;
+            successfulUrl = url;
+            console.log(`Successfully loaded: ${url}`);
+            break;
+          } catch (error) {
+            lastError = error as Error;
+            console.log(
+              `Standard navigation failed for ${url} (attempt ${attempt}):`,
+              error
+            );
+
+            // If it's a blocked error, try alternative navigation
+            if (this.isBlockedError(lastError)) {
+              console.log(
+                "Detected blocking error, trying alternative navigation..."
+              );
+              try {
+                const alternativeSuccess = await this.tryAlternativeNavigation(
+                  page,
+                  url
+                );
+                if (alternativeSuccess) {
+                  navigationSuccess = true;
+                  successfulUrl = url;
+                  console.log(`Alternative navigation succeeded for: ${url}`);
+                  break;
+                }
+              } catch (altError) {
+                console.log("Alternative navigation also failed:", altError);
+              }
+            }
+
+            if (attempt < 2) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          }
+        }
+
+        if (navigationSuccess) break;
+      }
+
+      if (!navigationSuccess) {
+        throw new Error(
+          `Failed to navigate after 3 attempts: ${lastError?.message}`
+        );
+      }
 
       // Wait for React to load and render
       console.log("Waiting for content to load...");
@@ -150,7 +226,7 @@ export class PuppeteerNarnoliScraper {
         error: error instanceof Error ? error.message : "Unknown error",
         debugInfo: {
           pageTitle: "Error",
-          url: this.baseUrl,
+          url: this.baseUrls[0],
           loadTime,
           elementsFound: 0,
           htmlLength: 0,
@@ -352,7 +428,7 @@ export class PuppeteerNarnoliScraper {
       page = await this.browser.newPage();
       await page.setUserAgent(this.userAgent);
 
-      await page.goto(this.baseUrl, {
+      await page.goto(this.baseUrls[0], {
         waitUntil: "networkidle2",
         timeout: this.timeout,
       });
@@ -405,6 +481,55 @@ export class PuppeteerNarnoliScraper {
     if (this.browser) {
       await this.browser.close();
       this.browser = null;
+    }
+  }
+
+  private isBlockedError(error: Error): boolean {
+    const blockedPatterns = [
+      "ERR_BLOCKED_BY_CLIENT",
+      "ERR_NETWORK_ACCESS_DENIED",
+      "ERR_ACCESS_DENIED",
+      "ERR_BLOCKED_BY_ADMINISTRATOR",
+      "ERR_BLOCKED_BY_RESPONSE",
+    ];
+
+    return blockedPatterns.some(
+      (pattern) =>
+        error.message.includes(pattern) || error.toString().includes(pattern)
+    );
+  }
+
+  private async tryAlternativeNavigation(
+    page: Page,
+    url: string
+  ): Promise<boolean> {
+    try {
+      // Try with different wait conditions
+      const waitStrategies = [
+        "networkidle0",
+        "networkidle2",
+        "domcontentloaded",
+        "load",
+      ] as const;
+
+      for (const strategy of waitStrategies) {
+        try {
+          console.log(`Trying navigation with waitUntil: ${strategy}`);
+          await page.goto(url, {
+            waitUntil: strategy,
+            timeout: 15000, // Shorter timeout for each attempt
+          });
+          return true;
+        } catch (error) {
+          console.log(`Wait strategy ${strategy} failed:`, error);
+          continue;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.log("Alternative navigation failed:", error);
+      return false;
     }
   }
 }
