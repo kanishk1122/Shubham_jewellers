@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { QuickRatesWidget } from "@/components/QuickRatesWidget";
 import { LiveMetalRatesWidget } from "@/components/LiveMetalRatesWidget";
 import PuppeteerLiveRatesWidget from "@/components/PuppeteerLiveRatesWidget";
+import EnhancedPuppeteerRatesDisplay from "@/components/EnhancedPuppeteerRatesDisplay";
+import PuppeteerQuickRatesWidget from "@/components/PuppeteerQuickRatesWidget";
 
 interface DashboardProps {}
 
@@ -113,8 +115,9 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       show: totalCustomers === 0,
     },
     {
-      title: "Check Metal Rates",
-      description: "View live gold and silver rates from Jaipur Sarafa",
+      title: "Check Live Metal Rates",
+      description:
+        "View real-time gold and silver rates from Narnoli Corporation",
       icon: "💰",
       color: "text-yellow-600",
       bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
@@ -176,8 +179,8 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         ))}
       </div>
 
-      {/* Live Metal Rates Widget */}
-      <QuickRatesWidget />
+      {/* Live Metal Rates from Puppeteer */}
+      <EnhancedPuppeteerRatesDisplay />
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
@@ -223,10 +226,10 @@ export const Dashboard: React.FC<DashboardProps> = () => {
               💰
             </div>
             <h4 className="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
-              Update Rates
+              Live Metal Rates
             </h4>
             <p className="text-sm text-yellow-600 dark:text-yellow-400">
-              Manage metal rates and pricing
+              View live rates from Narnoli Corporation
             </p>
           </button>
         </div>
@@ -276,10 +279,10 @@ export const Dashboard: React.FC<DashboardProps> = () => {
           </div>
         </div>
 
-        {/* Live Metal Rates from Narnoli Corporation */}
+        {/* Additional Rate Tools & Widgets */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PuppeteerQuickRatesWidget />
           <LiveMetalRatesWidget />
-          <PuppeteerLiveRatesWidget />
         </div>
       </div>
     </div>
