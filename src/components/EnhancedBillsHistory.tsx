@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, Input, Button } from "@/components/ui/enhanced";
+import ExcelActions from "@/components/ExcelActions";
 
 interface BillItem {
   id: string;
@@ -238,6 +239,13 @@ export const EnhancedBillsHistory: React.FC = () => {
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
             View and manage all billing records
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ExcelActions
+            type="bills"
+            data={bills}
+            onExport={() => console.log("Bills history exported")}
+          />
         </div>
       </div>
 

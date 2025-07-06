@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useMetalRates } from "@/services/metalRatesService";
 import { Card, Input, Button } from "@/components/ui/enhanced";
+import ExcelActions from "@/components/ExcelActions";
 
 interface LocalRate {
   id: string;
@@ -114,6 +115,45 @@ export const EnhancedMetalRatesManager: React.FC = () => {
     setShowAddForm(false);
   };
 
+  // Handle Excel import
+  const handleExcelImport = (importedRates: any[]) => {
+    const mergedRates = [...localRates];
+    let addedCount = 0;
+    let updatedCount = 0;
+
+    importedRates.forEach((importedRate) => {
+      const existingIndex = mergedRates.findIndex(
+        (r) =>
+          r.metal === importedRate.metal && r.purity === importedRate.purity
+      );
+
+      if (existingIndex >= 0) {
+        // Update existing rate
+        mergedRates[existingIndex] = {
+          ...mergedRates[existingIndex],
+          ...importedRate,
+          lastUpdated: new Date().toISOString(),
+        };
+        updatedCount++;
+      } else {
+        // Add new rate
+        const newRate = {
+          ...importedRate,
+          id: importedRate.id || Date.now().toString(),
+          lastUpdated: new Date().toISOString(),
+        };
+        mergedRates.push(newRate);
+        addedCount++;
+      }
+    });
+
+    setLocalRates(mergedRates);
+    localStorage.setItem("metalRates", JSON.stringify(mergedRates));
+    alert(
+      `Import completed!\nAdded: ${addedCount} rates\nUpdated: ${updatedCount} rates`
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -126,7 +166,13 @@ export const EnhancedMetalRatesManager: React.FC = () => {
             Live rates from Jaipur Sarafa Market and custom local rates
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <ExcelActions
+            type="rates"
+            data={localRates}
+            onImport={handleExcelImport}
+            onExport={() => console.log("Metal rates exported")}
+          />
           <Button
             onClick={refreshRates}
             disabled={loading}

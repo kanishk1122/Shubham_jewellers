@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, Input, Button } from "@/components/ui/enhanced";
 import { useMetalRates } from "@/services/metalRatesService";
+import ExcelActions from "@/components/ExcelActions";
 
 interface BillItem {
   id: string;
@@ -495,13 +496,20 @@ export const EnhancedBillingManager: React.FC = () => {
             Create and manage jewelry bills with GST compliance
           </p>
         </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2"
-        >
-          <span>🧾</span>
-          Create New Bill
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ExcelActions
+            type="bills"
+            data={bills}
+            onExport={() => console.log("Bills exported")}
+          />
+          <Button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2"
+          >
+            <span>🧾</span>
+            Create New Bill
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}

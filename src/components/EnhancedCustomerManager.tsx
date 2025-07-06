@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, Input, Button } from "@/components/ui/enhanced";
+import ExcelActions from "@/components/ExcelActions";
 
 interface Customer {
   id: string;
@@ -154,6 +155,45 @@ export const EnhancedCustomerManager: React.FC = () => {
     return "New";
   };
 
+  // Handle Excel import
+  const handleExcelImport = (importedCustomers: Customer[]) => {
+    const mergedCustomers = [...customers];
+    let addedCount = 0;
+    let updatedCount = 0;
+
+    importedCustomers.forEach((importedCustomer) => {
+      const existingIndex = mergedCustomers.findIndex(
+        (c) =>
+          c.phone === importedCustomer.phone || c.id === importedCustomer.id
+      );
+
+      if (existingIndex >= 0) {
+        // Update existing customer
+        mergedCustomers[existingIndex] = {
+          ...mergedCustomers[existingIndex],
+          ...importedCustomer,
+          updatedAt: new Date().toISOString(),
+        };
+        updatedCount++;
+      } else {
+        // Add new customer
+        const newCustomer = {
+          ...importedCustomer,
+          id: importedCustomer.id || Date.now().toString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        mergedCustomers.push(newCustomer);
+        addedCount++;
+      }
+    });
+
+    saveCustomers(mergedCustomers);
+    alert(
+      `Import completed!\nAdded: ${addedCount} customers\nUpdated: ${updatedCount} customers`
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -166,13 +206,21 @@ export const EnhancedCustomerManager: React.FC = () => {
             Manage your customer database and relationships
           </p>
         </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2"
-        >
-          <span>👥</span>
-          Add New Customer
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ExcelActions
+            type="customers"
+            data={customers}
+            onImport={handleExcelImport}
+            onExport={() => console.log("Customers exported")}
+          />
+          <Button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2"
+          >
+            <span>👥</span>
+            Add New Customer
+          </Button>
+        </div>
       </div>
 
       {/* Search */}

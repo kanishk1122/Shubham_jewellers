@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, Input, Button } from "@/components/ui/enhanced";
+import ExcelActions from "@/components/ExcelActions";
 
 interface Product {
   id: string;
@@ -333,6 +334,53 @@ export const EnhancedProductManager: React.FC = () => {
     });
   };
 
+  // Handle Excel import
+  const handleExcelImport = (importedProducts: Product[]) => {
+    const mergedProducts = [...products];
+    let addedCount = 0;
+    let updatedCount = 0;
+
+    importedProducts.forEach((importedProduct) => {
+      const existingIndex = mergedProducts.findIndex(
+        (p) =>
+          p.serialNumber === importedProduct.serialNumber ||
+          p.id === importedProduct.id
+      );
+
+      if (existingIndex >= 0) {
+        // Update existing product
+        mergedProducts[existingIndex] = {
+          ...mergedProducts[existingIndex],
+          ...importedProduct,
+          updatedAt: new Date().toISOString(),
+        };
+        updatedCount++;
+      } else {
+        // Add new product with proper serial number if missing
+        const newProduct = {
+          ...importedProduct,
+          id: importedProduct.id || generateUniqueId(),
+          serialNumber:
+            importedProduct.serialNumber ||
+            generateSerialNumber(
+              importedProduct.category,
+              importedProduct.metal
+            ),
+          slug: importedProduct.slug || generateSlug(importedProduct.name),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        mergedProducts.push(newProduct);
+        addedCount++;
+      }
+    });
+
+    saveProducts(mergedProducts);
+    alert(
+      `Import completed!\nAdded: ${addedCount} products\nUpdated: ${updatedCount} products`
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -342,16 +390,24 @@ export const EnhancedProductManager: React.FC = () => {
             Product Management
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
-            Manage your jewelry inventory with detailed specifications
+            Manage your jewelry inventory with automatic serial numbers
           </p>
         </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2"
-        >
-          <span>➕</span>
-          Add New Product
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <ExcelActions
+            type="products"
+            data={products}
+            onImport={handleExcelImport}
+            onExport={() => console.log("Products exported")}
+          />
+          <Button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2"
+          >
+            <span>💍</span>
+            Add New Product
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters */}
