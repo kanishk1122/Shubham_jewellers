@@ -85,40 +85,19 @@ export const EnhancedProductManager: React.FC = () => {
       .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
   };
 
-  // Generate serial number
-  const generateSerialNumber = (category: string, metal: string): string => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
+  // Generate serial number (simple incremental: 1, 2, 3, etc.)
+  const generateSerialNumber = (): string => {
+    // Get the highest existing serial number and increment by 1
+    const existingSerialNumbers = products
+      .map((p) => parseInt(p.serialNumber))
+      .filter((num) => !isNaN(num));
 
-    // Get category prefix
-    const categoryPrefixes = {
-      ring: "RG",
-      necklace: "NK",
-      bracelet: "BR",
-      earring: "ER",
-      pendant: "PD",
-      chain: "CH",
-      other: "OT",
-    };
+    const nextNumber =
+      existingSerialNumbers.length > 0
+        ? Math.max(...existingSerialNumbers) + 1
+        : 1;
 
-    // Get metal prefix
-    const metalPrefixes = {
-      gold: "G",
-      silver: "S",
-      platinum: "P",
-    };
-
-    const categoryPrefix =
-      categoryPrefixes[category as keyof typeof categoryPrefixes] || "OT";
-    const metalPrefix =
-      metalPrefixes[metal as keyof typeof metalPrefixes] || "G";
-
-    // Count existing products to get next serial number
-    const existingCount = products.length + 1;
-    const serialCount = String(existingCount).padStart(4, "0");
-
-    return `SJ${year}${month}${categoryPrefix}${metalPrefix}${serialCount}`;
+    return nextNumber.toString();
   };
 
   // Generate unique ID
@@ -136,10 +115,7 @@ export const EnhancedProductManager: React.FC = () => {
       return;
 
     const productSlug = generateSlug(formData.name);
-    const serialNumber = generateSerialNumber(
-      formData.category,
-      formData.metal
-    );
+    const serialNumber = generateSerialNumber();
     const productId = generateUniqueId();
 
     const newProduct: Product = {
@@ -297,33 +273,8 @@ export const EnhancedProductManager: React.FC = () => {
 
       // Otherwise, generate them
       const productSlug = generateSlug(product.name);
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, "0");
-
-      const categoryPrefixes = {
-        ring: "RG",
-        necklace: "NK",
-        bracelet: "BR",
-        earring: "ER",
-        pendant: "PD",
-        chain: "CH",
-        other: "OT",
-      };
-
-      const metalPrefixes = {
-        gold: "G",
-        silver: "S",
-        platinum: "P",
-      };
-
-      const categoryPrefix =
-        categoryPrefixes[product.category as keyof typeof categoryPrefixes] ||
-        "OT";
-      const metalPrefix =
-        metalPrefixes[product.metal as keyof typeof metalPrefixes] || "G";
-      const serialCount = String(index + 1).padStart(4, "0");
-      const serialNumber = `SJ${year}${month}${categoryPrefix}${metalPrefix}${serialCount}`;
+      // Use simple incremental serial numbers: 1, 2, 3, etc.
+      const serialNumber = (index + 1).toString();
 
       return {
         ...product,
@@ -360,12 +311,7 @@ export const EnhancedProductManager: React.FC = () => {
         const newProduct = {
           ...importedProduct,
           id: importedProduct.id || generateUniqueId(),
-          serialNumber:
-            importedProduct.serialNumber ||
-            generateSerialNumber(
-              importedProduct.category,
-              importedProduct.metal
-            ),
+          serialNumber: importedProduct.serialNumber || generateSerialNumber(),
           slug: importedProduct.slug || generateSlug(importedProduct.name),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
