@@ -5,6 +5,8 @@ export interface NarnoliMetalRate {
   rate: number;
   unit: string;
   timestamp: Date;
+  source?: string;
+  productDetails?: string;
 }
 
 export interface NarnoliScrapingResult {
@@ -243,46 +245,87 @@ export class PuppeteerNarnoliScraper {
     const rates: NarnoliMetalRate[] = [];
 
     try {
-      // Strategy 1: Look for tables with rate data
-      const tableRates = await page.evaluate(() => {
-        const tables = document.querySelectorAll("table");
+      // Strategy 1: Target specific Narnoli Corporation table rows
+      const specificRates = await page.evaluate(() => {
         const extractedRates: any[] = [];
+
+        // Look for tables with the specific structure
+        const tables = document.querySelectorAll("table");
 
         tables.forEach((table) => {
           const rows = table.querySelectorAll("tr");
-          rows.forEach((row) => {
-            const cells = row.querySelectorAll("td, th");
-            if (cells.length >= 2) {
-              const text = Array.from(cells)
-                .map((cell) => cell.textContent?.trim())
-                .join(" | ");
 
-              // Look for patterns that might indicate rates
-              const goldMatch = text.match(/gold.*?(\d+(?:,\d+)*(?:\.\d+)?)/i);
-              const silverMatch = text.match(
-                /silver.*?(\d+(?:,\d+)*(?:\.\d+)?)/i
+          rows.forEach((row, rowIndex) => {
+            const cells = row.querySelectorAll("td");
+            if (cells.length >= 4) {
+              const productText = cells[0]?.textContent?.trim() || "";
+              const sellText = cells[3]?.textContent?.trim() || "";
+
+              console.log(
+                `Row ${rowIndex}: "${productText}" -> SELL: "${sellText}"`
               );
 
-              if (goldMatch) {
-                const rate = parseFloat(goldMatch[1].replace(/,/g, ""));
-                if (rate > 0) {
+              // Target specific gold rate: (2) GOLD 99.50 (1kg) TO 600 GRAM INDIAN - BIS T+0
+              // More flexible matching for gold rate
+              if (
+                (productText.includes("(2)") ||
+                  productText.match(/^\s*2[\s)]/)) &&
+                productText.toUpperCase().includes("GOLD") &&
+                (productText.includes("99.50") ||
+                  productText.includes("99.5")) &&
+                (productText.includes("600") || productText.includes("1kg")) &&
+                productText.toUpperCase().includes("INDIAN") &&
+                productText.toUpperCase().includes("BIS")
+              ) {
+                // Extract only the first valid number from SELL column (avoid concatenation)
+                const sellMatch = sellText.match(/\b(\d{5,6})\b/); // Match 5-6 digit numbers (like 99675)
+                const sellValue = sellMatch ? parseFloat(sellMatch[1]) : 0;
+                console.log(
+                  `Found Gold rate: ${sellValue} from "${sellText}" (original: ${sellText.replace(
+                    /[^\d.]/g,
+                    ""
+                  )})`
+                );
+                if (sellValue > 50000 && sellValue < 200000) {
+                  // Reasonable range check for gold
                   extractedRates.push({
                     metal: "Gold",
-                    rate,
+                    rate: sellValue,
                     unit: "per 10 grams",
-                    source: "table",
+                    source: "narnoli-specific-gold",
+                    productDetails: productText,
                   });
                 }
               }
 
-              if (silverMatch) {
-                const rate = parseFloat(silverMatch[1].replace(/,/g, ""));
-                if (rate > 0) {
+              // Target specific silver rate: (6) SILVER 999 AUCTION GST EXTRA MINIMUM 5kg BOOK
+              // More flexible matching for silver rate
+              if (
+                (productText.includes("(6)") ||
+                  productText.match(/^\s*6[\s)]/)) &&
+                productText.toUpperCase().includes("SILVER") &&
+                (productText.includes("999") || productText.includes("99.9")) &&
+                productText.toUpperCase().includes("AUCTION") &&
+                productText.includes("5kg") &&
+                productText.toUpperCase().includes("BOOK")
+              ) {
+                // Extract only the first valid number from SELL column (avoid concatenation)
+                const sellMatch = sellText.match(/\b(\d{5,7})\b/); // Match 5-7 digit numbers (like 109000)
+                const sellValue = sellMatch ? parseFloat(sellMatch[1]) : 0;
+                console.log(
+                  `Found Silver rate: ${sellValue} from "${sellText}" (original: ${sellText.replace(
+                    /[^\d.]/g,
+                    ""
+                  )})`
+                );
+                if (sellValue > 50000 && sellValue < 500000) {
+                  // Reasonable range check for silver per kg
                   extractedRates.push({
                     metal: "Silver",
-                    rate,
+                    rate: sellValue,
                     unit: "per kg",
-                    source: "table",
+                    source: "narnoli-specific-silver",
+                    productDetails: productText,
                   });
                 }
               }
@@ -293,121 +336,166 @@ export class PuppeteerNarnoliScraper {
         return extractedRates;
       });
 
-      tableRates.forEach((rate) => {
+      // Add the specific rates first (priority)
+      specificRates.forEach((rate) => {
         rates.push({
           ...rate,
           timestamp: new Date(),
         });
       });
 
-      // Strategy 2: Look for divs or spans with rate-like content
-      const divRates = await page.evaluate(() => {
-        const elements = document.querySelectorAll("div, span, p");
-        const extractedRates: any[] = [];
+      // Strategy 2: Fallback - Look for any table with rate data patterns
+      if (rates.length === 0) {
+        const fallbackRates = await page.evaluate(() => {
+          const tables = document.querySelectorAll("table");
+          const extractedRates: any[] = [];
 
-        elements.forEach((element) => {
-          const text = element.textContent?.trim() || "";
+          tables.forEach((table) => {
+            const rows = table.querySelectorAll("tr");
+            rows.forEach((row) => {
+              const cells = row.querySelectorAll("td, th");
+              if (cells.length >= 2) {
+                const text = Array.from(cells)
+                  .map((cell) => cell.textContent?.trim())
+                  .join(" | ");
 
-          // Look for patterns like "Gold: 45,000" or "Silver Rate: 65,000"
-          const patterns = [
-            /gold.*?rate.*?(\d+(?:,\d+)*(?:\.\d+)?)/i,
-            /(\d+(?:,\d+)*(?:\.\d+)?).*?gold/i,
-            /silver.*?rate.*?(\d+(?:,\d+)*(?:\.\d+)?)/i,
-            /(\d+(?:,\d+)*(?:\.\d+)?).*?silver/i,
-          ];
+                // Look for patterns that might indicate rates
+                const goldMatch = text.match(
+                  /gold.*?(\d+(?:,\d+)*(?:\.\d+)?)/i
+                );
+                const silverMatch = text.match(
+                  /silver.*?(\d+(?:,\d+)*(?:\.\d+)?)/i
+                );
 
-          patterns.forEach((pattern, index) => {
-            const match = text.match(pattern);
-            if (match) {
-              const rate = parseFloat(match[1].replace(/,/g, ""));
-              if (rate > 1000 && rate < 100000) {
-                // Reasonable range for metal rates
-                const metal = index < 2 ? "Gold" : "Silver";
-                const unit = metal === "Gold" ? "per 10 grams" : "per kg";
+                if (goldMatch) {
+                  const rate = parseFloat(goldMatch[1].replace(/,/g, ""));
+                  if (rate > 50000 && rate < 200000) {
+                    // Reasonable range for gold
+                    extractedRates.push({
+                      metal: "Gold",
+                      rate,
+                      unit: "per 10 grams",
+                      source: "fallback-table",
+                    });
+                  }
+                }
 
-                extractedRates.push({
-                  metal,
-                  rate,
-                  unit,
-                  source: "div/span",
-                });
+                if (silverMatch) {
+                  const rate = parseFloat(silverMatch[1].replace(/,/g, ""));
+                  if (rate > 50000 && rate < 200000) {
+                    // Reasonable range for silver per kg
+                    extractedRates.push({
+                      metal: "Silver",
+                      rate,
+                      unit: "per kg",
+                      source: "fallback-table",
+                    });
+                  }
+                }
               }
-            }
+            });
           });
+
+          return extractedRates;
         });
 
-        return extractedRates;
-      });
-
-      divRates.forEach((rate) => {
-        // Avoid duplicates
-        if (
-          !rates.some((r) => r.metal === rate.metal && r.rate === rate.rate)
-        ) {
+        fallbackRates.forEach((rate) => {
           rates.push({
             ...rate,
             timestamp: new Date(),
           });
-        }
-      });
+        });
+      }
 
-      // Strategy 3: Look for JSON data in script tags
-      const scriptRates = await page.evaluate(() => {
-        const scripts = document.querySelectorAll("script");
+      // Strategy 3: Look for SELL column values specifically
+      const sellColumnRates = await page.evaluate(() => {
         const extractedRates: any[] = [];
 
-        scripts.forEach((script) => {
-          const content = script.textContent || "";
+        // Look for table headers containing "SELL"
+        const headers = document.querySelectorAll("th, td");
+        let sellColumnIndex = -1;
 
-          // Look for JSON-like data
-          try {
-            const jsonMatches = content.match(
-              /\{[^}]*(?:gold|silver|rate|price)[^}]*\}/gi
-            );
-            jsonMatches?.forEach((jsonStr) => {
-              try {
-                const data = JSON.parse(jsonStr);
-                // Process JSON data for rates
-                if (data.gold && typeof data.gold === "number") {
-                  extractedRates.push({
-                    metal: "Gold",
-                    rate: data.gold,
-                    unit: "per 10 grams",
-                    source: "script-json",
-                  });
-                }
-                if (data.silver && typeof data.silver === "number") {
-                  extractedRates.push({
-                    metal: "Silver",
-                    rate: data.silver,
-                    unit: "per kg",
-                    source: "script-json",
-                  });
-                }
-              } catch (e) {
-                // Not valid JSON, skip
-              }
-            });
-          } catch (e) {
-            // Error parsing, skip
+        headers.forEach((header, index) => {
+          if (header.textContent?.trim().toUpperCase() === "SELL") {
+            // Find the column index relative to its row
+            const row = header.closest("tr");
+            if (row) {
+              const cells = row.querySelectorAll("th, td");
+              sellColumnIndex = Array.from(cells).indexOf(header);
+            }
           }
         });
 
+        if (sellColumnIndex >= 0) {
+          const tables = document.querySelectorAll("table");
+          tables.forEach((table) => {
+            const rows = table.querySelectorAll("tr");
+            rows.forEach((row) => {
+              const cells = row.querySelectorAll("td");
+              if (cells.length > sellColumnIndex && sellColumnIndex >= 0) {
+                const productCell = cells[0]?.textContent?.trim() || "";
+                const sellCell =
+                  cells[sellColumnIndex]?.textContent?.trim() || "";
+
+                // Extract only the first valid number to avoid concatenation
+                const sellMatch = sellCell.match(/\b(\d{5,7})\b/);
+                const sellValue = sellMatch ? parseFloat(sellMatch[1]) : 0;
+
+                if (
+                  sellValue > 50000 &&
+                  sellValue < 200000 &&
+                  productCell.toLowerCase().includes("gold")
+                ) {
+                  extractedRates.push({
+                    metal: "Gold",
+                    rate: sellValue,
+                    unit: "per 10 grams",
+                    source: "sell-column-gold",
+                    productDetails: productCell,
+                  });
+                }
+
+                if (
+                  sellValue > 50000 &&
+                  sellValue < 500000 &&
+                  productCell.toLowerCase().includes("silver")
+                ) {
+                  extractedRates.push({
+                    metal: "Silver",
+                    rate: sellValue,
+                    unit: "per kg",
+                    source: "sell-column-silver",
+                    productDetails: productCell,
+                  });
+                }
+              }
+            });
+          });
+        }
+
         return extractedRates;
       });
 
-      scriptRates.forEach((rate) => {
-        if (
-          !rates.some((r) => r.metal === rate.metal && r.rate === rate.rate)
-        ) {
-          rates.push({
-            ...rate,
-            timestamp: new Date(),
-          });
-        }
-      });
+      // Add sell column rates if we don't have specific ones
+      if (rates.filter((r) => r.source?.includes("specific")).length === 0) {
+        sellColumnRates.forEach((rate) => {
+          if (
+            !rates.some((r) => r.metal === rate.metal && r.rate === rate.rate)
+          ) {
+            rates.push({
+              ...rate,
+              timestamp: new Date(),
+            });
+          }
+        });
+      }
 
       console.log(`Extracted ${rates.length} rates using Puppeteer`);
+      console.log(
+        "Rates found:",
+        rates.map((r) => `${r.metal}: ₹${r.rate} (${r.source})`)
+      );
+
       return rates;
     } catch (error) {
       console.error("Error extracting rates:", error);
