@@ -4,6 +4,12 @@ import React, { useState } from "react";
 import { useMetalRates } from "@/services/metalRatesService";
 import { Card, Input, Button } from "@/components/ui/enhanced";
 import ExcelActions from "@/components/ExcelActions";
+import { NarnoliRatesDisplay } from "@/components/NarnoliRatesDisplay";
+import { NarnoliDebugPanel } from "@/components/NarnoliDebugPanel";
+import { EnhancedScrapingTestPanel } from "@/components/EnhancedScrapingTestPanel";
+import BeautifulSoupTestPanel from "@/components/BeautifulSoupTestPanel";
+import SPAScrapingTestPanel from "@/components/SPAScrapingTestPanel";
+import PuppeteerTestPanel from "@/components/PuppeteerTestPanel";
 
 interface LocalRate {
   id: string;
@@ -26,6 +32,9 @@ export const EnhancedMetalRatesManager: React.FC = () => {
   const [localRates, setLocalRates] = useState<LocalRate[]>([]);
   const [editingRate, setEditingRate] = useState<LocalRate | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [activeDebugTab, setActiveDebugTab] = useState<
+    "live" | "legacy" | "enhanced" | "beautiful-soup" | "spa" | "puppeteer"
+  >("live");
   const [formData, setFormData] = useState({
     metal: "gold" as "gold" | "silver",
     purity: "",
@@ -250,6 +259,9 @@ export const EnhancedMetalRatesManager: React.FC = () => {
         )}
       </Card>
 
+      {/* Narnoli Corporation Live Rates */}
+      <NarnoliRatesDisplay />
+
       {/* Custom Local Rates */}
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
@@ -394,6 +406,77 @@ export const EnhancedMetalRatesManager: React.FC = () => {
             <Button onClick={() => setShowAddForm(true)}>
               Add Your First Custom Rate
             </Button>
+          </div>
+        )}
+      </Card>
+
+      {/* Web Scraping & Debug Tools */}
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold mb-4 text-zinc-900 dark:text-white">
+          🔧 Web Scraping & Debug Tools
+        </h2>
+
+        {/* Debug Tabs */}
+        <div className="border-b border-zinc-200 dark:border-zinc-700 mb-6">
+          <nav className="flex space-x-8">
+            {[
+              { id: "live", label: "Live Rates", icon: "📊" },
+              { id: "puppeteer", label: "Puppeteer (Server)", icon: "🚀" },
+              { id: "legacy", label: "Legacy Scraper", icon: "🔧" },
+              { id: "enhanced", label: "Enhanced Scraper", icon: "🕷️" },
+              { id: "beautiful-soup", label: "Beautiful Soup TS", icon: "🍲" },
+              { id: "spa", label: "SPA Scraper", icon: "⚛️" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveDebugTab(tab.id as any)}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                  activeDebugTab === tab.id
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Debug Tab Content */}
+        {activeDebugTab === "live" && (
+          <div className="space-y-6">
+            <NarnoliRatesDisplay />
+          </div>
+        )}
+
+        {activeDebugTab === "puppeteer" && (
+          <div className="space-y-6">
+            <PuppeteerTestPanel />
+          </div>
+        )}
+
+        {activeDebugTab === "legacy" && (
+          <div className="space-y-6">
+            <NarnoliDebugPanel />
+          </div>
+        )}
+
+        {activeDebugTab === "enhanced" && (
+          <div className="space-y-6">
+            <EnhancedScrapingTestPanel />
+          </div>
+        )}
+
+        {activeDebugTab === "beautiful-soup" && (
+          <div className="space-y-6">
+            <BeautifulSoupTestPanel />
+          </div>
+        )}
+
+        {activeDebugTab === "spa" && (
+          <div className="space-y-6">
+            <SPAScrapingTestPanel />
           </div>
         )}
       </Card>

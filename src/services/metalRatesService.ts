@@ -1,10 +1,16 @@
-// Live metal rates API service for Jaipur Sarafa market
+// Live metal rates API service for Jaipur Sarafa market and Narnoli Corporation
+import {
+  narnoliCorporationService,
+  type NarnoliRatesData,
+} from "./narnolicorporationService";
+
 export interface MetalRate {
   metal: "gold" | "silver";
   purity: string;
   rate: number;
   unit: string;
   lastUpdated: string;
+  source?: "narnoli" | "jaipur" | "manual";
 }
 
 export interface MetalRatesResponse {
@@ -12,6 +18,7 @@ export interface MetalRatesResponse {
   data?: MetalRate[];
   error?: string;
   lastUpdated?: string;
+  narnoliData?: NarnoliRatesData;
 }
 
 // Since real-time API for Jaipur Sarafa might not be freely available,
@@ -71,7 +78,14 @@ export class MetalRatesService {
   // Real API implementation (to be implemented when API is available)
   private static async fetchFromRealAPI(): Promise<MetalRate[]> {
     try {
-      // Example API call - replace with actual Jaipur Sarafa API
+      // First try to get data from Narnoli Corporation
+      const narnoliData = await narnoliCorporationService.getRatesWithCache();
+
+      if (narnoliData.status === "success") {
+        return this.parseNarnoliData(narnoliData);
+      }
+
+      // If Narnoli fails, try Jaipur Sarafa API
       const response = await fetch("https://api.jaipursarafa.com/rates", {
         headers: {
           Accept: "application/json",
@@ -86,9 +100,88 @@ export class MetalRatesService {
       const data = await response.json();
       return this.parseAPIResponse(data);
     } catch (error) {
-      console.warn("Real API failed, falling back to mock data:", error);
+      console.warn("All APIs failed, falling back to mock data:", error);
       return this.fetchFromMockAPI();
     }
+  }
+
+  // Parse Narnoli Corporation data into MetalRate format
+  private static parseNarnoliData(narnoliData: NarnoliRatesData): MetalRate[] {
+    const rates: MetalRate[] = [];
+
+    // Process market rates
+    narnoliData.marketRates.forEach((rate) => {
+      if (rate.product.toLowerCase().includes("gold")) {
+        // Determine purity from product name
+        let purity = "22K"; // default
+        if (rate.product.includes("99.5")) purity = "99.5%";
+        else if (rate.product.includes("24K") || rate.product.includes("24"))
+          purity = "24K";
+        else if (rate.product.includes("22K") || rate.product.includes("22"))
+          purity = "22K";
+        else if (rate.product.includes("18K") || rate.product.includes("18"))
+          purity = "18K";
+
+        rates.push({
+          metal: "gold",
+          purity,
+          rate: rate.ask || rate.bid || 0,
+          unit: "per gram",
+          lastUpdated: rate.lastUpdated,
+          source: "narnoli",
+        });
+      } else if (rate.product.toLowerCase().includes("silver")) {
+        let purity = "925"; // default
+        if (rate.product.includes("999")) purity = "999";
+        else if (rate.product.includes("925")) purity = "925";
+
+        rates.push({
+          metal: "silver",
+          purity,
+          rate: rate.ask || rate.bid || 0,
+          unit: "per gram",
+          lastUpdated: rate.lastUpdated,
+          source: "narnoli",
+        });
+      }
+    });
+
+    // Process gold auction rates
+    narnoliData.goldAuctionRates.forEach((rate) => {
+      rates.push({
+        metal: "gold",
+        purity: rate.gst ? `${rate.gst}K` : "22K",
+        rate: rate.sell,
+        unit: "per gram",
+        lastUpdated: rate.lastUpdated,
+        source: "narnoli",
+      });
+    });
+
+    // Process spot rates
+    narnoliData.spotRates.forEach((rate) => {
+      if (rate.product.toLowerCase().includes("gold")) {
+        rates.push({
+          metal: "gold",
+          purity: "Spot",
+          rate: (rate.bid + rate.ask) / 2, // Average of bid and ask
+          unit: "per gram",
+          lastUpdated: rate.lastUpdated,
+          source: "narnoli",
+        });
+      } else if (rate.product.toLowerCase().includes("silver")) {
+        rates.push({
+          metal: "silver",
+          purity: "Spot",
+          rate: (rate.bid + rate.ask) / 2,
+          unit: "per gram",
+          lastUpdated: rate.lastUpdated,
+          source: "narnoli",
+        });
+      }
+    });
+
+    return rates;
   }
 
   private static parseAPIResponse(data: any): MetalRate[] {
@@ -118,8 +211,11 @@ export class MetalRatesService {
         };
       }
 
-      // Fetch new data - currently using mock, switch to fetchFromRealAPI when available
-      const rates = await this.fetchFromMockAPI();
+      // Fetch new data - try real API first, fallback to mock
+      const rates = await this.fetchFromRealAPI();
+
+      // Also get Narnoli data for additional context
+      const narnoliData = await narnoliCorporationService.getRatesWithCache();
 
       // Update cache
       this.cache = {
@@ -130,6 +226,7 @@ export class MetalRatesService {
       return {
         success: true,
         data: rates,
+        narnoliData,
         lastUpdated: new Date(now).toLocaleString("en-IN", {
           timeZone: "Asia/Kolkata",
         }),

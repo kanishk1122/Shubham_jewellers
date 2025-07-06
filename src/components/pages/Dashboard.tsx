@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { QuickRatesWidget } from "@/components/QuickRatesWidget";
+import { LiveMetalRatesWidget } from "@/components/LiveMetalRatesWidget";
+import PuppeteerLiveRatesWidget from "@/components/PuppeteerLiveRatesWidget";
 
 interface DashboardProps {}
 
@@ -70,7 +73,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       change: totalProducts > 0 ? `+${totalProducts}` : "0",
       color: "text-blue-600 dark:text-blue-400",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
-      icon: "�",
+      icon: "💍",
     },
     {
       label: "Total Customers",
@@ -78,7 +81,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       change: totalCustomers > 0 ? `+${totalCustomers}` : "0",
       color: "text-purple-600 dark:text-purple-400",
       bgColor: "bg-purple-50 dark:bg-purple-900/20",
-      icon: "�",
+      icon: "👥",
     },
     {
       label: "Total Weight",
@@ -103,7 +106,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
     {
       title: "Add Your First Customer",
       description: "Build your customer database",
-      icon: "�",
+      icon: "👥",
       color: "text-purple-600",
       bgColor: "bg-purple-50 dark:bg-purple-900/20",
       action: () => router.push("/customers"),
@@ -172,6 +175,9 @@ export const Dashboard: React.FC<DashboardProps> = () => {
           </div>
         ))}
       </div>
+
+      {/* Live Metal Rates Widget */}
+      <QuickRatesWidget />
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
@@ -270,80 +276,10 @@ export const Dashboard: React.FC<DashboardProps> = () => {
           </div>
         </div>
 
-        {/* Today's Metal Rates */}
-        <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-            Today's Metal Rates
-          </h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="text-2xl">🟡</div>
-                <div>
-                  <p className="font-medium text-zinc-900 dark:text-white">
-                    Gold 22K
-                  </p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    Per gram
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400">
-                  ₹5,956
-                </p>
-                <p className="text-xs text-green-600">+₹25</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-700 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="text-2xl">⚪</div>
-                <div>
-                  <p className="font-medium text-zinc-900 dark:text-white">
-                    Silver 925
-                  </p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    Per gram
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-zinc-600 dark:text-zinc-300">
-                  ₹78
-                </p>
-                <p className="text-xs text-red-600">-₹2</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-700 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="text-2xl">⚫</div>
-                <div>
-                  <p className="font-medium text-zinc-900 dark:text-white">
-                    Platinum
-                  </p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    Per gram
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-zinc-600 dark:text-zinc-300">
-                  ₹3,200
-                </p>
-                <p className="text-xs text-green-600">+₹15</p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-600">
-            <button
-              onClick={() => router.push("/rates")}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
-            >
-              Update All Rates →
-            </button>
-          </div>
+        {/* Live Metal Rates from Narnoli Corporation */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <LiveMetalRatesWidget />
+          <PuppeteerLiveRatesWidget />
         </div>
       </div>
     </div>
