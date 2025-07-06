@@ -99,7 +99,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   };
 
   if (!mounted) {
-    return <div className="min-h-screen bg-white dark:bg-gray-900" />;
+    return <div className="min-h-screen bg-white dark:bg-zinc-900" />;
   }
 
   return (

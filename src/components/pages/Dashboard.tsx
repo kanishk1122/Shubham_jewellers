@@ -149,14 +149,14 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         {quickStats.map((stat, index) => (
           <div
             key={index}
-            className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300"
+            className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700 hover:shadow-lg transition-all duration-300"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   {stat.label}
                 </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                <p className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
                   {stat.value}
                 </p>
                 <p className={`text-sm ${stat.color} mt-1`}>
@@ -174,8 +174,8 @@ export const Dashboard: React.FC<DashboardProps> = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
+        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
           Quick Actions
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -228,8 +228,8 @@ export const Dashboard: React.FC<DashboardProps> = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Getting Started / Quick Actions */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
             {totalProducts === 0 || totalCustomers === 0
               ? "Getting Started"
               : "Quick Actions"}
@@ -241,7 +241,7 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                 <button
                   key={index}
                   onClick={action.action}
-                  className={`w-full flex items-start space-x-3 p-4 rounded-lg ${action.bgColor} border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 text-left`}
+                  className={`w-full flex items-start space-x-3 p-4 rounded-lg ${action.bgColor} border border-zinc-200 dark:border-zinc-600 hover:shadow-md transition-all duration-200 text-left`}
                 >
                   <div className="text-2xl">{action.icon}</div>
                   <div className="flex-1 min-w-0">
@@ -252,15 +252,15 @@ export const Dashboard: React.FC<DashboardProps> = () => {
                     >
                       {action.title}
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
                       {action.description}
                     </p>
                   </div>
-                  <div className="text-gray-400 dark:text-gray-500">→</div>
+                  <div className="text-zinc-400 dark:text-zinc-500">→</div>
                 </button>
               ))}
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+          <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-600">
             <button
               onClick={() => router.push("/bills")}
               className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
@@ -271,8 +271,8 @@ export const Dashboard: React.FC<DashboardProps> = () => {
         </div>
 
         {/* Today's Metal Rates */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
             Today's Metal Rates
           </h3>
           <div className="space-y-4">
@@ -280,10 +280,10 @@ export const Dashboard: React.FC<DashboardProps> = () => {
               <div className="flex items-center space-x-3">
                 <div className="text-2xl">🟡</div>
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-zinc-900 dark:text-white">
                     Gold 22K
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     Per gram
                   </p>
                 </div>
@@ -296,47 +296,47 @@ export const Dashboard: React.FC<DashboardProps> = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-700 rounded-lg">
               <div className="flex items-center space-x-3">
                 <div className="text-2xl">⚪</div>
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-zinc-900 dark:text-white">
                     Silver 925
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     Per gram
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-gray-600 dark:text-gray-300">
+                <p className="text-lg font-bold text-zinc-600 dark:text-zinc-300">
                   ₹78
                 </p>
                 <p className="text-xs text-red-600">-₹2</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-700 rounded-lg">
               <div className="flex items-center space-x-3">
                 <div className="text-2xl">⚫</div>
                 <div>
-                  <p className="font-medium text-gray-900 dark:text-white">
+                  <p className="font-medium text-zinc-900 dark:text-white">
                     Platinum
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     Per gram
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-gray-600 dark:text-gray-300">
+                <p className="text-lg font-bold text-zinc-600 dark:text-zinc-300">
                   ₹3,200
                 </p>
                 <p className="text-xs text-green-600">+₹15</p>
               </div>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+          <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-600">
             <button
               onClick={() => router.push("/rates")}
               className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"

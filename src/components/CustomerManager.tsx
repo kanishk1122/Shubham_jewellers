@@ -196,29 +196,29 @@ export const CustomerList: React.FC = () => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-300">
-          <thead className="bg-gray-50">
+        <table className="min-w-full bg-white border border-zinc-300">
+          <thead className="bg-zinc-50">
             <tr>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Name
               </th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Phone
               </th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Email
               </th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 City
               </th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-zinc-200">
             {displayCustomers.map((customer) => (
-              <tr key={customer.id} className="hover:bg-gray-50">
+              <tr key={customer.id} className="hover:bg-zinc-50">
                 <td className="px-4 py-2 text-sm font-medium">
                   {customer.name}
                 </td>

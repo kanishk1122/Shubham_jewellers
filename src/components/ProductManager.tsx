@@ -230,7 +230,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               {formData.stoneDetails.map((stone, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between bg-gray-50 p-3 rounded"
+                  className="flex items-center justify-between bg-zinc-50 p-3 rounded"
                 >
                   <span className="text-sm">
                     {stone.count} {stone.type}(s) - {stone.weight} carats -{" "}
@@ -369,32 +369,32 @@ export const ProductList: React.FC = () => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-300">
-          <thead className="bg-gray-50">
+        <table className="min-w-full bg-white border border-zinc-300">
+          <thead className="bg-zinc-50">
             <tr>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Name
               </th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Category
               </th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Material
               </th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Weight
               </th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Price/gram
               </th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+              <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-zinc-200">
             {displayProducts.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50">
+              <tr key={product.id} className="hover:bg-zinc-50">
                 <td className="px-4 py-2 text-sm">{product.name}</td>
                 <td className="px-4 py-2 text-sm">{product.category}</td>
                 <td className="px-4 py-2 text-sm">

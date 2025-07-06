@@ -1,0 +1,645 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { Card, Input, Button } from "@/components/ui/enhanced";
+
+interface BillItem {
+  id: string;
+  productId: string;
+  productSerialNumber: string;
+  productName: string;
+  category: string;
+  metal: "gold" | "silver" | "platinum";
+  purity: string;
+  weight: number;
+  stoneWeight?: number;
+  netWeight: number;
+  rate: number;
+  makingCharges: number;
+  makingChargesType: "fixed" | "percentage";
+  wastage: number;
+  wastageType: "fixed" | "percentage";
+  amount: number;
+}
+
+interface Bill {
+  id: string;
+  billNumber: string;
+  date: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  customerGST?: string;
+  items: BillItem[];
+  subtotal: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  totalAmount: number;
+  discount: number;
+  finalAmount: number;
+  paymentMode: "cash" | "card" | "upi" | "bank_transfer" | "cheque" | "partial";
+  paymentStatus: "paid" | "pending" | "partial";
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const EnhancedBillsHistory: React.FC = () => {
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterDateRange, setFilterDateRange] = useState<string>("all");
+  const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+
+  // Load bills from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("bills");
+    if (saved) {
+      try {
+        setBills(JSON.parse(saved));
+      } catch (error) {
+        console.error("Failed to parse bills:", error);
+      }
+    }
+  }, []);
+
+  // Filter bills
+  const filteredBills = bills.filter((bill) => {
+    const matchesSearch =
+      bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bill.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bill.customerPhone.includes(searchTerm);
+
+    const matchesStatus =
+      filterStatus === "all" || bill.paymentStatus === filterStatus;
+
+    let matchesDate = true;
+    if (filterDateRange !== "all") {
+      const billDate = new Date(bill.date);
+      const today = new Date();
+      const daysDiff = Math.floor(
+        (today.getTime() - billDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      switch (filterDateRange) {
+        case "today":
+          matchesDate = daysDiff === 0;
+          break;
+        case "week":
+          matchesDate = daysDiff <= 7;
+          break;
+        case "month":
+          matchesDate = daysDiff <= 30;
+          break;
+        case "quarter":
+          matchesDate = daysDiff <= 90;
+          break;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
+  // Sort bills by date (newest first)
+  const sortedBills = filteredBills.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  // Calculate summary statistics
+  const totalRevenue = filteredBills.reduce(
+    (sum, bill) => sum + bill.finalAmount,
+    0
+  );
+  const pendingAmount = filteredBills
+    .filter((bill) => bill.paymentStatus === "pending")
+    .reduce((sum, bill) => sum + bill.finalAmount, 0);
+  const avgBillValue =
+    filteredBills.length > 0 ? totalRevenue / filteredBills.length : 0;
+
+  const printBill = (bill: Bill) => {
+    // Create a printable bill format
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const billHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Bill ${bill.billNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .company-name { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+          .bill-details { display: flex; justify-content: space-between; margin-bottom: 20px; }
+          .customer-details { margin-bottom: 20px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+          .totals { margin-left: auto; width: 300px; }
+          .total-row { font-weight: bold; }
+          .footer { margin-top: 30px; text-align: center; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-name">Shubham Jewellers</div>
+          <div>Complete Jewelry Solutions</div>
+        </div>
+        
+        <div class="bill-details">
+          <div>
+            <strong>Bill No:</strong> ${bill.billNumber}<br>
+            <strong>Date:</strong> ${new Date(bill.date).toLocaleDateString()}
+          </div>
+          <div>
+            <strong>Payment Mode:</strong> ${bill.paymentMode.toUpperCase()}<br>
+            <strong>Status:</strong> ${bill.paymentStatus.toUpperCase()}
+          </div>
+        </div>
+        
+        <div class="customer-details">
+          <strong>Customer Details:</strong><br>
+          Name: ${bill.customerName}<br>
+          Phone: ${bill.customerPhone}<br>
+          ${bill.customerGST ? `GST: ${bill.customerGST}<br>` : ""}
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Metal/Purity</th>
+              <th>Weight (g)</th>
+              <th>Rate (₹/g)</th>
+              <th>Making (₹)</th>
+              <th>Wastage (₹)</th>
+              <th>Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${bill.items
+              .map(
+                (item) => `
+              <tr>
+                <td>${
+                  item.productName
+                }<br><small style="color: #666; font-family: monospace;">#{item.productSerialNumber}</small></td>
+                <td>${item.metal} ${item.purity}</td>
+                <td>${item.netWeight}</td>
+                <td>${item.rate}</td>
+                <td>${item.makingCharges}${
+                  item.makingChargesType === "percentage" ? "%" : ""
+                }</td>
+                <td>${item.wastage}${
+                  item.wastageType === "percentage" ? "%" : ""
+                }</td>
+                <td>${item.amount.toLocaleString()}</td>
+              </tr>
+            `
+              )
+              .join("")}
+          </tbody>
+        </table>
+        
+        <div class="totals">
+          <table>
+            <tr><td>Subtotal:</td><td>₹${bill.subtotal.toLocaleString()}</td></tr>
+            <tr><td>Discount:</td><td>-₹${bill.discount.toLocaleString()}</td></tr>
+            <tr><td>CGST (3%):</td><td>₹${bill.cgst.toLocaleString()}</td></tr>
+            <tr><td>SGST (3%):</td><td>₹${bill.sgst.toLocaleString()}</td></tr>
+            <tr class="total-row"><td><strong>Total Amount:</strong></td><td><strong>₹${bill.finalAmount.toLocaleString()}</strong></td></tr>
+          </table>
+        </div>
+        
+        ${bill.notes ? `<div><strong>Notes:</strong> ${bill.notes}</div>` : ""}
+        
+        <div class="footer">
+          Thank you for choosing Shubham Jewellers!<br>
+          Generated on ${new Date().toLocaleString()}
+        </div>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(billHTML);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+            Bills History
+          </h1>
+          <p className="text-zinc-600 dark:text-zinc-400 mt-1">
+            View and manage all billing records
+          </p>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Total Bills
+              </p>
+              <p className="text-2xl font-bold text-zinc-900 dark:text-white">
+                {filteredBills.length}
+              </p>
+            </div>
+            <div className="text-3xl">🧾</div>
+          </div>
+        </Card>
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Total Revenue
+              </p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                ₹{totalRevenue.toLocaleString()}
+              </p>
+            </div>
+            <div className="text-3xl">💰</div>
+          </div>
+        </Card>
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Pending Amount
+              </p>
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                ₹{pendingAmount.toLocaleString()}
+              </p>
+            </div>
+            <div className="text-3xl">⏳</div>
+          </div>
+        </Card>
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Avg Bill Value
+              </p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                ₹{avgBillValue.toLocaleString()}
+              </p>
+            </div>
+            <div className="text-3xl">📊</div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Search and Filters */}
+      <Card className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="md:col-span-2">
+            <Input
+              placeholder="Search bills by number, customer name, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            >
+              <option value="all">All Status</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="partial">Partial</option>
+            </select>
+          </div>
+          <div>
+            <select
+              value={filterDateRange}
+              onChange={(e) => setFilterDateRange(e.target.value)}
+              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="quarter">This Quarter</option>
+            </select>
+          </div>
+        </div>
+      </Card>
+
+      {/* Bills List */}
+      <div className="grid grid-cols-1 gap-4">
+        {sortedBills.map((bill) => (
+          <Card key={bill.id} className="p-6 hover:shadow-lg transition-shadow">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-3">
+                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                    Bill #{bill.billNumber}
+                  </h3>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      bill.paymentStatus === "paid"
+                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
+                        : bill.paymentStatus === "pending"
+                        ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
+                        : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
+                    }`}
+                  >
+                    {bill.paymentStatus.charAt(0).toUpperCase() +
+                      bill.paymentStatus.slice(1)}
+                  </span>
+                  <span className="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                    {bill.paymentMode.replace("_", " ").toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
+                  <div>
+                    <p className="text-zinc-500 dark:text-zinc-400">Customer</p>
+                    <p className="font-medium">{bill.customerName}</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">
+                      {bill.customerPhone}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500 dark:text-zinc-400">Date</p>
+                    <p className="font-medium">
+                      {new Date(bill.date).toLocaleDateString()}
+                    </p>
+                    <p className="text-zinc-600 dark:text-zinc-400">
+                      {new Date(bill.createdAt).toLocaleTimeString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500 dark:text-zinc-400">Items</p>
+                    <p className="font-medium">{bill.items.length} item(s)</p>
+                    <p className="text-zinc-600 dark:text-zinc-400">
+                      {bill.items
+                        .reduce((sum, item) => sum + item.netWeight, 0)
+                        .toFixed(2)}
+                      g total
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500 dark:text-zinc-400">Amount</p>
+                    <p className="font-bold text-green-600 dark:text-green-400">
+                      ₹{bill.finalAmount.toLocaleString()}
+                    </p>
+                    {bill.discount > 0 && (
+                      <p className="text-red-600 dark:text-red-400 text-xs">
+                        Discount: ₹{bill.discount.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-zinc-500 dark:text-zinc-400">
+                      Tax (GST)
+                    </p>
+                    <p className="font-medium">
+                      ₹{(bill.cgst + bill.sgst + bill.igst).toLocaleString()}
+                    </p>
+                    <p className="text-zinc-600 dark:text-zinc-400 text-xs">
+                      CGST + SGST
+                    </p>
+                  </div>
+                </div>
+
+                {bill.notes && (
+                  <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-sm">
+                    <p className="text-zinc-600 dark:text-zinc-400">
+                      <strong>Notes:</strong> {bill.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedBill(bill)}
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2"
+                  title="View Details"
+                >
+                  👁️
+                </button>
+                <button
+                  onClick={() => printBill(bill)}
+                  className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-2"
+                  title="Print Bill"
+                >
+                  🖨️
+                </button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {sortedBills.length === 0 && (
+        <Card className="p-8 text-center">
+          <div className="text-4xl mb-4">📋</div>
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
+            No bills found
+          </h3>
+          <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+            {bills.length === 0
+              ? "No bills have been created yet."
+              : "Try adjusting your search or filter criteria."}
+          </p>
+        </Card>
+      )}
+
+      {/* Bill Details Modal */}
+      {selectedBill && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+                  Bill Details - #{selectedBill.billNumber}
+                </h2>
+                <button
+                  onClick={() => setSelectedBill(null)}
+                  className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
+                    Customer Information
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p>
+                      <strong>Name:</strong> {selectedBill.customerName}
+                    </p>
+                    <p>
+                      <strong>Phone:</strong> {selectedBill.customerPhone}
+                    </p>
+                    {selectedBill.customerGST && (
+                      <p>
+                        <strong>GST:</strong> {selectedBill.customerGST}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
+                    Bill Information
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p>
+                      <strong>Date:</strong>{" "}
+                      {new Date(selectedBill.date).toLocaleDateString()}
+                    </p>
+                    <p>
+                      <strong>Payment Mode:</strong>{" "}
+                      {selectedBill.paymentMode.replace("_", " ").toUpperCase()}
+                    </p>
+                    <p>
+                      <strong>Status:</strong>{" "}
+                      {selectedBill.paymentStatus.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="font-semibold text-zinc-900 dark:text-white mb-3">
+                  Items
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border border-zinc-200 dark:border-zinc-700">
+                    <thead className="bg-zinc-50 dark:bg-zinc-700">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300">
+                          Product
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300">
+                          Metal/Purity
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300">
+                          Weight
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300">
+                          Rate
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300">
+                          Making
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-zinc-500 dark:text-zinc-300">
+                          Amount
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-700">
+                      {selectedBill.items.map((item) => (
+                        <tr key={item.id}>
+                          <td className="px-3 py-2 text-sm text-zinc-900 dark:text-white">
+                            <div>
+                              <p className="font-medium">{item.productName}</p>
+                              <p className="text-blue-600 dark:text-blue-400 font-mono text-xs">
+                                #{item.productSerialNumber}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-sm text-zinc-900 dark:text-white">
+                            {item.metal} {item.purity}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-zinc-900 dark:text-white">
+                            {item.netWeight}g
+                          </td>
+                          <td className="px-3 py-2 text-sm text-zinc-900 dark:text-white">
+                            ₹{item.rate}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-zinc-900 dark:text-white">
+                            ₹{item.makingCharges}
+                            {item.makingChargesType === "percentage" ? "%" : ""}
+                          </td>
+                          <td className="px-3 py-2 text-sm font-medium text-zinc-900 dark:text-white">
+                            ₹{item.amount.toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  {selectedBill.notes && (
+                    <>
+                      <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
+                        Notes
+                      </h3>
+                      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        {selectedBill.notes}
+                      </p>
+                    </>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
+                    Bill Summary
+                  </h3>
+                  <div className="bg-zinc-50 dark:bg-zinc-700 rounded-lg p-3 space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>₹{selectedBill.subtotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Discount:</span>
+                      <span className="text-red-600">
+                        -₹{selectedBill.discount.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>CGST (3%):</span>
+                      <span>₹{selectedBill.cgst.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>SGST (3%):</span>
+                      <span>₹{selectedBill.sgst.toLocaleString()}</span>
+                    </div>
+                    <div className="border-t border-zinc-300 dark:border-zinc-600 pt-1">
+                      <div className="flex justify-between font-bold">
+                        <span>Total Amount:</span>
+                        <span className="text-green-600">
+                          ₹{selectedBill.finalAmount.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-2">
+                <Button onClick={() => printBill(selectedBill)}>
+                  🖨️ Print Bill
+                </Button>
+                <Button
+                  onClick={() => setSelectedBill(null)}
+                  variant="secondary"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+};

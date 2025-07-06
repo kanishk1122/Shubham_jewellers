@@ -119,10 +119,10 @@ export const EnhancedMetalRatesManager: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
             Metal Rates
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-zinc-600 dark:text-zinc-400 mt-1">
             Live rates from Jaipur Sarafa Market and custom local rates
           </p>
         </div>
@@ -149,11 +149,11 @@ export const EnhancedMetalRatesManager: React.FC = () => {
       {/* Live Rates from Jaipur Sarafa */}
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
             🌟 Live Jaipur Sarafa Rates
           </h2>
           {lastUpdated && (
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">
               Last updated: {lastUpdated}
             </span>
           )}
@@ -162,7 +162,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
         {loading && (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-gray-600 dark:text-gray-400">
+            <span className="ml-2 text-zinc-600 dark:text-zinc-400">
               Loading live rates...
             </span>
           </div>
@@ -185,17 +185,17 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                   <span className="text-2xl">
                     {rate.metal === "gold" ? "🥇" : "🥈"}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-800 px-2 py-1 rounded">
                     Live
                   </span>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white capitalize">
+                <h3 className="font-semibold text-zinc-900 dark:text-white capitalize">
                   {rate.metal} {rate.purity}
                 </h3>
                 <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                   ₹{rate.rate.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   {rate.unit}
                 </p>
               </div>
@@ -207,23 +207,23 @@ export const EnhancedMetalRatesManager: React.FC = () => {
       {/* Custom Local Rates */}
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
             🏪 Custom Local Rates
           </h2>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="text-sm text-zinc-500 dark:text-zinc-400">
             {localRates.length} custom rate{localRates.length !== 1 ? "s" : ""}
           </span>
         </div>
 
         {/* Add/Edit Form */}
         {(showAddForm || editingRate) && (
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-4">
-            <h3 className="font-medium text-gray-900 dark:text-white mb-3">
+          <div className="bg-zinc-50 dark:bg-zinc-700 rounded-lg p-4 mb-4">
+            <h3 className="font-medium text-zinc-900 dark:text-white mb-3">
               {editingRate ? "Edit Rate" : "Add New Rate"}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                   Metal
                 </label>
                 <select
@@ -234,14 +234,14 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                       metal: e.target.value as "gold" | "silver",
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                 >
                   <option value="gold">Gold</option>
                   <option value="silver">Silver</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                   Purity
                 </label>
                 <Input
@@ -253,7 +253,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                   Rate (₹)
                 </label>
                 <Input
@@ -266,7 +266,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                   Unit
                 </label>
                 <select
@@ -274,7 +274,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, unit: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                 >
                   <option value="per gram">per gram</option>
                   <option value="per tola">per tola</option>
@@ -325,16 +325,16 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-white capitalize">
+                <h3 className="font-semibold text-zinc-900 dark:text-white capitalize">
                   {rate.metal} {rate.purity}
                 </h3>
                 <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   ₹{rate.rate.toLocaleString()}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   {rate.unit}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                   Updated: {rate.lastUpdated}
                 </p>
               </div>
@@ -342,7 +342,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-zinc-500 dark:text-zinc-400 mb-4">
               No custom rates added yet
             </p>
             <Button onClick={() => setShowAddForm(true)}>

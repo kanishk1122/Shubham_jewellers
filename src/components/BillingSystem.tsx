@@ -40,7 +40,7 @@ const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
             {displayProducts.map((product) => (
               <div
                 key={product.id}
-                className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                className="border rounded-lg p-4 hover:bg-zinc-50 cursor-pointer"
                 onClick={() => {
                   onSelectProduct(product);
                   onClose();
@@ -49,10 +49,10 @@ const ProductSelectionModal: React.FC<ProductSelectionModalProps> = ({
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-medium">{product.name}</h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-zinc-600">
                       {product.category} - {product.material} {product.purity}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-zinc-500">
                       Weight: {product.weight}g | Price: ₹{product.basePrice}/g
                     </p>
                   </div>
@@ -133,7 +133,7 @@ const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
         </div>
 
         {isAddingNew && (
-          <div className="border rounded-lg p-4 bg-gray-50">
+          <div className="border rounded-lg p-4 bg-zinc-50">
             <h4 className="font-medium mb-3">Add New Customer</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <Input
@@ -178,7 +178,7 @@ const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
             {displayCustomers.map((customer) => (
               <div
                 key={customer.id}
-                className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer"
+                className="border rounded-lg p-3 hover:bg-zinc-50 cursor-pointer"
                 onClick={() => {
                   onSelectCustomer(customer);
                   onClose();
@@ -187,9 +187,9 @@ const CustomerSelectionModal: React.FC<CustomerSelectionModalProps> = ({
                 <div className="flex justify-between items-center">
                   <div>
                     <h4 className="font-medium">{customer.name}</h4>
-                    <p className="text-sm text-gray-600">{customer.phone}</p>
+                    <p className="text-sm text-zinc-600">{customer.phone}</p>
                     {customer.email && (
-                      <p className="text-sm text-gray-500">{customer.email}</p>
+                      <p className="text-sm text-zinc-500">{customer.email}</p>
                     )}
                   </div>
                 </div>
@@ -265,21 +265,21 @@ export const BillingSystem: React.FC = () => {
       <Card title="New Bill">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-zinc-700 mb-1">
               Bill Number
             </label>
             <p className="text-lg font-semibold">{currentBill.billNumber}</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-zinc-700 mb-1">
               Date
             </label>
             <p className="text-lg">{new Date().toLocaleDateString()}</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-zinc-700 mb-1">
               Customer
             </label>
             {selectedCustomer ? (
@@ -313,38 +313,38 @@ export const BillingSystem: React.FC = () => {
         {currentBill.items && currentBill.items.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white">
-              <thead className="bg-gray-50">
+              <thead className="bg-zinc-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Product
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Material
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Weight
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Quantity
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Discount %
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Amount
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-zinc-200">
                 {currentBill.items.map((item) => (
                   <tr key={item.id}>
                     <td className="px-4 py-2">
                       <div>
                         <p className="font-medium">{item.product.name}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-zinc-500">
                           {item.product.category}
                         </p>
                       </div>
@@ -401,7 +401,7 @@ export const BillingSystem: React.FC = () => {
             </table>
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-zinc-500">
             No items added to bill yet. Click "Add Product" to start.
           </div>
         )}
@@ -440,7 +440,7 @@ export const BillingSystem: React.FC = () => {
                   ₹{totals.grandTotal.toLocaleString()}
                 </span>
               </div>
-              <div className="text-sm text-gray-600 border-t pt-2">
+              <div className="text-sm text-zinc-600 border-t pt-2">
                 Amount in words:{" "}
                 {BillingCalculator.numberToWords(totals.grandTotal)}
               </div>

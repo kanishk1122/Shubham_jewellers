@@ -159,10 +159,10 @@ export const EnhancedCustomerManager: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
             Customer Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-zinc-600 dark:text-zinc-400 mt-1">
             Manage your customer database and relationships
           </p>
         </div>
@@ -188,12 +188,12 @@ export const EnhancedCustomerManager: React.FC = () => {
       {/* Add/Edit Form */}
       {(showAddForm || editingCustomer) && (
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
             {editingCustomer ? "Edit Customer" : "Add New Customer"}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Full Name *
               </label>
               <Input
@@ -205,7 +205,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Phone Number *
               </label>
               <Input
@@ -217,7 +217,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Email Address
               </label>
               <Input
@@ -230,7 +230,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Address
               </label>
               <Input
@@ -242,7 +242,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 GST Number
               </label>
               <Input
@@ -257,7 +257,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 PAN Number
               </label>
               <Input
@@ -272,7 +272,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               />
             </div>
             <div className="md:col-span-2 lg:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Notes
               </label>
               <textarea
@@ -282,7 +282,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                 }
                 placeholder="Additional notes about the customer..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
               />
             </div>
           </div>
@@ -336,21 +336,21 @@ export const EnhancedCustomerManager: React.FC = () => {
               </div>
             </div>
 
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
               {customer.name}
             </h3>
 
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <span>📞</span>
-                <span className="text-gray-600 dark:text-gray-400">
+                <span className="text-zinc-600 dark:text-zinc-400">
                   {customer.phone}
                 </span>
               </div>
               {customer.email && (
                 <div className="flex items-center gap-2">
                   <span>📧</span>
-                  <span className="text-gray-600 dark:text-gray-400 truncate">
+                  <span className="text-zinc-600 dark:text-zinc-400 truncate">
                     {customer.email}
                   </span>
                 </div>
@@ -358,7 +358,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               {customer.address && (
                 <div className="flex items-start gap-2">
                   <span>🏠</span>
-                  <span className="text-gray-600 dark:text-gray-400 text-xs">
+                  <span className="text-zinc-600 dark:text-zinc-400 text-xs">
                     {customer.address}
                   </span>
                 </div>
@@ -366,7 +366,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               {customer.gstNumber && (
                 <div className="flex items-center gap-2">
                   <span>🏢</span>
-                  <span className="text-gray-600 dark:text-gray-400 font-mono text-xs">
+                  <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
                     {customer.gstNumber}
                   </span>
                 </div>
@@ -374,7 +374,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               {customer.panNumber && (
                 <div className="flex items-center gap-2">
                   <span>🆔</span>
-                  <span className="text-gray-600 dark:text-gray-400 font-mono text-xs">
+                  <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
                     {customer.panNumber}
                   </span>
                 </div>
@@ -382,24 +382,24 @@ export const EnhancedCustomerManager: React.FC = () => {
             </div>
 
             {customer.notes && (
-              <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-400">
+              <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-xs text-zinc-600 dark:text-zinc-400">
                 {customer.notes}
               </div>
             )}
 
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
               <div className="flex justify-between items-center text-sm">
                 <div>
                   <p className="font-medium text-green-600 dark:text-green-400">
                     ₹{customer.totalPurchases.toLocaleString()}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Total Purchases
                   </p>
                 </div>
                 {customer.lastPurchaseDate && (
                   <div className="text-right">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
                       Last Purchase
                     </p>
                     <p className="text-xs font-medium">
@@ -408,7 +408,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                 Customer since:{" "}
                 {new Date(customer.createdAt).toLocaleDateString()}
               </p>
@@ -420,10 +420,10 @@ export const EnhancedCustomerManager: React.FC = () => {
       {filteredCustomers.length === 0 && (
         <Card className="p-8 text-center">
           <div className="text-4xl mb-4">👥</div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
             No customers found
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-zinc-600 dark:text-zinc-400 mb-4">
             {customers.length === 0
               ? "Start by adding your first customer to the database."
               : "Try adjusting your search criteria."}
@@ -441,24 +441,24 @@ export const EnhancedCustomerManager: React.FC = () => {
         <Card className="p-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-sm">
             <div>
-              <p className="font-semibold text-gray-900 dark:text-white">
+              <p className="font-semibold text-zinc-900 dark:text-white">
                 {customers.length}
               </p>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-zinc-600 dark:text-zinc-400">
                 Total Customers
               </p>
             </div>
             <div>
-              <p className="font-semibold text-gray-900 dark:text-white">
+              <p className="font-semibold text-zinc-900 dark:text-white">
                 {filteredCustomers.length}
               </p>
-              <p className="text-gray-600 dark:text-gray-400">Showing</p>
+              <p className="text-zinc-600 dark:text-zinc-400">Showing</p>
             </div>
             <div>
-              <p className="font-semibold text-gray-900 dark:text-white">
+              <p className="font-semibold text-zinc-900 dark:text-white">
                 {customers.filter((c) => c.gstNumber).length}
               </p>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-zinc-600 dark:text-zinc-400">
                 Business Customers
               </p>
             </div>
@@ -469,7 +469,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                   .reduce((sum, c) => sum + c.totalPurchases, 0)
                   .toLocaleString()}
               </p>
-              <p className="text-gray-600 dark:text-gray-400">Total Sales</p>
+              <p className="text-zinc-600 dark:text-zinc-400">Total Sales</p>
             </div>
           </div>
         </Card>

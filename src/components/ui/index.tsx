@@ -18,7 +18,7 @@ export const Button: React.FC<ButtonProps> = ({
   const variantClasses = {
     primary: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500",
     secondary:
-      "bg-gray-200 hover:bg-gray-300 text-gray-900 focus:ring-gray-500",
+      "bg-zinc-200 hover:bg-zinc-300 text-zinc-900 focus:ring-zinc-500",
     danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
     success: "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500",
   };
@@ -53,12 +53,12 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="mb-4">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-zinc-700 mb-1">
           {label}
         </label>
       )}
       <input
-        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+        className={`w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
           error ? "border-red-300" : ""
         } ${className}`}
         {...props}
@@ -84,12 +84,12 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className="mb-4">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-zinc-700 mb-1">
           {label}
         </label>
       )}
       <select
-        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+        className={`w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
           error ? "border-red-300" : ""
         } ${className}`}
         {...props}
@@ -120,12 +120,12 @@ export const Textarea: React.FC<TextareaProps> = ({
   return (
     <div className="mb-4">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-zinc-700 mb-1">
           {label}
         </label>
       )}
       <textarea
-        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+        className={`w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
           error ? "border-red-300" : ""
         } ${className}`}
         {...props}
@@ -182,7 +182,7 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          className="fixed inset-0 transition-opacity bg-zinc-500 bg-opacity-75"
           onClick={onClose}
         />
 
@@ -191,10 +191,10 @@ export const Modal: React.FC<ModalProps> = ({
         >
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+              <h3 className="text-lg font-semibold text-zinc-900">{title}</h3>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="text-zinc-400 hover:text-zinc-600 focus:outline-none"
               >
                 <svg
                   className="w-6 h-6"
@@ -232,20 +232,20 @@ export const Table: React.FC<TableProps> = ({
 }) => {
   return (
     <div className={`overflow-x-auto ${className}`}>
-      <table className="min-w-full bg-white border border-gray-300">
-        <thead className="bg-gray-50">
+      <table className="min-w-full bg-white border border-zinc-300">
+        <thead className="bg-zinc-50">
           <tr>
             {headers.map((header, index) => (
               <th
                 key={index}
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"
+                className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider border-b"
               >
                 {header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">{children}</tbody>
+        <tbody className="bg-white divide-y divide-zinc-200">{children}</tbody>
       </table>
     </div>
   );

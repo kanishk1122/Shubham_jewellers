@@ -163,13 +163,13 @@ export const MetalRatesManager: React.FC = () => {
           return (
             <Card key={`${material}_${purity}`}>
               <div className="text-center">
-                <h3 className="text-sm font-medium text-gray-600">{label}</h3>
+                <h3 className="text-sm font-medium text-zinc-600">{label}</h3>
                 <p className="text-2xl font-bold text-yellow-600">
                   {rate ? `₹${rate.rate.toLocaleString()}` : "N/A"}
                 </p>
-                <p className="text-xs text-gray-500">per gram</p>
+                <p className="text-xs text-zinc-500">per gram</p>
                 {rate && (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-zinc-400">
                     Updated: {new Date(rate.date).toLocaleDateString()}
                   </p>
                 )}
@@ -187,27 +187,27 @@ export const MetalRatesManager: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-300">
-            <thead className="bg-gray-50">
+          <table className="min-w-full bg-white border border-zinc-300">
+            <thead className="bg-zinc-50">
               <tr>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Material
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Purity
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Rate (₹/gram)
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Last Updated
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Change
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-zinc-200">
               {latestRates.map((rate, index) => {
                 // Get previous rate for comparison
                 const allRatesForMaterial =
@@ -225,7 +225,7 @@ export const MetalRatesManager: React.FC = () => {
                   : 0;
 
                 return (
-                  <tr key={index} className="hover:bg-gray-50">
+                  <tr key={index} className="hover:bg-zinc-50">
                     <td className="px-4 py-2 font-medium">{rate.material}</td>
                     <td className="px-4 py-2">{rate.purity || "-"}</td>
                     <td className="px-4 py-2 text-lg font-semibold">
@@ -254,7 +254,7 @@ export const MetalRatesManager: React.FC = () => {
         </div>
 
         {latestRates.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-zinc-500">
             No metal rates configured yet. Click "Update Rate" to add rates.
           </div>
         )}
@@ -287,7 +287,7 @@ export const MetalRatesManager: React.FC = () => {
                     </div>
                   ))}
                   {sortedRates.length > 5 && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-zinc-500">
                       ... and {sortedRates.length - 5} more entries
                     </p>
                   )}

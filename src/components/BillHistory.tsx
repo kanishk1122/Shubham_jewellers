@@ -216,41 +216,41 @@ const BillDetailModal: React.FC<BillDetailModalProps> = ({
         <div>
           <h4 className="font-semibold mb-2">Items</h4>
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-300">
-              <thead className="bg-gray-50">
+            <table className="min-w-full bg-white border border-zinc-300">
+              <thead className="bg-zinc-50">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Product
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Material
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Weight
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Qty
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Discount
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                     Amount
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-zinc-200">
                 {bill.items.map((item, index) => (
                   <tr key={index}>
                     <td className="px-4 py-2">
                       <div>
                         <p className="font-medium">{item.product.name}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-zinc-500">
                           {item.product.category}
                         </p>
                         {item.product.stoneDetails &&
                           item.product.stoneDetails.length > 0 && (
-                            <p className="text-xs text-gray-400">
+                            <p className="text-xs text-zinc-400">
                               Stones:{" "}
                               {item.product.stoneDetails
                                 .map((s) => `${s.count} ${s.type}(s)`)
@@ -374,7 +374,7 @@ export const BillHistory: React.FC = () => {
             <p className="text-2xl font-bold text-blue-600">
               {filteredBills.length}
             </p>
-            <p className="text-sm text-gray-600">Total Bills</p>
+            <p className="text-sm text-zinc-600">Total Bills</p>
           </div>
         </Card>
         <Card>
@@ -382,7 +382,7 @@ export const BillHistory: React.FC = () => {
             <p className="text-2xl font-bold text-green-600">
               ₹{totalSales.toLocaleString()}
             </p>
-            <p className="text-sm text-gray-600">Total Sales</p>
+            <p className="text-sm text-zinc-600">Total Sales</p>
           </div>
         </Card>
         <Card>
@@ -390,7 +390,7 @@ export const BillHistory: React.FC = () => {
             <p className="text-2xl font-bold text-green-600">
               {paidBills.length}
             </p>
-            <p className="text-sm text-gray-600">Paid Bills</p>
+            <p className="text-sm text-zinc-600">Paid Bills</p>
           </div>
         </Card>
         <Card>
@@ -398,7 +398,7 @@ export const BillHistory: React.FC = () => {
             <p className="text-2xl font-bold text-orange-600">
               {pendingBills.length}
             </p>
-            <p className="text-sm text-gray-600">Pending Bills</p>
+            <p className="text-sm text-zinc-600">Pending Bills</p>
           </div>
         </Card>
       </div>
@@ -433,38 +433,38 @@ export const BillHistory: React.FC = () => {
       {/* Bills List */}
       <Card title="Bills History">
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-300">
-            <thead className="bg-gray-50">
+          <table className="min-w-full bg-white border border-zinc-300">
+            <thead className="bg-zinc-50">
               <tr>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Bill No.
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Date
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Customer
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Items
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Amount
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Payment
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Status
                 </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">
+                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-zinc-200">
               {filteredBills.map((bill) => (
-                <tr key={bill.id} className="hover:bg-gray-50">
+                <tr key={bill.id} className="hover:bg-zinc-50">
                   <td className="px-4 py-2 font-medium">{bill.billNumber}</td>
                   <td className="px-4 py-2 text-sm">
                     {new Date(bill.date).toLocaleDateString()}
@@ -472,7 +472,7 @@ export const BillHistory: React.FC = () => {
                   <td className="px-4 py-2">
                     <div>
                       <p className="font-medium">{bill.customer.name}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-zinc-500">
                         {bill.customer.phone}
                       </p>
                     </div>

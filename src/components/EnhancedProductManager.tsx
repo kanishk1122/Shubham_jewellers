@@ -5,6 +5,8 @@ import { Card, Input, Button } from "@/components/ui/enhanced";
 
 interface Product {
   id: string;
+  serialNumber: string;
+  slug: string;
   name: string;
   category:
     | "ring"
@@ -49,7 +51,17 @@ export const EnhancedProductManager: React.FC = () => {
     const saved = localStorage.getItem("products");
     if (saved) {
       try {
-        setProducts(JSON.parse(saved));
+        const parsedProducts = JSON.parse(saved);
+        const migratedProducts = migrateExistingProducts(parsedProducts);
+        setProducts(migratedProducts);
+
+        // Save migrated products back if any changes were made
+        const needsMigration = parsedProducts.some(
+          (p: any) => !p.serialNumber || !p.slug
+        );
+        if (needsMigration) {
+          localStorage.setItem("products", JSON.stringify(migratedProducts));
+        }
       } catch (error) {
         console.error("Failed to parse saved products:", error);
       }
@@ -62,6 +74,57 @@ export const EnhancedProductManager: React.FC = () => {
     localStorage.setItem("products", JSON.stringify(newProducts));
   };
 
+  // Generate slug from product name
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, "") // Remove special characters
+      .replace(/[\s_-]+/g, "-") // Replace spaces and underscores with hyphens
+      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+  };
+
+  // Generate serial number
+  const generateSerialNumber = (category: string, metal: string): string => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+
+    // Get category prefix
+    const categoryPrefixes = {
+      ring: "RG",
+      necklace: "NK",
+      bracelet: "BR",
+      earring: "ER",
+      pendant: "PD",
+      chain: "CH",
+      other: "OT",
+    };
+
+    // Get metal prefix
+    const metalPrefixes = {
+      gold: "G",
+      silver: "S",
+      platinum: "P",
+    };
+
+    const categoryPrefix =
+      categoryPrefixes[category as keyof typeof categoryPrefixes] || "OT";
+    const metalPrefix =
+      metalPrefixes[metal as keyof typeof metalPrefixes] || "G";
+
+    // Count existing products to get next serial number
+    const existingCount = products.length + 1;
+    const serialCount = String(existingCount).padStart(4, "0");
+
+    return `SJ${year}${month}${categoryPrefix}${metalPrefix}${serialCount}`;
+  };
+
+  // Generate unique ID
+  const generateUniqueId = (): string => {
+    return `prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+
   const handleAddProduct = () => {
     if (
       !formData.name ||
@@ -71,8 +134,17 @@ export const EnhancedProductManager: React.FC = () => {
     )
       return;
 
+    const productSlug = generateSlug(formData.name);
+    const serialNumber = generateSerialNumber(
+      formData.category,
+      formData.metal
+    );
+    const productId = generateUniqueId();
+
     const newProduct: Product = {
-      id: Date.now().toString(),
+      id: productId,
+      serialNumber: serialNumber,
+      slug: productSlug,
       name: formData.name,
       category: formData.category,
       metal: formData.metal,
@@ -117,11 +189,14 @@ export const EnhancedProductManager: React.FC = () => {
     )
       return;
 
+    const updatedSlug = generateSlug(formData.name);
+
     const updatedProducts = products.map((product) =>
       product.id === editingProduct.id
         ? {
             ...product,
             name: formData.name,
+            slug: updatedSlug,
             category: formData.category,
             metal: formData.metal,
             purity: formData.purity,
@@ -167,7 +242,10 @@ export const EnhancedProductManager: React.FC = () => {
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+      product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || product.category === filterCategory;
     const matchesMetal = filterMetal === "all" || product.metal === filterMetal;
@@ -208,15 +286,62 @@ export const EnhancedProductManager: React.FC = () => {
     return icons[metal as keyof typeof icons] || "💎";
   };
 
+  // Migration function for existing products
+  const migrateExistingProducts = (existingProducts: any[]): Product[] => {
+    return existingProducts.map((product, index) => {
+      // If product already has serialNumber and slug, return as is
+      if (product.serialNumber && product.slug) {
+        return product as Product;
+      }
+
+      // Otherwise, generate them
+      const productSlug = generateSlug(product.name);
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+
+      const categoryPrefixes = {
+        ring: "RG",
+        necklace: "NK",
+        bracelet: "BR",
+        earring: "ER",
+        pendant: "PD",
+        chain: "CH",
+        other: "OT",
+      };
+
+      const metalPrefixes = {
+        gold: "G",
+        silver: "S",
+        platinum: "P",
+      };
+
+      const categoryPrefix =
+        categoryPrefixes[product.category as keyof typeof categoryPrefixes] ||
+        "OT";
+      const metalPrefix =
+        metalPrefixes[product.metal as keyof typeof metalPrefixes] || "G";
+      const serialCount = String(index + 1).padStart(4, "0");
+      const serialNumber = `SJ${year}${month}${categoryPrefix}${metalPrefix}${serialCount}`;
+
+      return {
+        ...product,
+        serialNumber,
+        slug: productSlug,
+        id: product.id || generateUniqueId(),
+      } as Product;
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
             Product Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-zinc-600 dark:text-zinc-400 mt-1">
             Manage your jewelry inventory with detailed specifications
           </p>
         </div>
@@ -234,7 +359,7 @@ export const EnhancedProductManager: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
             <Input
-              placeholder="Search products..."
+              placeholder="Search by name, description, serial number, slug, or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full"
@@ -244,7 +369,7 @@ export const EnhancedProductManager: React.FC = () => {
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
             >
               <option value="all">All Categories</option>
               {categories.map((category) => (
@@ -259,7 +384,7 @@ export const EnhancedProductManager: React.FC = () => {
             <select
               value={filterMetal}
               onChange={(e) => setFilterMetal(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
             >
               <option value="all">All Metals</option>
               {metals.map((metal) => (
@@ -276,12 +401,12 @@ export const EnhancedProductManager: React.FC = () => {
       {/* Add/Edit Form */}
       {(showAddForm || editingProduct) && (
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
             {editingProduct ? "Edit Product" : "Add New Product"}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Product Name *
               </label>
               <Input
@@ -293,7 +418,7 @@ export const EnhancedProductManager: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Category *
               </label>
               <select
@@ -304,7 +429,7 @@ export const EnhancedProductManager: React.FC = () => {
                     category: e.target.value as Product["category"],
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
               >
                 {categories.map((category) => (
                   <option key={category} value={category}>
@@ -315,7 +440,7 @@ export const EnhancedProductManager: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Metal *
               </label>
               <select
@@ -326,7 +451,7 @@ export const EnhancedProductManager: React.FC = () => {
                     metal: e.target.value as Product["metal"],
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
               >
                 {metals.map((metal) => (
                   <option key={metal} value={metal}>
@@ -337,7 +462,7 @@ export const EnhancedProductManager: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Purity *
               </label>
               <Input
@@ -349,7 +474,7 @@ export const EnhancedProductManager: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Weight (grams) *
               </label>
               <Input
@@ -363,7 +488,7 @@ export const EnhancedProductManager: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Stone Weight (grams)
               </label>
               <Input
@@ -377,7 +502,7 @@ export const EnhancedProductManager: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Making Charges (₹) *
               </label>
               <Input
@@ -390,7 +515,7 @@ export const EnhancedProductManager: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Image URL
               </label>
               <Input
@@ -402,7 +527,7 @@ export const EnhancedProductManager: React.FC = () => {
               />
             </div>
             <div className="md:col-span-2 lg:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Description
               </label>
               <textarea
@@ -412,7 +537,7 @@ export const EnhancedProductManager: React.FC = () => {
                 }
                 placeholder="Product description..."
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
               />
             </div>
           </div>
@@ -475,16 +600,40 @@ export const EnhancedProductManager: React.FC = () => {
               />
             )}
 
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
               {product.name}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            <div className="flex flex-wrap gap-2 mb-3">
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs rounded-full font-medium">
+                #{product.serialNumber}
+              </span>
+              <span className="px-2 py-1 bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs rounded-full font-mono">
+                {product.slug}
+              </span>
+            </div>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
               {product.description}
             </p>
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">
+                <span className="text-zinc-500 dark:text-zinc-400">
+                  Serial Number:
+                </span>
+                <span className="font-medium font-mono text-blue-600 dark:text-blue-400">
+                  {product.serialNumber}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500 dark:text-zinc-400">
+                  Product ID:
+                </span>
+                <span className="font-medium font-mono text-zinc-600 dark:text-zinc-400 text-xs">
+                  {product.id}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500 dark:text-zinc-400">
                   Category:
                 </span>
                 <span className="font-medium capitalize">
@@ -492,27 +641,27 @@ export const EnhancedProductManager: React.FC = () => {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Metal:</span>
+                <span className="text-zinc-500 dark:text-zinc-400">Metal:</span>
                 <span className="font-medium capitalize">
                   {product.metal} {product.purity}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">
+                <span className="text-zinc-500 dark:text-zinc-400">
                   Weight:
                 </span>
                 <span className="font-medium">{product.weight}g</span>
               </div>
               {product.stoneWeight && (
                 <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">
+                  <span className="text-zinc-500 dark:text-zinc-400">
                     Stone Weight:
                   </span>
                   <span className="font-medium">{product.stoneWeight}g</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-gray-500 dark:text-gray-400">
+                <span className="text-zinc-500 dark:text-zinc-400">
                   Making Charges:
                 </span>
                 <span className="font-medium">
@@ -521,12 +670,12 @@ export const EnhancedProductManager: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Created: {new Date(product.createdAt).toLocaleDateString()}
               </p>
               {product.updatedAt !== product.createdAt && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   Updated: {new Date(product.updatedAt).toLocaleDateString()}
                 </p>
               )}
@@ -538,10 +687,10 @@ export const EnhancedProductManager: React.FC = () => {
       {filteredProducts.length === 0 && (
         <Card className="p-8 text-center">
           <div className="text-4xl mb-4">📦</div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
             No products found
           </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-zinc-600 dark:text-zinc-400 mb-4">
             {products.length === 0
               ? "Start by adding your first product to the inventory."
               : "Try adjusting your search or filter criteria."}
@@ -559,22 +708,22 @@ export const EnhancedProductManager: React.FC = () => {
         <Card className="p-4">
           <div className="flex flex-wrap gap-4 justify-center text-sm">
             <div className="text-center">
-              <p className="font-semibold text-gray-900 dark:text-white">
+              <p className="font-semibold text-zinc-900 dark:text-white">
                 {products.length}
               </p>
-              <p className="text-gray-600 dark:text-gray-400">Total Products</p>
+              <p className="text-zinc-600 dark:text-zinc-400">Total Products</p>
             </div>
             <div className="text-center">
-              <p className="font-semibold text-gray-900 dark:text-white">
+              <p className="font-semibold text-zinc-900 dark:text-white">
                 {filteredProducts.length}
               </p>
-              <p className="text-gray-600 dark:text-gray-400">Showing</p>
+              <p className="text-zinc-600 dark:text-zinc-400">Showing</p>
             </div>
             <div className="text-center">
-              <p className="font-semibold text-gray-900 dark:text-white">
+              <p className="font-semibold text-zinc-900 dark:text-white">
                 {products.reduce((sum, p) => sum + p.weight, 0).toFixed(2)}g
               </p>
-              <p className="text-gray-600 dark:text-gray-400">Total Weight</p>
+              <p className="text-zinc-600 dark:text-zinc-400">Total Weight</p>
             </div>
           </div>
         </Card>
