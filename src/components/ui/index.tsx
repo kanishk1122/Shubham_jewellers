@@ -1,4 +1,5 @@
 import React from "react";
+import * as ReactDialog from "@radix-ui/react-dialog";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "danger" | "success";
@@ -13,14 +14,17 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseClasses =
-    "font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+    "font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
   const variantClasses = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500",
+    primary:
+      "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600",
     secondary:
-      "bg-zinc-200 hover:bg-zinc-300 text-zinc-900 focus:ring-zinc-500",
-    danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
-    success: "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500",
+      "bg-zinc-200 hover:bg-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:bg-zinc-700 dark:hover:bg-zinc-600 dark:text-zinc-100",
+    danger:
+      "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 dark:bg-red-500 dark:hover:bg-red-600",
+    success:
+      "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500 dark:bg-green-500 dark:hover:bg-green-600",
   };
 
   const sizeClasses = {
@@ -53,17 +57,19 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="mb-4">
       {label && (
-        <label className="block text-sm font-medium text-zinc-700 mb-1">
+        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
           {label}
         </label>
       )}
       <input
-        className={`w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm placeholder-zinc-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-          error ? "border-red-300" : ""
+        className={`w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md shadow-sm placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 ${
+          error ? "border-red-300 dark:border-red-500" : ""
         } ${className}`}
         {...props}
       />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+      )}
     </div>
   );
 };
@@ -147,8 +153,14 @@ export const Card: React.FC<CardProps> = ({
   title,
 }) => {
   return (
-    <div className={`bg-white shadow-lg rounded-lg p-6 ${className}`}>
-      {title && <h3 className="text-lg font-semibold mb-4">{title}</h3>}
+    <div
+      className={`bg-white dark:bg-zinc-800 shadow-lg rounded-lg p-6 border border-zinc-200 dark:border-zinc-700 ${className}`}
+    >
+      {title && (
+        <h3 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-zinc-100">
+          {title}
+        </h3>
+      )}
       {children}
     </div>
   );
@@ -277,3 +289,91 @@ export const Badge: React.FC<BadgeProps> = ({
     </span>
   );
 };
+
+// --- Dialog Components (shadcn/ui style) ---
+
+export const Dialog = ReactDialog.Root;
+export const DialogTrigger = ReactDialog.Trigger;
+export const DialogPortal = ReactDialog.Portal;
+export const DialogOverlay = (
+  props: React.ComponentProps<typeof ReactDialog.Overlay>
+) => (
+  <ReactDialog.Overlay
+    {...props}
+    className={
+      "fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in " +
+      (props.className || "")
+    }
+  />
+);
+export const DialogContent = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof ReactDialog.Content> & { fullScreen?: boolean }
+>(({ className = "", children, fullScreen = false, ...props }, ref) => (
+  <DialogPortal>
+    <DialogOverlay />
+    <ReactDialog.Content
+      ref={ref}
+      className={
+        "fixed z-50 grid gap-4 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6 shadow-lg duration-200 " +
+        (fullScreen
+          ? "inset-0 h-[98vh] w-[99vw]  animate-in fade-in m-2 rounded-3xl"
+          : "left-1/2 top-1/2 w-screen max-w-lg -translate-x-1/2 -translate-y-1/2 sm:rounded-lg") +
+        " " +
+        className
+      }
+      {...props}
+    >
+      {children}
+    </ReactDialog.Content>
+  </DialogPortal>
+));
+DialogContent.displayName = "DialogContent";
+
+export const DialogHeader = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div
+    className={
+      "flex flex-col space-y-1.5 text-center sm:text-left " + className
+    }
+  >
+    {children}
+  </div>
+);
+export const DialogTitle = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <h2
+    className={
+      "text-lg font-semibold leading-none tracking-tight text-zinc-900 dark:text-zinc-100 " +
+      className
+    }
+  >
+    {children}
+  </h2>
+);
+export const DialogFooter = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div
+    className={
+      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 " +
+      className
+    }
+  >
+    {children}
+  </div>
+);

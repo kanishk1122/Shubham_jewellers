@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, Input, Button } from "@/components/ui/enhanced";
+import {
+  Card,
+  Input,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui";
 import ExcelActions from "@/components/ExcelActions";
 
 interface Product {
@@ -327,6 +335,9 @@ export const EnhancedProductManager: React.FC = () => {
     );
   };
 
+  // Dialog open state is controlled by showAddForm or editingProduct
+  const isDialogOpen = showAddForm || editingProduct;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -400,13 +411,20 @@ export const EnhancedProductManager: React.FC = () => {
         </div>
       </Card>
 
-      {/* Add/Edit Form */}
-      {(showAddForm || editingProduct) && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-            {editingProduct ? "Edit Product" : "Add New Product"}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Add/Edit Form Dialog */}
+      <Dialog
+        open={!!isDialogOpen}
+        onOpenChange={(open: boolean) => {
+          if (!open) resetForm();
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingProduct ? "Edit Product" : "Add New Product"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Product Name *
@@ -559,8 +577,8 @@ export const EnhancedProductManager: React.FC = () => {
               Cancel
             </Button>
           </div>
-        </Card>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -2,7 +2,16 @@
 
 import React, { useState } from "react";
 import { useMetalRates } from "@/services/metalRatesService";
-import { Card, Input, Button } from "@/components/ui/enhanced";
+import {
+  Card,
+  Input,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui";
 import ExcelActions from "@/components/ExcelActions";
 import { NarnoliRatesDisplay } from "@/components/NarnoliRatesDisplay";
 import { NarnoliDebugPanel } from "@/components/NarnoliDebugPanel";
@@ -165,6 +174,9 @@ export const EnhancedMetalRatesManager: React.FC = () => {
     );
   };
 
+  // Handle Dialog open state explicitly
+  const isDialogOpen = showAddForm || !!editingRate;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -315,15 +327,26 @@ export const EnhancedMetalRatesManager: React.FC = () => {
           </span>
         </div>
 
-        {/* Add/Edit Form */}
-        {(showAddForm || editingRate) && (
-          <div className="bg-zinc-50 dark:bg-zinc-700 rounded-lg p-4 mb-4">
-            <h3 className="font-medium text-zinc-900 dark:text-white mb-3">
-              {editingRate ? "Edit Rate" : "Add New Rate"}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        {/* Add/Edit Form Dialog */}
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={(open: boolean) => {
+            if (!open) resetForm();
+          }}
+        >
+          <DialogContent
+            // fullScreen={true}
+            className="overflow-y-auto bg-zinc-900 text-white"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-center">
+                {editingRate ? "Edit Rate" : "Add New Rate"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-zinc-300 mb-1">
                   Metal
                 </label>
                 <select
@@ -334,14 +357,14 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                       metal: e.target.value as "gold" | "silver",
                     })
                   }
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-white"
                 >
                   <option value="gold">Gold</option>
                   <option value="silver">Silver</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-zinc-300 mb-1">
                   Purity
                 </label>
                 <Input
@@ -350,10 +373,11 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                     setFormData({ ...formData, purity: e.target.value })
                   }
                   placeholder="24K, 22K, 925, etc."
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-zinc-300 mb-1">
                   Rate (₹)
                 </label>
                 <Input
@@ -363,10 +387,11 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                     setFormData({ ...formData, rate: e.target.value })
                   }
                   placeholder="0"
+                  className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                <label className="block text-sm font-medium text-zinc-300 mb-1">
                   Unit
                 </label>
                 <select
@@ -374,7 +399,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, unit: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-white"
                 >
                   <option value="per gram">per gram</option>
                   <option value="per tola">per tola</option>
@@ -382,19 +407,25 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                 </select>
               </div>
             </div>
-            <div className="flex gap-2 mt-3">
+
+            <DialogFooter className="mt-8">
               <Button
                 onClick={editingRate ? handleUpdateRate : handleAddRate}
                 disabled={!formData.purity || !formData.rate}
+                className="w-full sm:w-auto"
               >
                 {editingRate ? "Update Rate" : "Add Rate"}
               </Button>
-              <Button onClick={resetForm} variant="secondary">
+              <Button
+                onClick={resetForm}
+                variant="secondary"
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
-            </div>
-          </div>
-        )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Custom Rates Grid */}
         {localRates.length > 0 ? (

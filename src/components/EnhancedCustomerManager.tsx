@@ -1,7 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, Input, Button } from "@/components/ui/enhanced";
+import {
+  Card,
+  Input,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui"; // Fix the import path - remove "/enhanced"
 import ExcelActions from "@/components/ExcelActions";
 
 interface Customer {
@@ -194,6 +203,9 @@ export const EnhancedCustomerManager: React.FC = () => {
     );
   };
 
+  // Handle Dialog open state explicitly
+  const isDialogOpen = showAddForm || !!editingCustomer;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -233,15 +245,26 @@ export const EnhancedCustomerManager: React.FC = () => {
         />
       </Card>
 
-      {/* Add/Edit Form */}
-      {(showAddForm || editingCustomer) && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-            {editingCustomer ? "Edit Customer" : "Add New Customer"}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Add/Edit Form Dialog */}
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open: boolean) => {
+          if (!open) resetForm();
+        }}
+      >
+        <DialogContent
+          fullScreen={true}
+          className="overflow-y-auto bg-zinc-900 text-white"
+        >
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center">
+              {editingCustomer ? "Edit Customer" : "Add New Customer"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-300 mb-1">
                 Full Name *
               </label>
               <Input
@@ -250,10 +273,11 @@ export const EnhancedCustomerManager: React.FC = () => {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder="John Doe"
+                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-300 mb-1">
                 Phone Number *
               </label>
               <Input
@@ -262,10 +286,11 @@ export const EnhancedCustomerManager: React.FC = () => {
                   setFormData({ ...formData, phone: e.target.value })
                 }
                 placeholder="+91 9876543210"
+                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-300 mb-1">
                 Email Address
               </label>
               <Input
@@ -275,10 +300,11 @@ export const EnhancedCustomerManager: React.FC = () => {
                   setFormData({ ...formData, email: e.target.value })
                 }
                 placeholder="john@example.com"
+                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-300 mb-1">
                 Address
               </label>
               <Input
@@ -287,10 +313,11 @@ export const EnhancedCustomerManager: React.FC = () => {
                   setFormData({ ...formData, address: e.target.value })
                 }
                 placeholder="123 Main Street, City, State, PIN"
+                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-300 mb-1">
                 GST Number
               </label>
               <Input
@@ -302,10 +329,11 @@ export const EnhancedCustomerManager: React.FC = () => {
                   })
                 }
                 placeholder="27AAPFU0939F1ZV"
+                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 font-mono"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-300 mb-1">
                 PAN Number
               </label>
               <Input
@@ -317,10 +345,11 @@ export const EnhancedCustomerManager: React.FC = () => {
                   })
                 }
                 placeholder="ABCDE1234F"
+                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 font-mono"
               />
             </div>
             <div className="md:col-span-2 lg:col-span-1">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+              <label className="block text-sm font-medium text-zinc-300 mb-1">
                 Notes
               </label>
               <textarea
@@ -330,25 +359,31 @@ export const EnhancedCustomerManager: React.FC = () => {
                 }
                 placeholder="Additional notes about the customer..."
                 rows={3}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-white placeholder:text-zinc-500"
               />
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
+
+          <DialogFooter className="mt-8">
             <Button
               onClick={
                 editingCustomer ? handleUpdateCustomer : handleAddCustomer
               }
               disabled={!formData.name || !formData.phone}
+              className="w-full sm:w-auto max-h-[40px] bg-blue-600 hover:bg-blue-700 text-white font-semibold"
             >
               {editingCustomer ? "Update Customer" : "Add Customer"}
             </Button>
-            <Button onClick={resetForm} variant="secondary">
+            <Button
+              onClick={resetForm}
+              variant="secondary"
+              className="w-full sm:w-auto max-h-[40px] bg-zinc-700 hover:bg-zinc-600 text-white font-semibold"
+            >
               Cancel
             </Button>
-          </div>
-        </Card>
-      )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Customers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

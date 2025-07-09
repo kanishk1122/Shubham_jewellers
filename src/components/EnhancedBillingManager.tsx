@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, Input, Button } from "@/components/ui/enhanced";
+import {
+  Card,
+  Input,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui";
 import { useMetalRates } from "@/services/metalRatesService";
 import ExcelActions from "@/components/ExcelActions";
 
@@ -484,6 +492,9 @@ export const EnhancedBillingManager: React.FC = () => {
 
   const currentBillTotals = calculateBillTotals(currentBill);
 
+  // Dialog open state is controlled by showAddForm or editingBill
+  const isDialogOpen = showAddForm || editingBill;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -538,12 +549,19 @@ export const EnhancedBillingManager: React.FC = () => {
         </div>
       </Card>
 
-      {/* Create/Edit Bill Form */}
-      {showAddForm && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">
-            {editingBill ? "Edit Bill" : "Create New Bill"}
-          </h3>
+      {/* Create/Edit Bill Form Dialog */}
+      <Dialog
+        open={!!isDialogOpen}
+        onOpenChange={(open: boolean) => {
+          if (!open) resetForm();
+        }}
+      >
+        <DialogContent fullScreen={true} className="overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingBill ? "Edit Bill" : "Create New Bill"}
+            </DialogTitle>
+          </DialogHeader>
 
           {/* Customer Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -879,7 +897,7 @@ export const EnhancedBillingManager: React.FC = () => {
           )}
 
           {/* Form Actions */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-4">
             <Button
               onClick={editingBill ? handleUpdateBill : handleCreateBill}
               disabled={!currentBill.customerId || !currentBill.items?.length}
@@ -890,8 +908,8 @@ export const EnhancedBillingManager: React.FC = () => {
               Cancel
             </Button>
           </div>
-        </Card>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Bills List */}
       <div className="grid grid-cols-1 gap-4">
