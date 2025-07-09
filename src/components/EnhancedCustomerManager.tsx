@@ -10,8 +10,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui"; // Fix the import path - remove "/enhanced"
+} from "@/components/ui";
 import ExcelActions from "@/components/ExcelActions";
+import {
+  Users,
+  UserPlus,
+  Building,
+  Star,
+  User,
+  UserPlus as NewUserIcon,
+  Phone,
+  Mail,
+  Home,
+  CreditCard,
+  FileText,
+  Pencil,
+  Trash2,
+  Search,
+} from "lucide-react";
 
 interface Customer {
   id: string;
@@ -151,10 +167,10 @@ export const EnhancedCustomerManager: React.FC = () => {
   });
 
   const getCustomerTypeIcon = (customer: Customer) => {
-    if (customer.gstNumber) return "🏢"; // Business customer
-    if (customer.totalPurchases > 100000) return "⭐"; // VIP customer
-    if (customer.totalPurchases > 0) return "👤"; // Regular customer
-    return "🆕"; // New customer
+    if (customer.gstNumber) return <Building className="w-5 h-5" />; // Business customer
+    if (customer.totalPurchases > 100000) return <Star className="w-5 h-5" />; // VIP customer
+    if (customer.totalPurchases > 0) return <User className="w-5 h-5" />; // Regular customer
+    return <NewUserIcon className="w-5 h-5" />; // New customer
   };
 
   const getCustomerTypeLabel = (customer: Customer) => {
@@ -211,7 +227,8 @@ export const EnhancedCustomerManager: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <Users className="w-6 h-6" />
             Customer Management
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
@@ -229,7 +246,7 @@ export const EnhancedCustomerManager: React.FC = () => {
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-2"
           >
-            <span>👥</span>
+            <UserPlus className="w-4 h-4" />
             Add New Customer
           </Button>
         </div>
@@ -237,12 +254,15 @@ export const EnhancedCustomerManager: React.FC = () => {
 
       {/* Search */}
       <Card className="p-4">
-        <Input
-          placeholder="Search customers by name, phone, email, or GST number..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full"
-        />
+        <div className="relative">
+          <Input
+            placeholder="Search customers by name, phone, email, or GST number..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10"
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+        </div>
       </Card>
 
       {/* Add/Edit Form Dialog */}
@@ -394,7 +414,7 @@ export const EnhancedCustomerManager: React.FC = () => {
           >
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">
+                <span className="text-blue-600 dark:text-blue-400">
                   {getCustomerTypeIcon(customer)}
                 </span>
                 <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
@@ -407,14 +427,14 @@ export const EnhancedCustomerManager: React.FC = () => {
                   className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
                   title="Edit"
                 >
-                  ✏️
+                  <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDeleteCustomer(customer.id)}
                   className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
                   title="Delete"
                 >
-                  🗑️
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -425,14 +445,14 @@ export const EnhancedCustomerManager: React.FC = () => {
 
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <span>📞</span>
+                <Phone className="w-4 h-4 text-zinc-500" />
                 <span className="text-zinc-600 dark:text-zinc-400">
                   {customer.phone}
                 </span>
               </div>
               {customer.email && (
                 <div className="flex items-center gap-2">
-                  <span>📧</span>
+                  <Mail className="w-4 h-4 text-zinc-500" />
                   <span className="text-zinc-600 dark:text-zinc-400 truncate">
                     {customer.email}
                   </span>
@@ -440,7 +460,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               )}
               {customer.address && (
                 <div className="flex items-start gap-2">
-                  <span>🏠</span>
+                  <Home className="w-4 h-4 text-zinc-500 mt-0.5" />
                   <span className="text-zinc-600 dark:text-zinc-400 text-xs">
                     {customer.address}
                   </span>
@@ -448,7 +468,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               )}
               {customer.gstNumber && (
                 <div className="flex items-center gap-2">
-                  <span>🏢</span>
+                  <Building className="w-4 h-4 text-zinc-500" />
                   <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
                     {customer.gstNumber}
                   </span>
@@ -456,7 +476,7 @@ export const EnhancedCustomerManager: React.FC = () => {
               )}
               {customer.panNumber && (
                 <div className="flex items-center gap-2">
-                  <span>🆔</span>
+                  <CreditCard className="w-4 h-4 text-zinc-500" />
                   <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
                     {customer.panNumber}
                   </span>
@@ -465,7 +485,8 @@ export const EnhancedCustomerManager: React.FC = () => {
             </div>
 
             {customer.notes && (
-              <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-xs text-zinc-600 dark:text-zinc-400">
+              <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-xs text-zinc-600 dark:text-zinc-400 flex items-start gap-2">
+                <FileText className="w-3 h-3 text-zinc-500 mt-0.5" />
                 {customer.notes}
               </div>
             )}
@@ -502,7 +523,9 @@ export const EnhancedCustomerManager: React.FC = () => {
 
       {filteredCustomers.length === 0 && (
         <Card className="p-8 text-center">
-          <div className="text-4xl mb-4">👥</div>
+          <div className="flex justify-center mb-4">
+            <Users className="w-12 h-12 text-zinc-400" />
+          </div>
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
             No customers found
           </h3>
@@ -512,7 +535,11 @@ export const EnhancedCustomerManager: React.FC = () => {
               : "Try adjusting your search criteria."}
           </p>
           {customers.length === 0 && (
-            <Button onClick={() => setShowAddForm(true)}>
+            <Button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-2 mx-auto"
+            >
+              <UserPlus className="w-4 h-4" />
               Add Your First Customer
             </Button>
           )}
