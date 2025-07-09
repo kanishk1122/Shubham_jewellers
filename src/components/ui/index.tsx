@@ -318,7 +318,7 @@ export const DialogContent = React.forwardRef<
         "fixed z-50 grid gap-4 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-6 shadow-lg duration-200 " +
         (fullScreen
           ? "inset-0 h-[98vh] w-[99vw]  animate-in fade-in m-2 rounded-3xl"
-          : "left-1/2 top-1/2 w-screen max-w-lg -translate-x-1/2 -translate-y-1/2 sm:rounded-lg") +
+          : "left-1/2 top-1/2 w-screen max-w-fit -translate-x-1/2 -translate-y-1/2 sm:rounded-lg") +
         " " +
         className
       }

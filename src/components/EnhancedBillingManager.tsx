@@ -901,10 +901,12 @@ export const EnhancedBillingManager: React.FC = () => {
             <Button
               onClick={editingBill ? handleUpdateBill : handleCreateBill}
               disabled={!currentBill.customerId || !currentBill.items?.length}
+              className="flex-1 max-h-[40px] flex items-center justify-center"
             >
               {editingBill ? "Update Bill" : "Create Bill"}
             </Button>
-            <Button onClick={resetForm} variant="secondary">
+            <Button onClick={resetForm} variant="secondary"
+              className="flex-1 max-h-[40px] flex items-center justify-center">
               Cancel
             </Button>
           </div>

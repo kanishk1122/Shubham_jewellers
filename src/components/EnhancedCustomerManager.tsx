@@ -253,8 +253,8 @@ export const EnhancedCustomerManager: React.FC = () => {
         }}
       >
         <DialogContent
-          fullScreen={true}
-          className="overflow-y-auto bg-zinc-900 text-white"
+          // fullScreen={true}
+          className="overflow-y-auto bg-zinc-900 text-white w-[50vw]"
         >
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-center">
@@ -359,7 +359,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                 }
                 placeholder="Additional notes about the customer..."
                 rows={3}
-                className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-white placeholder:text-zinc-500"
+                className="w-[600px] px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-white placeholder:text-zinc-500"
               />
             </div>
           </div>
