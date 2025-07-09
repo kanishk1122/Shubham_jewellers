@@ -8,50 +8,60 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+import {
+  BarChart,
+  FileText,
+  Package,
+  Users,
+  ClipboardList,
+  Coins,
+} from "lucide-react";
+
 const menuItems = [
   {
     id: "dashboard",
     label: "Dashboard",
-    icon: "📊",
+    icon: <BarChart className="w-5 h-5" />,
     color: "text-blue-600 dark:text-blue-400",
     href: "/dashboard",
   },
   {
     id: "billing",
     label: "New Bill",
-    icon: "🧾",
+    icon: <FileText className="w-5 h-5" />,
     color: "text-green-600 dark:text-green-400",
     href: "/billing",
   },
   {
     id: "products",
     label: "Products",
-    icon: "💍",
+    icon: <Package className="w-5 h-5" />,
     color: "text-purple-600 dark:text-purple-400",
     href: "/products",
   },
   {
     id: "customers",
     label: "Customers",
-    icon: "👥",
+    icon: <Users className="w-5 h-5" />,
     color: "text-indigo-600 dark:text-indigo-400",
     href: "/customers",
   },
   {
     id: "bills",
     label: "Bills History",
-    icon: "📋",
+    icon: <ClipboardList className="w-5 h-5" />,
     color: "text-orange-600 dark:text-orange-400",
     href: "/bills",
   },
   {
     id: "rates",
     label: "Metal Rates",
-    icon: "💰",
+    icon: <Coins className="w-5 h-5" />,
     color: "text-yellow-600 dark:text-yellow-400",
     href: "/rates",
   },
 ];
+
 
 const ThemeToggle: React.FC = () => {
   const { theme, actualTheme, toggleTheme } = useTheme();
