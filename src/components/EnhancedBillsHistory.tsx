@@ -3,6 +3,17 @@
 import React, { useState, useEffect } from "react";
 import { Card, Input, Button } from "@/components/ui/enhanced";
 import ExcelActions from "@/components/ExcelActions";
+import {
+  Receipt,
+  Banknote,
+  Clock,
+  BarChart3,
+  Eye,
+  Printer,
+  X,
+  Search,
+  Filter,
+} from "lucide-react";
 
 interface BillItem {
   id: string;
@@ -233,7 +244,8 @@ export const EnhancedBillsHistory: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <Receipt className="h-6 w-6" />
             Bills History
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
@@ -261,7 +273,9 @@ export const EnhancedBillsHistory: React.FC = () => {
                 {filteredBills.length}
               </p>
             </div>
-            <div className="text-3xl">🧾</div>
+            <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+              <Receipt className="h-5 w-5 text-blue-700 dark:text-blue-300" />
+            </div>
           </div>
         </Card>
         <Card className="p-6">
@@ -274,7 +288,9 @@ export const EnhancedBillsHistory: React.FC = () => {
                 ₹{totalRevenue.toLocaleString()}
               </p>
             </div>
-            <div className="text-3xl">💰</div>
+            <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <Banknote className="h-5 w-5 text-green-700 dark:text-green-300" />
+            </div>
           </div>
         </Card>
         <Card className="p-6">
@@ -287,7 +303,9 @@ export const EnhancedBillsHistory: React.FC = () => {
                 ₹{pendingAmount.toLocaleString()}
               </p>
             </div>
-            <div className="text-3xl">⏳</div>
+            <div className="h-10 w-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+              <Clock className="h-5 w-5 text-red-700 dark:text-red-300" />
+            </div>
           </div>
         </Card>
         <Card className="p-6">
@@ -300,7 +318,9 @@ export const EnhancedBillsHistory: React.FC = () => {
                 ₹{avgBillValue.toLocaleString()}
               </p>
             </div>
-            <div className="text-3xl">📊</div>
+            <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+              <BarChart3 className="h-5 w-5 text-blue-700 dark:text-blue-300" />
+            </div>
           </div>
         </Card>
       </div>
@@ -309,30 +329,36 @@ export const EnhancedBillsHistory: React.FC = () => {
       <Card className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
-            <Input
-              placeholder="Search bills by number, customer name, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-            />
+            <div className="relative">
+              <Input
+                placeholder="Search bills by number, customer name, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9"
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            </div>
           </div>
           <div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-            >
-              <option value="all">All Status</option>
-              <option value="paid">Paid</option>
-              <option value="pending">Pending</option>
-              <option value="partial">Partial</option>
-            </select>
+            <div className="relative">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2 pl-9 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+              >
+                <option value="all">All Status</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="partial">Partial</option>
+              </select>
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            </div>
           </div>
           <div>
             <select
               value={filterDateRange}
               onChange={(e) => setFilterDateRange(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+              className="w-full px-3 py-2 pl-9 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
             >
               <option value="all">All Time</option>
               <option value="today">Today</option>
@@ -340,6 +366,7 @@ export const EnhancedBillsHistory: React.FC = () => {
               <option value="month">This Month</option>
               <option value="quarter">This Quarter</option>
             </select>
+            <Clock className="absolute transform -translate-y-8 ml-3 h-4 w-4 text-zinc-400" />
           </div>
         </div>
       </Card>
@@ -437,14 +464,14 @@ export const EnhancedBillsHistory: React.FC = () => {
                   className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2"
                   title="View Details"
                 >
-                  👁️
+                  <Eye className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => printBill(bill)}
                   className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-2"
                   title="Print Bill"
                 >
-                  🖨️
+                  <Printer className="h-5 w-5" />
                 </button>
               </div>
             </div>
@@ -454,7 +481,9 @@ export const EnhancedBillsHistory: React.FC = () => {
 
       {sortedBills.length === 0 && (
         <Card className="p-8 text-center">
-          <div className="text-4xl mb-4">📋</div>
+          <div className="flex justify-center mb-4">
+            <Receipt className="h-12 w-12 text-zinc-400" strokeWidth={1} />
+          </div>
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
             No bills found
           </h3>
@@ -479,7 +508,7 @@ export const EnhancedBillsHistory: React.FC = () => {
                   onClick={() => setSelectedBill(null)}
                   className="text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                 >
-                  ✕
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
@@ -634,8 +663,12 @@ export const EnhancedBillsHistory: React.FC = () => {
               </div>
 
               <div className="mt-6 flex gap-2">
-                <Button onClick={() => printBill(selectedBill)}>
-                  🖨️ Print Bill
+                <Button
+                  onClick={() => printBill(selectedBill)}
+                  className="flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print Bill
                 </Button>
                 <Button
                   onClick={() => setSelectedBill(null)}

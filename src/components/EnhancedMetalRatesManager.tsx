@@ -21,6 +21,17 @@ import SPAScrapingTestPanel from "@/components/SPAScrapingTestPanel";
 import PuppeteerTestPanel from "@/components/PuppeteerTestPanel";
 import EnhancedPuppeteerRatesDisplay from "@/components/EnhancedPuppeteerRatesDisplay";
 import PuppeteerLiveRatesWidget from "@/components/PuppeteerLiveRatesWidget";
+import {
+  PlusCircle,
+  RefreshCw,
+  Edit,
+  Trash2,
+  Store,
+  LineChart,
+  BarChart3,
+  GoldBar,
+  CoinSilver,
+} from "lucide-react";
 
 interface LocalRate {
   id: string;
@@ -183,7 +194,10 @@ export const EnhancedMetalRatesManager: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-            Metal Rates Management
+            <span className="inline-flex items-center">
+              <BarChart3 className="w-6 h-6 mr-2" />
+              Metal Rates Management
+            </span>
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
             Live rates from Narnoli Corporation and local rate management
@@ -200,7 +214,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-2"
           >
-            <span>➕</span>
+            <PlusCircle className="w-4 h-4" />
             Add Custom Rate
           </Button>
         </div>
@@ -210,7 +224,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center">
-            <span className="text-xl">�</span>
+            <LineChart className="w-5 h-5 text-blue-700 dark:text-blue-300" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
@@ -232,7 +246,8 @@ export const EnhancedMetalRatesManager: React.FC = () => {
         <Card className="p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
-              📊 Legacy Jaipur Sarafa Rates
+              <LineChart className="w-4 h-4 inline mr-1" /> Legacy Jaipur Sarafa
+              Rates
             </h3>
             <Button
               onClick={refreshRates}
@@ -241,7 +256,9 @@ export const EnhancedMetalRatesManager: React.FC = () => {
               size="sm"
               className="flex items-center gap-2"
             >
-              <span className={loading ? "animate-spin" : ""}>🔄</span>
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
@@ -272,9 +289,11 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">
-                        {rate.metal === "gold" ? "🥇" : "🥈"}
-                      </span>
+                      {rate.metal === "gold" ? (
+                        <GoldBar className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                      ) : (
+                        <CoinSilver className="w-5 h-5 text-zinc-400 dark:text-zinc-300" />
+                      )}
                       <div>
                         <div className="font-medium text-zinc-900 dark:text-white capitalize text-sm">
                           {rate.metal} {rate.purity}
@@ -320,7 +339,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
       <Card className="p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
-            🏪 Custom Local Rates
+            <Store className="w-5 h-5 inline mr-1" /> Custom Local Rates
           </h2>
           <span className="text-sm text-zinc-500 dark:text-zinc-400">
             {localRates.length} custom rate{localRates.length !== 1 ? "s" : ""}
@@ -436,23 +455,25 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                 className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <span className="text-2xl">
-                    {rate.metal === "gold" ? "🥇" : "🥈"}
-                  </span>
+                  {rate.metal === "gold" ? (
+                    <GoldBar className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                  ) : (
+                    <CoinSilver className="w-6 h-6 text-zinc-400 dark:text-zinc-300" />
+                  )}
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleEditRate(rate)}
                       className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
                       title="Edit"
                     >
-                      ✏️
+                      <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteRate(rate.id)}
                       className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
                       title="Delete"
                     >
-                      🗑️
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -476,7 +497,11 @@ export const EnhancedMetalRatesManager: React.FC = () => {
             <p className="text-zinc-500 dark:text-zinc-400 mb-4">
               No custom rates added yet
             </p>
-            <Button onClick={() => setShowAddForm(true)}>
+            <Button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-2"
+            >
+              <PlusCircle className="w-4 h-4" />
               Add Your First Custom Rate
             </Button>
           </div>
