@@ -11,6 +11,21 @@ import {
   DialogTitle,
 } from "@/components/ui";
 import ExcelActions from "@/components/ExcelActions";
+import {
+  Package,
+  Circle as RingIcon, // Using Circle as a placeholder for Ring
+  Watch,
+  CircleDot,
+  Link,
+  Gem,
+  Medal,
+  Square,
+  PlusCircle,
+  Pencil,
+  Trash2,
+  Search,
+  Box
+} from "lucide-react";
 
 interface Product {
   id: string;
@@ -250,25 +265,35 @@ export const EnhancedProductManager: React.FC = () => {
   const metals = ["gold", "silver", "platinum"];
 
   const getCategoryIcon = (category: string) => {
-    const icons = {
-      ring: "💍",
-      necklace: "📿",
-      bracelet: "⌚",
-      earring: "👂",
-      pendant: "🔸",
-      chain: "🔗",
-      other: "💎",
-    };
-    return icons[category as keyof typeof icons] || "💎";
+    switch (category) {
+      case "ring":
+        return <RingIcon className="w-5 h-5" />;
+      case "necklace":
+        return <Gem className="w-5 h-5" />; // Using Gem as fallback for Necklace
+      case "bracelet":
+        return <Watch className="w-5 h-5" />;
+      case "earring":
+        return <CircleDot className="w-5 h-5" />;
+      case "pendant":
+        return <Gem className="w-5 h-5" />;
+      case "chain":
+        return <Link className="w-5 h-5" />;
+      default:
+        return <Gem className="w-5 h-5" />;
+    }
   };
 
   const getMetalIcon = (metal: string) => {
-    const icons = {
-      gold: "🥇",
-      silver: "🥈",
-      platinum: "⚪",
-    };
-    return icons[metal as keyof typeof icons] || "💎";
+    switch (metal) {
+      case "gold":
+        return <Medal className="w-5 h-5 text-yellow-500" />;
+      case "silver":
+        return <Medal className="w-5 h-5 text-gray-400" />;
+      case "platinum":
+        return <Medal className="w-5 h-5 text-gray-300" />;
+      default:
+        return <Square className="w-5 h-5" />;
+    }
   };
 
   // Migration function for existing products
@@ -343,7 +368,8 @@ export const EnhancedProductManager: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <Package className="w-6 h-6" />
             Product Management
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
@@ -361,7 +387,7 @@ export const EnhancedProductManager: React.FC = () => {
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-2"
           >
-            <span>💍</span>
+            <PlusCircle className="w-4 h-4" />
             Add New Product
           </Button>
         </div>
@@ -371,42 +397,49 @@ export const EnhancedProductManager: React.FC = () => {
       <Card className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
-            <Input
-              placeholder="Search by name, description, serial number, slug, or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-            />
+            <div className="relative">
+              <Input
+                placeholder="Search by name, description, serial number, slug, or ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10"
+              />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            </div>
           </div>
           <div>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-            >
-              <option value="all">All Categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {getCategoryIcon(category)}{" "}
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="w-full px-3 py-2 pl-10 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </option>
+                ))}
+              </select>
+              <Gem className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            </div>
           </div>
           <div>
-            <select
-              value={filterMetal}
-              onChange={(e) => setFilterMetal(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-            >
-              <option value="all">All Metals</option>
-              {metals.map((metal) => (
-                <option key={metal} value={metal}>
-                  {getMetalIcon(metal)}{" "}
-                  {metal.charAt(0).toUpperCase() + metal.slice(1)}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={filterMetal}
+                onChange={(e) => setFilterMetal(e.target.value)}
+                className="w-full px-3 py-2 pl-10 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+              >
+                <option value="all">All Metals</option>
+                {metals.map((metal) => (
+                  <option key={metal} value={metal}>
+                    {metal.charAt(0).toUpperCase() + metal.slice(1)}
+                  </option>
+                ))}
+              </select>
+              <Medal className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+            </div>
           </div>
         </div>
       </Card>
@@ -453,7 +486,6 @@ export const EnhancedProductManager: React.FC = () => {
               >
                 {categories.map((category) => (
                   <option key={category} value={category}>
-                    {getCategoryIcon(category)}{" "}
                     {category.charAt(0).toUpperCase() + category.slice(1)}
                   </option>
                 ))}
@@ -475,7 +507,6 @@ export const EnhancedProductManager: React.FC = () => {
               >
                 {metals.map((metal) => (
                   <option key={metal} value={metal}>
-                    {getMetalIcon(metal)}{" "}
                     {metal.charAt(0).toUpperCase() + metal.slice(1)}
                   </option>
                 ))}
@@ -589,10 +620,10 @@ export const EnhancedProductManager: React.FC = () => {
           >
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">
+                <span className="text-zinc-700 dark:text-zinc-300">
                   {getCategoryIcon(product.category)}
                 </span>
-                <span className="text-lg">{getMetalIcon(product.metal)}</span>
+                <span>{getMetalIcon(product.metal)}</span>
               </div>
               <div className="flex gap-1">
                 <button
@@ -600,14 +631,14 @@ export const EnhancedProductManager: React.FC = () => {
                   className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
                   title="Edit"
                 >
-                  ✏️
+                  <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDeleteProduct(product.id)}
                   className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
                   title="Delete"
                 >
-                  🗑️
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -706,7 +737,9 @@ export const EnhancedProductManager: React.FC = () => {
 
       {filteredProducts.length === 0 && (
         <Card className="p-8 text-center">
-          <div className="text-4xl mb-4">📦</div>
+          <div className="flex justify-center mb-4">
+            <Box className="h-12 w-12 text-zinc-400" />
+          </div>
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
             No products found
           </h3>
@@ -716,7 +749,11 @@ export const EnhancedProductManager: React.FC = () => {
               : "Try adjusting your search or filter criteria."}
           </p>
           {products.length === 0 && (
-            <Button onClick={() => setShowAddForm(true)}>
+            <Button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-2 mx-auto"
+            >
+              <PlusCircle className="w-4 h-4" />
               Add Your First Product
             </Button>
           )}

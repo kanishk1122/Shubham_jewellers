@@ -29,8 +29,7 @@ import {
   Store,
   LineChart,
   BarChart3,
-  GoldBar,
-  CoinSilver,
+  Coins,
 } from "lucide-react";
 
 interface LocalRate {
@@ -289,11 +288,8 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                 >
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      {rate.metal === "gold" ? (
-                        <GoldBar className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                      ) : (
-                        <CoinSilver className="w-5 h-5 text-zinc-400 dark:text-zinc-300" />
-                      )}
+                      <Coins className="w-5 h-5 text-zinc-400 dark:text-zinc-300" />
+
                       <div>
                         <div className="font-medium text-zinc-900 dark:text-white capitalize text-sm">
                           {rate.metal} {rate.purity}
@@ -455,11 +451,8 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                 className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4"
               >
                 <div className="flex justify-between items-start mb-2">
-                  {rate.metal === "gold" ? (
-                    <GoldBar className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-                  ) : (
-                    <CoinSilver className="w-6 h-6 text-zinc-400 dark:text-zinc-300" />
-                  )}
+                  <Coins className="w-6 h-6 text-zinc-400 dark:text-zinc-300" />
+
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleEditRate(rate)}
