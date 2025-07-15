@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   Input,
@@ -11,9 +11,10 @@ import {
   DialogTitle,
 } from "@/components/ui";
 import ExcelActions from "@/components/ExcelActions";
+import { useProducts, type Product } from "@/hooks/useProducts";
 import {
   Package,
-  Circle as RingIcon, // Using Circle as a placeholder for Ring
+  Circle as RingIcon,
   Watch,
   CircleDot,
   Link,
@@ -24,40 +25,27 @@ import {
   Pencil,
   Trash2,
   Search,
-  Box
+  Box,
+  RefreshCw,
 } from "lucide-react";
 
-interface Product {
-  id: string;
-  serialNumber: string;
-  slug: string;
-  name: string;
-  category:
-    | "ring"
-    | "necklace"
-    | "bracelet"
-    | "earring"
-    | "pendant"
-    | "chain"
-    | "other";
-  metal: "gold" | "silver" | "platinum";
-  purity: string;
-  weight: number;
-  stoneWeight?: number;
-  makingCharges: number;
-  description: string;
-  imageUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const EnhancedProductManager: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const {
+    products,
+    loading,
+    error,
+    loadProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+  } = useProducts();
+
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterMetal, setFilterMetal] = useState<string>("all");
+  const [savingProduct, setSavingProduct] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     category: "ring" as Product["category"],
@@ -70,65 +58,7 @@ export const EnhancedProductManager: React.FC = () => {
     imageUrl: "",
   });
 
-  // Load products from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("products");
-    if (saved) {
-      try {
-        const parsedProducts = JSON.parse(saved);
-        const migratedProducts = migrateExistingProducts(parsedProducts);
-        setProducts(migratedProducts);
-
-        // Save migrated products back if any changes were made
-        const needsMigration = parsedProducts.some(
-          (p: any) => !p.serialNumber || !p.slug
-        );
-        if (needsMigration) {
-          localStorage.setItem("products", JSON.stringify(migratedProducts));
-        }
-      } catch (error) {
-        console.error("Failed to parse saved products:", error);
-      }
-    }
-  }, []);
-
-  // Save products to localStorage
-  const saveProducts = (newProducts: Product[]) => {
-    setProducts(newProducts);
-    localStorage.setItem("products", JSON.stringify(newProducts));
-  };
-
-  // Generate slug from product name
-  const generateSlug = (name: string): string => {
-    return name
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "") // Remove special characters
-      .replace(/[\s_-]+/g, "-") // Replace spaces and underscores with hyphens
-      .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
-  };
-
-  // Generate serial number (simple incremental: 1, 2, 3, etc.)
-  const generateSerialNumber = (): string => {
-    // Get the highest existing serial number and increment by 1
-    const existingSerialNumbers = products
-      .map((p) => parseInt(p.serialNumber))
-      .filter((num) => !isNaN(num));
-
-    const nextNumber =
-      existingSerialNumbers.length > 0
-        ? Math.max(...existingSerialNumbers) + 1
-        : 1;
-
-    return nextNumber.toString();
-  };
-
-  // Generate unique ID
-  const generateUniqueId = (): string => {
-    return `prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  };
-
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     if (
       !formData.name ||
       !formData.purity ||
@@ -137,31 +67,33 @@ export const EnhancedProductManager: React.FC = () => {
     )
       return;
 
-    const productSlug = generateSlug(formData.name);
-    const serialNumber = generateSerialNumber();
-    const productId = generateUniqueId();
+    setSavingProduct(true);
+    try {
+      const result = await createProduct({
+        name: formData.name,
+        category: formData.category,
+        metal: formData.metal,
+        purity: formData.purity,
+        weight: parseFloat(formData.weight),
+        stoneWeight: formData.stoneWeight
+          ? parseFloat(formData.stoneWeight)
+          : undefined,
+        makingCharges: parseFloat(formData.makingCharges),
+        description: formData.description,
+        imageUrl: formData.imageUrl,
+      });
 
-    const newProduct: Product = {
-      id: productId,
-      serialNumber: serialNumber,
-      slug: productSlug,
-      name: formData.name,
-      category: formData.category,
-      metal: formData.metal,
-      purity: formData.purity,
-      weight: parseFloat(formData.weight),
-      stoneWeight: formData.stoneWeight
-        ? parseFloat(formData.stoneWeight)
-        : undefined,
-      makingCharges: parseFloat(formData.makingCharges),
-      description: formData.description,
-      imageUrl: formData.imageUrl,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    saveProducts([...products, newProduct]);
-    resetForm();
+      if (result.success) {
+        resetForm();
+      } else {
+        alert(result.error || "Failed to create product. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to create product:", error);
+      alert("Failed to create product. Please try again.");
+    } finally {
+      setSavingProduct(false);
+    }
   };
 
   const handleEditProduct = (product: Product) => {
@@ -179,7 +111,7 @@ export const EnhancedProductManager: React.FC = () => {
     });
   };
 
-  const handleUpdateProduct = () => {
+  const handleUpdateProduct = async () => {
     if (
       !editingProduct ||
       !formData.name ||
@@ -189,36 +121,48 @@ export const EnhancedProductManager: React.FC = () => {
     )
       return;
 
-    const updatedSlug = generateSlug(formData.name);
+    setSavingProduct(true);
+    try {
+      const productId = editingProduct._id || editingProduct.id!;
+      const result = await updateProduct(productId, {
+        name: formData.name,
+        category: formData.category,
+        metal: formData.metal,
+        purity: formData.purity,
+        weight: parseFloat(formData.weight),
+        stoneWeight: formData.stoneWeight
+          ? parseFloat(formData.stoneWeight)
+          : undefined,
+        makingCharges: parseFloat(formData.makingCharges),
+        description: formData.description,
+        imageUrl: formData.imageUrl,
+      });
 
-    const updatedProducts = products.map((product) =>
-      product.id === editingProduct.id
-        ? {
-            ...product,
-            name: formData.name,
-            slug: updatedSlug,
-            category: formData.category,
-            metal: formData.metal,
-            purity: formData.purity,
-            weight: parseFloat(formData.weight),
-            stoneWeight: formData.stoneWeight
-              ? parseFloat(formData.stoneWeight)
-              : undefined,
-            makingCharges: parseFloat(formData.makingCharges),
-            description: formData.description,
-            imageUrl: formData.imageUrl,
-            updatedAt: new Date().toISOString(),
-          }
-        : product
-    );
-
-    saveProducts(updatedProducts);
-    resetForm();
+      if (result.success) {
+        resetForm();
+      } else {
+        alert(result.error || "Failed to update product. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to update product:", error);
+      alert("Failed to update product. Please try again.");
+    } finally {
+      setSavingProduct(false);
+    }
   };
 
-  const handleDeleteProduct = (id: string) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      saveProducts(products.filter((product) => product.id !== id));
+  const handleDeleteProduct = async (product: Product) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      const productId = product._id || product.id!;
+      const result = await deleteProduct(productId);
+      if (!result.success) {
+        alert(result.error || "Failed to delete product. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+      alert("Failed to delete product. Please try again.");
     }
   };
 
@@ -244,8 +188,7 @@ export const EnhancedProductManager: React.FC = () => {
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.slug.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.id.toLowerCase().includes(searchTerm.toLowerCase());
+      product.slug.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || product.category === filterCategory;
     const matchesMetal = filterMetal === "all" || product.metal === filterMetal;
@@ -269,7 +212,7 @@ export const EnhancedProductManager: React.FC = () => {
       case "ring":
         return <RingIcon className="w-5 h-5" />;
       case "necklace":
-        return <Gem className="w-5 h-5" />; // Using Gem as fallback for Necklace
+        return <Gem className="w-5 h-5" />;
       case "bracelet":
         return <Watch className="w-5 h-5" />;
       case "earring":
@@ -296,71 +239,12 @@ export const EnhancedProductManager: React.FC = () => {
     }
   };
 
-  // Migration function for existing products
-  const migrateExistingProducts = (existingProducts: any[]): Product[] => {
-    return existingProducts.map((product, index) => {
-      // If product already has serialNumber and slug, return as is
-      if (product.serialNumber && product.slug) {
-        return product as Product;
-      }
-
-      // Otherwise, generate them
-      const productSlug = generateSlug(product.name);
-      // Use simple incremental serial numbers: 1, 2, 3, etc.
-      const serialNumber = (index + 1).toString();
-
-      return {
-        ...product,
-        serialNumber,
-        slug: productSlug,
-        id: product.id || generateUniqueId(),
-      } as Product;
-    });
-  };
-
   // Handle Excel import
-  const handleExcelImport = (importedProducts: Product[]) => {
-    const mergedProducts = [...products];
-    let addedCount = 0;
-    let updatedCount = 0;
-
-    importedProducts.forEach((importedProduct) => {
-      const existingIndex = mergedProducts.findIndex(
-        (p) =>
-          p.serialNumber === importedProduct.serialNumber ||
-          p.id === importedProduct.id
-      );
-
-      if (existingIndex >= 0) {
-        // Update existing product
-        mergedProducts[existingIndex] = {
-          ...mergedProducts[existingIndex],
-          ...importedProduct,
-          updatedAt: new Date().toISOString(),
-        };
-        updatedCount++;
-      } else {
-        // Add new product with proper serial number if missing
-        const newProduct = {
-          ...importedProduct,
-          id: importedProduct.id || generateUniqueId(),
-          serialNumber: importedProduct.serialNumber || generateSerialNumber(),
-          slug: importedProduct.slug || generateSlug(importedProduct.name),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        mergedProducts.push(newProduct);
-        addedCount++;
-      }
-    });
-
-    saveProducts(mergedProducts);
-    alert(
-      `Import completed!\nAdded: ${addedCount} products\nUpdated: ${updatedCount} products`
-    );
+  const handleExcelImport = async (importedProducts: Product[]) => {
+    console.log("Excel import not yet implemented for MongoDB backend");
+    alert("Excel import feature will be implemented soon for MongoDB backend");
   };
 
-  // Dialog open state is controlled by showAddForm or editingProduct
   const isDialogOpen = showAddForm || editingProduct;
 
   return (
@@ -373,10 +257,20 @@ export const EnhancedProductManager: React.FC = () => {
             Product Management
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
-            Manage your jewelry inventory with automatic serial numbers
+            Manage your jewelry inventory with MongoDB backend
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => loadProducts()}
+            disabled={loading}
+            variant="secondary"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
           <ExcelActions
             type="products"
             data={products}
@@ -393,56 +287,83 @@ export const EnhancedProductManager: React.FC = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <Card className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Loading products from database...
+          </p>
+        </Card>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <Card className="p-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700">
+          <p className="text-red-800 dark:text-red-300">Error: {error}</p>
+          <Button
+            onClick={() => loadProducts()}
+            variant="secondary"
+            size="sm"
+            className="mt-2"
+          >
+            Try Again
+          </Button>
+        </Card>
+      )}
+
       {/* Search and Filters */}
-      <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="md:col-span-2">
-            <div className="relative">
-              <Input
-                placeholder="Search by name, description, serial number, slug, or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+      {!loading && (
+        <Card className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
+              <div className="relative">
+                <Input
+                  placeholder="Search by name, description, serial number, or slug..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              </div>
+            </div>
+            <div>
+              <div className="relative">
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-3 py-2 pl-10 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </option>
+                  ))}
+                </select>
+                <Gem className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              </div>
+            </div>
+            <div>
+              <div className="relative">
+                <select
+                  value={filterMetal}
+                  onChange={(e) => setFilterMetal(e.target.value)}
+                  className="w-full px-3 py-2 pl-10 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                >
+                  <option value="all">All Metals</option>
+                  {metals.map((metal) => (
+                    <option key={metal} value={metal}>
+                      {metal.charAt(0).toUpperCase() + metal.slice(1)}
+                    </option>
+                  ))}
+                </select>
+                <Medal className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+              </div>
             </div>
           </div>
-          <div>
-            <div className="relative">
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-3 py-2 pl-10 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-              >
-                <option value="all">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </option>
-                ))}
-              </select>
-              <Gem className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            </div>
-          </div>
-          <div>
-            <div className="relative">
-              <select
-                value={filterMetal}
-                onChange={(e) => setFilterMetal(e.target.value)}
-                className="w-full px-3 py-2 pl-10 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-              >
-                <option value="all">All Metals</option>
-                {metals.map((metal) => (
-                  <option key={metal} value={metal}>
-                    {metal.charAt(0).toUpperCase() + metal.slice(1)}
-                  </option>
-                ))}
-              </select>
-              <Medal className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            </div>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Add/Edit Form Dialog */}
       <Dialog
@@ -468,6 +389,7 @@ export const EnhancedProductManager: React.FC = () => {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder="Gold Ring with Diamond"
+                disabled={savingProduct}
               />
             </div>
             <div>
@@ -599,12 +521,26 @@ export const EnhancedProductManager: React.FC = () => {
                 !formData.name ||
                 !formData.purity ||
                 !formData.weight ||
-                !formData.makingCharges
+                !formData.makingCharges ||
+                savingProduct
               }
             >
-              {editingProduct ? "Update Product" : "Add Product"}
+              {savingProduct ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  {editingProduct ? "Updating..." : "Adding..."}
+                </>
+              ) : editingProduct ? (
+                "Update Product"
+              ) : (
+                "Add Product"
+              )}
             </Button>
-            <Button onClick={resetForm} variant="secondary">
+            <Button
+              onClick={resetForm}
+              variant="secondary"
+              disabled={savingProduct}
+            >
               Cancel
             </Button>
           </div>
@@ -612,130 +548,124 @@ export const EnhancedProductManager: React.FC = () => {
       </Dialog>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProducts.map((product) => (
-          <Card
-            key={product.id}
-            className="p-6 hover:shadow-lg transition-shadow"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-700 dark:text-zinc-300">
-                  {getCategoryIcon(product.category)}
-                </span>
-                <span>{getMetalIcon(product.metal)}</span>
+      {!loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProducts.map((product) => (
+            <Card
+              key={product._id || product.id}
+              className="p-6 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-700 dark:text-zinc-300">
+                    {getCategoryIcon(product.category)}
+                  </span>
+                  <span>{getMetalIcon(product.metal)}</span>
+                </div>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleEditProduct(product)}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteProduct(product)}
+                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => handleEditProduct(product)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
-                  title="Edit"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteProduct(product.id)}
-                  className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
 
-            {product.imageUrl && (
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className="w-full h-32 object-cover rounded-lg mb-3"
-              />
-            )}
+              {product.imageUrl && (
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
+                  className="w-full h-32 object-cover rounded-lg mb-3"
+                />
+              )}
 
-            <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
-              {product.name}
-            </h3>
-            <div className="flex flex-wrap gap-2 mb-3">
-              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs rounded-full font-medium">
-                #{product.serialNumber}
-              </span>
-              <span className="px-2 py-1 bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs rounded-full font-mono">
-                {product.slug}
-              </span>
-            </div>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
-              {product.description}
-            </p>
+              <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
+                {product.name}
+              </h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs rounded-full font-medium">
+                  #{product.serialNumber}
+                </span>
+                <span className="px-2 py-1 bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs rounded-full font-mono">
+                  {product.slug}
+                </span>
+              </div>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
+                {product.description}
+              </p>
 
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-zinc-500 dark:text-zinc-400">
-                  Serial Number:
-                </span>
-                <span className="font-medium font-mono text-blue-600 dark:text-blue-400">
-                  {product.serialNumber}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500 dark:text-zinc-400">
-                  Product ID:
-                </span>
-                <span className="font-medium font-mono text-zinc-600 dark:text-zinc-400 text-xs">
-                  {product.id}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500 dark:text-zinc-400">
-                  Category:
-                </span>
-                <span className="font-medium capitalize">
-                  {product.category}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500 dark:text-zinc-400">Metal:</span>
-                <span className="font-medium capitalize">
-                  {product.metal} {product.purity}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500 dark:text-zinc-400">
-                  Weight:
-                </span>
-                <span className="font-medium">{product.weight}g</span>
-              </div>
-              {product.stoneWeight && (
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-zinc-500 dark:text-zinc-400">
-                    Stone Weight:
+                    Serial Number:
                   </span>
-                  <span className="font-medium">{product.stoneWeight}g</span>
+                  <span className="font-medium font-mono text-blue-600 dark:text-blue-400">
+                    {product.serialNumber}
+                  </span>
                 </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-zinc-500 dark:text-zinc-400">
-                  Making Charges:
-                </span>
-                <span className="font-medium">
-                  ₹{product.makingCharges.toLocaleString()}
-                </span>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">
+                    Category:
+                  </span>
+                  <span className="font-medium capitalize">
+                    {product.category}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">Metal:</span>
+                  <span className="font-medium capitalize">
+                    {product.metal} {product.purity}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">
+                    Weight:
+                  </span>
+                  <span className="font-medium">{product.weight}g</span>
+                </div>
+                {product.stoneWeight && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500 dark:text-zinc-400">
+                      Stone Weight:
+                    </span>
+                    <span className="font-medium">{product.stoneWeight}g</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">
+                    Making Charges:
+                  </span>
+                  <span className="font-medium">
+                    ₹{product.makingCharges.toLocaleString()}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Created: {new Date(product.createdAt).toLocaleDateString()}
-              </p>
-              {product.updatedAt !== product.createdAt && (
+              <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Updated: {new Date(product.updatedAt).toLocaleDateString()}
+                  Created: {new Date(product.createdAt).toLocaleDateString()}
                 </p>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
+                {product.updatedAt !== product.createdAt && (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Updated: {new Date(product.updatedAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {filteredProducts.length === 0 && (
+      {!loading && filteredProducts.length === 0 && (
         <Card className="p-8 text-center">
           <div className="flex justify-center mb-4">
             <Box className="h-12 w-12 text-zinc-400" />
@@ -761,7 +691,7 @@ export const EnhancedProductManager: React.FC = () => {
       )}
 
       {/* Summary */}
-      {products.length > 0 && (
+      {!loading && products.length > 0 && (
         <Card className="p-4">
           <div className="flex flex-wrap gap-4 justify-center text-sm">
             <div className="text-center">

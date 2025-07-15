@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   Input,
@@ -11,52 +11,23 @@ import {
   DialogTitle,
 } from "@/components/ui";
 import { useMetalRates } from "@/services/metalRatesService";
+import { useBills } from "@/hooks/useBills";
+import { useProducts } from "@/hooks/useProducts";
+import { useCustomers } from "@/hooks/useCustomers";
 import ExcelActions from "@/components/ExcelActions";
-
-interface BillItem {
-  id: string;
-  productId: string;
-  productSerialNumber: string;
-  productName: string;
-  category: string;
-  metal: "gold" | "silver" | "platinum";
-  purity: string;
-  weight: number;
-  stoneWeight?: number;
-  netWeight: number;
-  rate: number;
-  makingCharges: number;
-  makingChargesType: "fixed" | "percentage";
-  wastage: number;
-  wastageType: "fixed" | "percentage";
-  amount: number;
-}
-
-interface Bill {
-  id: string;
-  billNumber: string;
-  date: string;
-  customerId: string;
-  customerName: string;
-  customerPhone: string;
-  customerGST?: string;
-  items: BillItem[];
-  subtotal: number;
-  cgst: number;
-  sgst: number;
-  igst: number;
-  totalAmount: number;
-  discount: number;
-  finalAmount: number;
-  paymentMode: "cash" | "card" | "upi" | "bank_transfer" | "cheque" | "partial";
-  paymentStatus: "paid" | "pending" | "partial";
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import {
+  Receipt,
+  PlusCircle,
+  Edit,
+  Trash2,
+  Printer,
+  RefreshCw,
+} from "lucide-react";
+import type { Bill, BillItem } from "@/types/bill";
 
 interface Product {
-  id: string;
+  _id?: string;
+  id?: string;
   serialNumber: string;
   slug: string;
   name: string;
@@ -69,7 +40,8 @@ interface Product {
 }
 
 interface Customer {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   phone: string;
   gstNumber?: string;
@@ -78,13 +50,31 @@ interface Customer {
 }
 
 export const EnhancedBillingManager: React.FC = () => {
-  const [bills, setBills] = useState<Bill[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const {
+    bills: billsData,
+    loading: billsLoading,
+    createBill,
+    updateBill,
+    deleteBill,
+    loadBills,
+  } = useBills();
+  const { products: productsData, loading: productsLoading } = useProducts();
+  const {
+    customers: customersData,
+    loading: customersLoading,
+    loadCustomers,
+  } = useCustomers();
+
+  // Ensure arrays are always defined
+  const bills = Array.isArray(billsData) ? billsData : [];
+  const products = Array.isArray(productsData) ? productsData : [];
+  const customers = Array.isArray(customersData) ? customersData : [];
+
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [savingBill, setSavingBill] = useState(false);
   const [currentBill, setCurrentBill] = useState<Partial<Bill>>({
     items: [],
     discount: 0,
@@ -93,53 +83,7 @@ export const EnhancedBillingManager: React.FC = () => {
   });
 
   const { rates: liveRates } = useMetalRates();
-
-  // Load data from localStorage
-  useEffect(() => {
-    const savedBills = localStorage.getItem("bills");
-    const savedProducts = localStorage.getItem("products");
-    const savedCustomers = localStorage.getItem("customers");
-
-    if (savedBills) {
-      try {
-        setBills(JSON.parse(savedBills));
-      } catch (error) {
-        console.error("Failed to parse bills:", error);
-      }
-    }
-
-    if (savedProducts) {
-      try {
-        setProducts(JSON.parse(savedProducts));
-      } catch (error) {
-        console.error("Failed to parse products:", error);
-      }
-    }
-
-    if (savedCustomers) {
-      try {
-        setCustomers(JSON.parse(savedCustomers));
-      } catch (error) {
-        console.error("Failed to parse customers:", error);
-      }
-    }
-  }, []);
-
-  // Save bills to localStorage
-  const saveBills = (newBills: Bill[]) => {
-    setBills(newBills);
-    localStorage.setItem("bills", JSON.stringify(newBills));
-  };
-
-  // Generate bill number
-  const generateBillNumber = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    const billCount = bills.length + 1;
-    return `SJ${year}${month}${day}${String(billCount).padStart(4, "0")}`;
-  };
+  const loading = billsLoading || productsLoading || customersLoading;
 
   // Calculate item amount
   const calculateItemAmount = (item: Partial<BillItem>): number => {
@@ -195,7 +139,7 @@ export const EnhancedBillingManager: React.FC = () => {
 
   // Add item to current bill
   const addItemToBill = (productId: string) => {
-    const product = products.find((p) => p.id === productId);
+    const product = products.find((p) => (p._id || p.id) === productId);
     if (!product) return;
 
     // Get live rate for the metal
@@ -207,7 +151,7 @@ export const EnhancedBillingManager: React.FC = () => {
 
     const newItem: BillItem = {
       id: Date.now().toString(),
-      productId: product.id,
+      productId: product._id || product.id || "",
       productSerialNumber: product.serialNumber,
       productName: product.name,
       category: product.category,
@@ -256,56 +200,6 @@ export const EnhancedBillingManager: React.FC = () => {
     }));
   };
 
-  // Create new bill
-  const handleCreateBill = () => {
-    if (!currentBill.customerId || !currentBill.items?.length) return;
-
-    const customer = customers.find((c) => c.id === currentBill.customerId);
-    if (!customer) return;
-
-    const totals = calculateBillTotals(currentBill);
-
-    const newBill: Bill = {
-      id: Date.now().toString(),
-      billNumber: generateBillNumber(),
-      date: new Date().toISOString().split("T")[0],
-      customerId: currentBill.customerId,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      customerGST: customer.gstNumber,
-      items: currentBill.items || [],
-      subtotal: totals.subtotal,
-      cgst: totals.cgst,
-      sgst: totals.sgst,
-      igst: totals.igst,
-      totalAmount: totals.totalAmount,
-      discount: currentBill.discount || 0,
-      finalAmount: totals.finalAmount,
-      paymentMode: currentBill.paymentMode || "cash",
-      paymentStatus: currentBill.paymentStatus || "paid",
-      notes: currentBill.notes,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    saveBills([...bills, newBill]);
-
-    // Update customer's total purchases
-    const updatedCustomers = customers.map((c) =>
-      c.id === customer.id
-        ? {
-            ...c,
-            totalPurchases: (c.totalPurchases || 0) + totals.finalAmount,
-            lastPurchaseDate: new Date().toISOString(),
-          }
-        : c
-    );
-    localStorage.setItem("customers", JSON.stringify(updatedCustomers));
-    setCustomers(updatedCustomers);
-
-    resetForm();
-  };
-
   // Edit bill
   const handleEditBill = (bill: Bill) => {
     setEditingBill(bill);
@@ -313,42 +207,112 @@ export const EnhancedBillingManager: React.FC = () => {
     setShowAddForm(true);
   };
 
+  // Create new bill
+  const handleCreateBill = async () => {
+    if (!currentBill.customerId || !currentBill.items?.length) return;
+
+    const customer = customers.find(
+      (c) => (c._id || c.id) === currentBill.customerId
+    );
+    if (!customer) return;
+
+    setSavingBill(true);
+    try {
+      const totals = calculateBillTotals(currentBill);
+
+      const newBillData = {
+        customerId: currentBill.customerId,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerGST: customer.gstNumber,
+        items: currentBill.items || [],
+        subtotal: totals.subtotal,
+        cgst: totals.cgst,
+        sgst: totals.sgst,
+        igst: totals.igst,
+        totalAmount: totals.totalAmount,
+        discount: currentBill.discount || 0,
+        finalAmount: totals.finalAmount,
+        paymentMode: currentBill.paymentMode || "cash",
+        paymentStatus: currentBill.paymentStatus || "paid",
+        notes: currentBill.notes,
+        date: new Date().toISOString().split("T")[0],
+      };
+
+      const result = await createBill(newBillData);
+
+      if (result.success) {
+        resetForm();
+        await loadCustomers(); // Reload customers to get updated purchase data
+      } else {
+        alert(result.error || "Failed to create bill. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to create bill:", error);
+      alert("Failed to create bill. Please try again.");
+    } finally {
+      setSavingBill(false);
+    }
+  };
+
   // Update bill
-  const handleUpdateBill = () => {
+  const handleUpdateBill = async () => {
     if (!editingBill || !currentBill.customerId || !currentBill.items?.length)
       return;
 
-    const customer = customers.find((c) => c.id === currentBill.customerId);
+    const customer = customers.find(
+      (c) => (c._id || c.id) === currentBill.customerId
+    );
     if (!customer) return;
 
-    const totals = calculateBillTotals(currentBill);
+    setSavingBill(true);
+    try {
+      const totals = calculateBillTotals(currentBill);
 
-    const updatedBill: Bill = {
-      ...editingBill,
-      customerId: currentBill.customerId,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      customerGST: customer.gstNumber,
-      items: currentBill.items || [],
-      subtotal: totals.subtotal,
-      cgst: totals.cgst,
-      sgst: totals.sgst,
-      igst: totals.igst,
-      totalAmount: totals.totalAmount,
-      discount: currentBill.discount || 0,
-      finalAmount: totals.finalAmount,
-      paymentMode: currentBill.paymentMode || "cash",
-      paymentStatus: currentBill.paymentStatus || "paid",
-      notes: currentBill.notes,
-      updatedAt: new Date().toISOString(),
-    };
+      const updateData = {
+        customerId: currentBill.customerId,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerGST: customer.gstNumber,
+        items: currentBill.items || [],
+        subtotal: totals.subtotal,
+        cgst: totals.cgst,
+        sgst: totals.sgst,
+        igst: totals.igst,
+        totalAmount: totals.totalAmount,
+        discount: currentBill.discount || 0,
+        finalAmount: totals.finalAmount,
+        paymentMode: currentBill.paymentMode || "cash",
+        paymentStatus: currentBill.paymentStatus || "paid",
+        notes: currentBill.notes,
+      };
 
-    const updatedBills = bills.map((bill) =>
-      bill.id === editingBill.id ? updatedBill : bill
-    );
+      const billId = editingBill._id || editingBill.id!;
+      const result = await updateBill(billId, updateData);
 
-    saveBills(updatedBills);
-    resetForm();
+      if (result.success) {
+        resetForm();
+      } else {
+        alert(result.error || "Failed to update bill. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to update bill:", error);
+      alert("Failed to update bill. Please try again.");
+    } finally {
+      setSavingBill(false);
+    }
+  };
+
+  // Delete bill
+  const handleDeleteBill = async (bill: Bill) => {
+    if (!confirm("Are you sure you want to delete this bill?")) return;
+
+    const billId = bill._id || bill.id!;
+    const result = await deleteBill(billId);
+
+    if (!result.success) {
+      alert(result.error || "Failed to delete bill. Please try again.");
+    }
   };
 
   // Print bill
@@ -459,13 +423,6 @@ export const EnhancedBillingManager: React.FC = () => {
     printWindow.print();
   };
 
-  // Delete bill
-  const handleDeleteBill = (id: string) => {
-    if (confirm("Are you sure you want to delete this bill?")) {
-      saveBills(bills.filter((bill) => bill.id !== id));
-    }
-  };
-
   // Reset form
   const resetForm = () => {
     setCurrentBill({
@@ -491,8 +448,6 @@ export const EnhancedBillingManager: React.FC = () => {
   });
 
   const currentBillTotals = calculateBillTotals(currentBill);
-
-  // Dialog open state is controlled by showAddForm or editingBill
   const isDialogOpen = showAddForm || editingBill;
 
   return (
@@ -500,7 +455,8 @@ export const EnhancedBillingManager: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <Receipt className="w-6 h-6" />
             Billing Management
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
@@ -508,6 +464,19 @@ export const EnhancedBillingManager: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => {
+              loadBills();
+              loadCustomers();
+            }}
+            disabled={loading}
+            variant="secondary"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
           <ExcelActions
             type="bills"
             data={bills}
@@ -517,37 +486,49 @@ export const EnhancedBillingManager: React.FC = () => {
             onClick={() => setShowAddForm(true)}
             className="flex items-center gap-2"
           >
-            <span>🧾</span>
+            <PlusCircle className="w-4 h-4" />
             Create New Bill
           </Button>
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <Card className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Loading bills, products, and customers from database...
+          </p>
+        </Card>
+      )}
+
       {/* Search and Filters */}
-      <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <Input
-              placeholder="Search bills by number, customer name, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-            />
+      {!loading && (
+        <Card className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <Input
+                placeholder="Search bills by number, customer name, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+              >
+                <option value="all">All Status</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="partial">Partial</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-            >
-              <option value="all">All Status</option>
-              <option value="paid">Paid</option>
-              <option value="pending">Pending</option>
-              <option value="partial">Partial</option>
-            </select>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Create/Edit Bill Form Dialog */}
       <Dialog
@@ -578,10 +559,14 @@ export const EnhancedBillingManager: React.FC = () => {
                   }))
                 }
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                disabled={savingBill}
               >
                 <option value="">Select a customer</option>
                 {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
+                  <option
+                    key={customer._id || customer.id}
+                    value={customer._id || customer.id}
+                  >
                     {customer.name} - {customer.phone}
                   </option>
                 ))}
@@ -599,10 +584,14 @@ export const EnhancedBillingManager: React.FC = () => {
                   }
                 }}
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                disabled={savingBill}
               >
                 <option value="">Select a product to add</option>
                 {products.map((product) => (
-                  <option key={product.id} value={product.id}>
+                  <option
+                    key={product._id || product.id}
+                    value={product._id || product.id}
+                  >
                     #{product.serialNumber} - {product.name} - {product.metal}{" "}
                     {product.purity} - {product.weight}g
                   </option>
@@ -645,7 +634,7 @@ export const EnhancedBillingManager: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-700">
-                    {currentBill.items.map((item) => (
+                    {currentBill.items.map((item: any) => (
                       <tr key={item.id}>
                         <td className="px-3 py-2 text-sm text-zinc-900 dark:text-white">
                           <div>
@@ -900,13 +889,30 @@ export const EnhancedBillingManager: React.FC = () => {
           <div className="flex gap-2 mt-4">
             <Button
               onClick={editingBill ? handleUpdateBill : handleCreateBill}
-              disabled={!currentBill.customerId || !currentBill.items?.length}
+              disabled={
+                !currentBill.customerId ||
+                !currentBill.items?.length ||
+                savingBill
+              }
               className="flex-1 max-h-[40px] flex items-center justify-center"
             >
-              {editingBill ? "Update Bill" : "Create Bill"}
+              {savingBill ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  {editingBill ? "Updating..." : "Creating..."}
+                </>
+              ) : editingBill ? (
+                "Update Bill"
+              ) : (
+                "Create Bill"
+              )}
             </Button>
-            <Button onClick={resetForm} variant="secondary"
-              className="flex-1 max-h-[40px] flex items-center justify-center">
+            <Button
+              onClick={resetForm}
+              variant="secondary"
+              className="flex-1 max-h-[40px] flex items-center justify-center"
+              disabled={savingBill}
+            >
               Cancel
             </Button>
           </div>
@@ -914,90 +920,100 @@ export const EnhancedBillingManager: React.FC = () => {
       </Dialog>
 
       {/* Bills List */}
-      <div className="grid grid-cols-1 gap-4">
-        {filteredBills.map((bill) => (
-          <Card key={bill.id} className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-4 mb-2">
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
-                    Bill #{bill.billNumber}
-                  </h3>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      bill.paymentStatus === "paid"
-                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
-                        : bill.paymentStatus === "pending"
-                        ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
-                        : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
-                    }`}
+      {!loading && (
+        <div className="grid grid-cols-1 gap-4">
+          {filteredBills.map((bill) => (
+            <Card
+              key={bill._id || bill.id}
+              className="p-6 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-4 mb-2">
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                      Bill #{bill.billNumber}
+                    </h3>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        bill.paymentStatus === "paid"
+                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
+                          : bill.paymentStatus === "pending"
+                          ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
+                          : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
+                      }`}
+                    >
+                      {bill.paymentStatus.charAt(0).toUpperCase() +
+                        bill.paymentStatus.slice(1)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400">
+                        Customer
+                      </p>
+                      <p className="font-medium">{bill.customerName}</p>
+                      <p className="text-zinc-600 dark:text-zinc-400">
+                        {bill.customerPhone}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400">Date</p>
+                      <p className="font-medium">
+                        {new Date(bill.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400">Items</p>
+                      <p className="font-medium">{bill.items.length} item(s)</p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400">Amount</p>
+                      <p className="font-bold text-green-600 dark:text-green-400">
+                        ₹{bill.finalAmount.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  {bill.notes && (
+                    <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 italic">
+                      {bill.notes}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditBill(bill)}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2"
+                    title="Edit"
                   >
-                    {bill.paymentStatus.charAt(0).toUpperCase() +
-                      bill.paymentStatus.slice(1)}
-                  </span>
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteBill(bill)}
+                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-2"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => printBill(bill)}
+                    className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-2"
+                    title="Print"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-zinc-500 dark:text-zinc-400">Customer</p>
-                    <p className="font-medium">{bill.customerName}</p>
-                    <p className="text-zinc-600 dark:text-zinc-400">
-                      {bill.customerPhone}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-zinc-500 dark:text-zinc-400">Date</p>
-                    <p className="font-medium">
-                      {new Date(bill.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-zinc-500 dark:text-zinc-400">Items</p>
-                    <p className="font-medium">{bill.items.length} item(s)</p>
-                  </div>
-                  <div>
-                    <p className="text-zinc-500 dark:text-zinc-400">Amount</p>
-                    <p className="font-bold text-green-600 dark:text-green-400">
-                      ₹{bill.finalAmount.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                {bill.notes && (
-                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 italic">
-                    {bill.notes}
-                  </p>
-                )}
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEditBill(bill)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2"
-                  title="Edit"
-                >
-                  ✏️
-                </button>
-                <button
-                  onClick={() => handleDeleteBill(bill.id)}
-                  className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-2"
-                  title="Delete"
-                >
-                  🗑️
-                </button>
-                <button
-                  onClick={() => printBill(bill)}
-                  className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-2"
-                  title="Print"
-                >
-                  🖨️
-                </button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      {filteredBills.length === 0 && (
+      {/* Empty State */}
+      {!loading && filteredBills.length === 0 && (
         <Card className="p-8 text-center">
-          <div className="text-4xl mb-4">🧾</div>
+          <div className="flex justify-center mb-4">
+            <Receipt className="h-12 w-12 text-zinc-400" />
+          </div>
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">
             No bills found
           </h3>
@@ -1007,7 +1023,11 @@ export const EnhancedBillingManager: React.FC = () => {
               : "Try adjusting your search criteria."}
           </p>
           {bills.length === 0 && (
-            <Button onClick={() => setShowAddForm(true)}>
+            <Button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-2 mx-auto"
+            >
+              <PlusCircle className="w-4 h-4" />
               Create Your First Bill
             </Button>
           )}
@@ -1015,7 +1035,7 @@ export const EnhancedBillingManager: React.FC = () => {
       )}
 
       {/* Summary */}
-      {bills.length > 0 && (
+      {!loading && bills.length > 0 && (
         <Card className="p-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-sm">
             <div>

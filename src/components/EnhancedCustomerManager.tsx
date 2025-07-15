@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Card,
   Input,
@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui";
 import ExcelActions from "@/components/ExcelActions";
+import { useCustomers, type Customer } from "@/hooks/useCustomers";
 import {
   Users,
   UserPlus,
@@ -27,28 +28,24 @@ import {
   Pencil,
   Trash2,
   Search,
+  RefreshCw,
 } from "lucide-react";
 
-interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string;
-  address?: string;
-  gstNumber?: string;
-  panNumber?: string;
-  notes?: string;
-  totalPurchases: number;
-  lastPurchaseDate?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const EnhancedCustomerManager: React.FC = () => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const {
+    customers,
+    loading,
+    error,
+    loadCustomers,
+    createCustomer,
+    updateCustomer,
+    deleteCustomer,
+  } = useCustomers();
+
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [savingCustomer, setSavingCustomer] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -59,43 +56,23 @@ export const EnhancedCustomerManager: React.FC = () => {
     notes: "",
   });
 
-  // Load customers from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("customers");
-    if (saved) {
-      try {
-        setCustomers(JSON.parse(saved));
-      } catch (error) {
-        console.error("Failed to parse saved customers:", error);
-      }
-    }
-  }, []);
-
-  // Save customers to localStorage
-  const saveCustomers = (newCustomers: Customer[]) => {
-    setCustomers(newCustomers);
-    localStorage.setItem("customers", JSON.stringify(newCustomers));
-  };
-
-  const handleAddCustomer = () => {
+  const handleAddCustomer = async () => {
     if (!formData.name || !formData.phone) return;
 
-    const newCustomer: Customer = {
-      id: Date.now().toString(),
-      name: formData.name,
-      phone: formData.phone,
-      email: formData.email || undefined,
-      address: formData.address || undefined,
-      gstNumber: formData.gstNumber || undefined,
-      panNumber: formData.panNumber || undefined,
-      notes: formData.notes || undefined,
-      totalPurchases: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    saveCustomers([...customers, newCustomer]);
-    resetForm();
+    setSavingCustomer(true);
+    try {
+      const result = await createCustomer(formData);
+      if (result.success) {
+        resetForm();
+      } else {
+        alert(result.error || "Failed to create customer. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to create customer:", error);
+      alert("Failed to create customer. Please try again.");
+    } finally {
+      setSavingCustomer(false);
+    }
   };
 
   const handleEditCustomer = (customer: Customer) => {
@@ -111,32 +88,38 @@ export const EnhancedCustomerManager: React.FC = () => {
     });
   };
 
-  const handleUpdateCustomer = () => {
+  const handleUpdateCustomer = async () => {
     if (!editingCustomer || !formData.name || !formData.phone) return;
 
-    const updatedCustomers = customers.map((customer) =>
-      customer.id === editingCustomer.id
-        ? {
-            ...customer,
-            name: formData.name,
-            phone: formData.phone,
-            email: formData.email || undefined,
-            address: formData.address || undefined,
-            gstNumber: formData.gstNumber || undefined,
-            panNumber: formData.panNumber || undefined,
-            notes: formData.notes || undefined,
-            updatedAt: new Date().toISOString(),
-          }
-        : customer
-    );
-
-    saveCustomers(updatedCustomers);
-    resetForm();
+    setSavingCustomer(true);
+    try {
+      const customerId = editingCustomer._id || editingCustomer.id!;
+      const result = await updateCustomer(customerId, formData);
+      if (result.success) {
+        resetForm();
+      } else {
+        alert(result.error || "Failed to update customer. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to update customer:", error);
+      alert("Failed to update customer. Please try again.");
+    } finally {
+      setSavingCustomer(false);
+    }
   };
 
-  const handleDeleteCustomer = (id: string) => {
-    if (confirm("Are you sure you want to delete this customer?")) {
-      saveCustomers(customers.filter((customer) => customer.id !== id));
+  const handleDeleteCustomer = async (customer: Customer) => {
+    if (!confirm("Are you sure you want to delete this customer?")) return;
+
+    try {
+      const customerId = customer._id || customer.id!;
+      const result = await deleteCustomer(customerId);
+      if (!result.success) {
+        alert(result.error || "Failed to delete customer. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to delete customer:", error);
+      alert("Failed to delete customer. Please try again.");
     }
   };
 
@@ -181,42 +164,10 @@ export const EnhancedCustomerManager: React.FC = () => {
   };
 
   // Handle Excel import
-  const handleExcelImport = (importedCustomers: Customer[]) => {
-    const mergedCustomers = [...customers];
-    let addedCount = 0;
-    let updatedCount = 0;
-
-    importedCustomers.forEach((importedCustomer) => {
-      const existingIndex = mergedCustomers.findIndex(
-        (c) =>
-          c.phone === importedCustomer.phone || c.id === importedCustomer.id
-      );
-
-      if (existingIndex >= 0) {
-        // Update existing customer
-        mergedCustomers[existingIndex] = {
-          ...mergedCustomers[existingIndex],
-          ...importedCustomer,
-          updatedAt: new Date().toISOString(),
-        };
-        updatedCount++;
-      } else {
-        // Add new customer
-        const newCustomer = {
-          ...importedCustomer,
-          id: importedCustomer.id || Date.now().toString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        mergedCustomers.push(newCustomer);
-        addedCount++;
-      }
-    });
-
-    saveCustomers(mergedCustomers);
-    alert(
-      `Import completed!\nAdded: ${addedCount} customers\nUpdated: ${updatedCount} customers`
-    );
+  const handleExcelImport = async (importedCustomers: Customer[]) => {
+    // Implementation for bulk import via API would go here
+    console.log("Excel import not yet implemented for MongoDB backend");
+    alert("Excel import feature will be implemented soon for MongoDB backend");
   };
 
   // Handle Dialog open state explicitly
@@ -232,10 +183,20 @@ export const EnhancedCustomerManager: React.FC = () => {
             Customer Management
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
-            Manage your customer database and relationships
+            Manage your customer database with MongoDB backend
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={() => loadCustomers()}
+            disabled={loading}
+            variant="secondary"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
           <ExcelActions
             type="customers"
             data={customers}
@@ -252,18 +213,45 @@ export const EnhancedCustomerManager: React.FC = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <Card className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Loading customers from database...
+          </p>
+        </Card>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <Card className="p-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700">
+          <p className="text-red-800 dark:text-red-300">Error: {error}</p>
+          <Button
+            onClick={() => loadCustomers()}
+            variant="secondary"
+            size="sm"
+            className="mt-2"
+          >
+            Try Again
+          </Button>
+        </Card>
+      )}
+
       {/* Search */}
-      <Card className="p-4">
-        <div className="relative">
-          <Input
-            placeholder="Search customers by name, phone, email, or GST number..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10"
-          />
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-        </div>
-      </Card>
+      {!loading && (
+        <Card className="p-4">
+          <div className="relative">
+            <Input
+              placeholder="Search customers by name, phone, email, or GST number..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10"
+            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          </div>
+        </Card>
+      )}
 
       {/* Add/Edit Form Dialog */}
       <Dialog
@@ -272,10 +260,7 @@ export const EnhancedCustomerManager: React.FC = () => {
           if (!open) resetForm();
         }}
       >
-        <DialogContent
-          // fullScreen={true}
-          className="overflow-y-auto bg-zinc-900 text-white w-[50vw]"
-        >
+        <DialogContent className="overflow-y-auto bg-zinc-900 text-white w-[50vw]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-center">
               {editingCustomer ? "Edit Customer" : "Add New Customer"}
@@ -294,6 +279,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                 }
                 placeholder="John Doe"
                 className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                disabled={savingCustomer}
               />
             </div>
             <div>
@@ -307,6 +293,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                 }
                 placeholder="+91 9876543210"
                 className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                disabled={savingCustomer}
               />
             </div>
             <div>
@@ -321,6 +308,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                 }
                 placeholder="john@example.com"
                 className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                disabled={savingCustomer}
               />
             </div>
             <div className="md:col-span-2">
@@ -334,6 +322,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                 }
                 placeholder="123 Main Street, City, State, PIN"
                 className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                disabled={savingCustomer}
               />
             </div>
             <div>
@@ -350,6 +339,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                 }
                 placeholder="27AAPFU0939F1ZV"
                 className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 font-mono"
+                disabled={savingCustomer}
               />
             </div>
             <div>
@@ -366,6 +356,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                 }
                 placeholder="ABCDE1234F"
                 className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 font-mono"
+                disabled={savingCustomer}
               />
             </div>
             <div className="md:col-span-2 lg:col-span-1">
@@ -380,6 +371,7 @@ export const EnhancedCustomerManager: React.FC = () => {
                 placeholder="Additional notes about the customer..."
                 rows={3}
                 className="w-[600px] px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-white placeholder:text-zinc-500"
+                disabled={savingCustomer}
               />
             </div>
           </div>
@@ -389,15 +381,25 @@ export const EnhancedCustomerManager: React.FC = () => {
               onClick={
                 editingCustomer ? handleUpdateCustomer : handleAddCustomer
               }
-              disabled={!formData.name || !formData.phone}
+              disabled={!formData.name || !formData.phone || savingCustomer}
               className="w-full sm:w-auto max-h-[40px] bg-blue-600 hover:bg-blue-700 text-white font-semibold"
             >
-              {editingCustomer ? "Update Customer" : "Add Customer"}
+              {savingCustomer ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  {editingCustomer ? "Updating..." : "Adding..."}
+                </>
+              ) : editingCustomer ? (
+                "Update Customer"
+              ) : (
+                "Add Customer"
+              )}
             </Button>
             <Button
               onClick={resetForm}
               variant="secondary"
               className="w-full sm:w-auto max-h-[40px] bg-zinc-700 hover:bg-zinc-600 text-white font-semibold"
+              disabled={savingCustomer}
             >
               Cancel
             </Button>
@@ -406,122 +408,126 @@ export const EnhancedCustomerManager: React.FC = () => {
       </Dialog>
 
       {/* Customers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCustomers.map((customer) => (
-          <Card
-            key={customer.id}
-            className="p-6 hover:shadow-lg transition-shadow"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-blue-600 dark:text-blue-400">
-                  {getCustomerTypeIcon(customer)}
-                </span>
-                <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
-                  {getCustomerTypeLabel(customer)}
-                </span>
-              </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => handleEditCustomer(customer)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
-                  title="Edit"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteCustomer(customer.id)}
-                  className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
-              {customer.name}
-            </h3>
-
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-zinc-500" />
-                <span className="text-zinc-600 dark:text-zinc-400">
-                  {customer.phone}
-                </span>
-              </div>
-              {customer.email && (
+      {!loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCustomers.map((customer) => (
+            <Card
+              key={customer._id || customer.id}
+              className="p-6 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-zinc-500" />
-                  <span className="text-zinc-600 dark:text-zinc-400 truncate">
-                    {customer.email}
+                  <span className="text-blue-600 dark:text-blue-400">
+                    {getCustomerTypeIcon(customer)}
+                  </span>
+                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
+                    {getCustomerTypeLabel(customer)}
                   </span>
                 </div>
-              )}
-              {customer.address && (
-                <div className="flex items-start gap-2">
-                  <Home className="w-4 h-4 text-zinc-500 mt-0.5" />
-                  <span className="text-zinc-600 dark:text-zinc-400 text-xs">
-                    {customer.address}
-                  </span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleEditCustomer(customer)}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCustomer(customer)}
+                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-              )}
-              {customer.gstNumber && (
-                <div className="flex items-center gap-2">
-                  <Building className="w-4 h-4 text-zinc-500" />
-                  <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
-                    {customer.gstNumber}
-                  </span>
-                </div>
-              )}
-              {customer.panNumber && (
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-zinc-500" />
-                  <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
-                    {customer.panNumber}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {customer.notes && (
-              <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-xs text-zinc-600 dark:text-zinc-400 flex items-start gap-2">
-                <FileText className="w-3 h-3 text-zinc-500 mt-0.5" />
-                {customer.notes}
               </div>
-            )}
 
-            <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-              <div className="flex justify-between items-center text-sm">
-                <div>
-                  <p className="font-medium text-green-600 dark:text-green-400">
-                    ₹{customer.totalPurchases.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Total Purchases
-                  </p>
+              <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
+                {customer.name}
+              </h3>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-zinc-500" />
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    {customer.phone}
+                  </span>
                 </div>
-                {customer.lastPurchaseDate && (
-                  <div className="text-right">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Last Purchase
-                    </p>
-                    <p className="text-xs font-medium">
-                      {new Date(customer.lastPurchaseDate).toLocaleDateString()}
-                    </p>
+                {customer.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-zinc-500" />
+                    <span className="text-zinc-600 dark:text-zinc-400 truncate">
+                      {customer.email}
+                    </span>
+                  </div>
+                )}
+                {customer.address && (
+                  <div className="flex items-start gap-2">
+                    <Home className="w-4 h-4 text-zinc-500 mt-0.5" />
+                    <span className="text-zinc-600 dark:text-zinc-400 text-xs">
+                      {customer.address}
+                    </span>
+                  </div>
+                )}
+                {customer.gstNumber && (
+                  <div className="flex items-center gap-2">
+                    <Building className="w-4 h-4 text-zinc-500" />
+                    <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
+                      {customer.gstNumber}
+                    </span>
+                  </div>
+                )}
+                {customer.panNumber && (
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-zinc-500" />
+                    <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
+                      {customer.panNumber}
+                    </span>
                   </div>
                 )}
               </div>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                Customer since:{" "}
-                {new Date(customer.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          </Card>
-        ))}
-      </div>
 
-      {filteredCustomers.length === 0 && (
+              {customer.notes && (
+                <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-xs text-zinc-600 dark:text-zinc-400 flex items-start gap-2">
+                  <FileText className="w-3 h-3 text-zinc-500 mt-0.5" />
+                  {customer.notes}
+                </div>
+              )}
+
+              <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                <div className="flex justify-between items-center text-sm">
+                  <div>
+                    <p className="font-medium text-green-600 dark:text-green-400">
+                      ₹{customer.totalPurchases.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Total Purchases
+                    </p>
+                  </div>
+                  {customer.lastPurchaseDate && (
+                    <div className="text-right">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Last Purchase
+                      </p>
+                      <p className="text-xs font-medium">
+                        {new Date(
+                          customer.lastPurchaseDate
+                        ).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+                  Customer since:{" "}
+                  {new Date(customer.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {!loading && filteredCustomers.length === 0 && (
         <Card className="p-8 text-center">
           <div className="flex justify-center mb-4">
             <Users className="w-12 h-12 text-zinc-400" />
@@ -547,7 +553,7 @@ export const EnhancedCustomerManager: React.FC = () => {
       )}
 
       {/* Summary */}
-      {customers.length > 0 && (
+      {!loading && customers.length > 0 && (
         <Card className="p-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-sm">
             <div>

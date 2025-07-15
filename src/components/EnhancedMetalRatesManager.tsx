@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMetalRates } from "@/services/metalRatesService";
 import {
   Card,
@@ -33,12 +33,16 @@ import {
 } from "lucide-react";
 
 interface LocalRate {
-  id: string;
+  _id?: string;
+  id?: string;
   metal: "gold" | "silver";
   purity: string;
   rate: number;
   unit: string;
-  lastUpdated: string;
+  source: string;
+  lastUpdated?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export const EnhancedMetalRatesManager: React.FC = () => {
@@ -53,9 +57,8 @@ export const EnhancedMetalRatesManager: React.FC = () => {
   const [localRates, setLocalRates] = useState<LocalRate[]>([]);
   const [editingRate, setEditingRate] = useState<LocalRate | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [activeDebugTab, setActiveDebugTab] = useState<
-    "live" | "legacy" | "enhanced" | "beautiful-soup" | "spa" | "puppeteer"
-  >("live");
+  const [loadingRates, setLoadingRates] = useState(false);
+  const [savingRate, setSavingRate] = useState(false);
   const [formData, setFormData] = useState({
     metal: "gold" as "gold" | "silver",
     purity: "",
@@ -63,41 +66,62 @@ export const EnhancedMetalRatesManager: React.FC = () => {
     unit: "per gram",
   });
 
-  // Load local rates from localStorage on component mount
-  React.useEffect(() => {
-    const saved = localStorage.getItem("localMetalRates");
-    if (saved) {
-      try {
-        setLocalRates(JSON.parse(saved));
-      } catch (error) {
-        console.error("Failed to parse saved rates:", error);
-      }
-    }
+  // Load rates from database on component mount
+  useEffect(() => {
+    loadRatesFromDB();
   }, []);
 
-  // Save local rates to localStorage
-  const saveLocalRates = (rates: LocalRate[]) => {
-    setLocalRates(rates);
-    localStorage.setItem("localMetalRates", JSON.stringify(rates));
+  const loadRatesFromDB = async () => {
+    setLoadingRates(true);
+    try {
+      const response = await fetch("/api/metal-rates");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setLocalRates(result.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load rates from database:", error);
+    } finally {
+      setLoadingRates(false);
+    }
   };
 
-  const handleAddRate = () => {
+  const handleAddRate = async () => {
     if (!formData.purity || !formData.rate) return;
 
-    const newRate: LocalRate = {
-      id: Date.now().toString(),
-      metal: formData.metal,
-      purity: formData.purity,
-      rate: parseFloat(formData.rate),
-      unit: formData.unit,
-      lastUpdated: new Date().toLocaleString("en-IN", {
-        timeZone: "Asia/Kolkata",
-      }),
-    };
+    setSavingRate(true);
+    try {
+      const newRateData = {
+        metal: formData.metal,
+        purity: formData.purity,
+        rate: parseFloat(formData.rate),
+        unit: formData.unit,
+        source: "manual",
+      };
 
-    saveLocalRates([...localRates, newRate]);
-    setFormData({ metal: "gold", purity: "", rate: "", unit: "per gram" });
-    setShowAddForm(false);
+      const response = await fetch("/api/metal-rates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newRateData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setLocalRates([...localRates, result.data]);
+          resetForm();
+        }
+      }
+    } catch (error) {
+      console.error("Failed to add rate:", error);
+      alert("Failed to add rate. Please try again.");
+    } finally {
+      setSavingRate(false);
+    }
   };
 
   const handleEditRate = (rate: LocalRate) => {
@@ -110,32 +134,65 @@ export const EnhancedMetalRatesManager: React.FC = () => {
     });
   };
 
-  const handleUpdateRate = () => {
+  const handleUpdateRate = async () => {
     if (!editingRate || !formData.purity || !formData.rate) return;
 
-    const updatedRates = localRates.map((rate) =>
-      rate.id === editingRate.id
-        ? {
-            ...rate,
-            metal: formData.metal,
-            purity: formData.purity,
-            rate: parseFloat(formData.rate),
-            unit: formData.unit,
-            lastUpdated: new Date().toLocaleString("en-IN", {
-              timeZone: "Asia/Kolkata",
-            }),
-          }
-        : rate
-    );
+    setSavingRate(true);
+    try {
+      const updateData = {
+        metal: formData.metal,
+        purity: formData.purity,
+        rate: parseFloat(formData.rate),
+        unit: formData.unit,
+        source: "manual",
+      };
 
-    saveLocalRates(updatedRates);
-    setEditingRate(null);
-    setFormData({ metal: "gold", purity: "", rate: "", unit: "per gram" });
+      const rateId = editingRate._id || editingRate.id;
+      const response = await fetch(`/api/metal-rates/${rateId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setLocalRates(
+            localRates.map((rate) =>
+              (rate._id || rate.id) === rateId ? result.data : rate
+            )
+          );
+          resetForm();
+        }
+      }
+    } catch (error) {
+      console.error("Failed to update rate:", error);
+      alert("Failed to update rate. Please try again.");
+    } finally {
+      setSavingRate(false);
+    }
   };
 
-  const handleDeleteRate = (id: string) => {
-    if (confirm("Are you sure you want to delete this rate?")) {
-      saveLocalRates(localRates.filter((rate) => rate.id !== id));
+  const handleDeleteRate = async (rate: LocalRate) => {
+    if (!confirm("Are you sure you want to delete this rate?")) return;
+
+    try {
+      const rateId = rate._id || rate.id;
+      const response = await fetch(`/api/metal-rates/${rateId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setLocalRates(localRates.filter((r) => (r._id || r.id) !== rateId));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete rate:", error);
+      alert("Failed to delete rate. Please try again.");
     }
   };
 
@@ -145,46 +202,32 @@ export const EnhancedMetalRatesManager: React.FC = () => {
     setShowAddForm(false);
   };
 
-  // Handle Excel import
-  const handleExcelImport = (importedRates: any[]) => {
-    const mergedRates = [...localRates];
-    let addedCount = 0;
-    let updatedCount = 0;
+  // Handle Excel import - now saves to database
+  const handleExcelImport = async (importedRates: any[]) => {
+    try {
+      const response = await fetch("/api/metal-rates/bulk-import", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ rates: importedRates }),
+      });
 
-    importedRates.forEach((importedRate) => {
-      const existingIndex = mergedRates.findIndex(
-        (r) =>
-          r.metal === importedRate.metal && r.purity === importedRate.purity
-      );
-
-      if (existingIndex >= 0) {
-        // Update existing rate
-        mergedRates[existingIndex] = {
-          ...mergedRates[existingIndex],
-          ...importedRate,
-          lastUpdated: new Date().toISOString(),
-        };
-        updatedCount++;
-      } else {
-        // Add new rate
-        const newRate = {
-          ...importedRate,
-          id: importedRate.id || Date.now().toString(),
-          lastUpdated: new Date().toISOString(),
-        };
-        mergedRates.push(newRate);
-        addedCount++;
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          await loadRatesFromDB(); // Reload all rates
+          alert(
+            `Import completed!\nAdded: ${result.addedCount} rates\nUpdated: ${result.updatedCount} rates`
+          );
+        }
       }
-    });
-
-    setLocalRates(mergedRates);
-    localStorage.setItem("metalRates", JSON.stringify(mergedRates));
-    alert(
-      `Import completed!\nAdded: ${addedCount} rates\nUpdated: ${updatedCount} rates`
-    );
+    } catch (error) {
+      console.error("Failed to import rates:", error);
+      alert("Failed to import rates. Please try again.");
+    }
   };
 
-  // Handle Dialog open state explicitly
   const isDialogOpen = showAddForm || !!editingRate;
 
   return (
@@ -337,10 +380,35 @@ export const EnhancedMetalRatesManager: React.FC = () => {
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
             <Store className="w-5 h-5 inline mr-1" /> Custom Local Rates
           </h2>
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">
-            {localRates.length} custom rate{localRates.length !== 1 ? "s" : ""}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">
+              {localRates.length} custom rate
+              {localRates.length !== 1 ? "s" : ""}
+            </span>
+            <Button
+              onClick={loadRatesFromDB}
+              disabled={loadingRates}
+              variant="secondary"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${loadingRates ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+          </div>
         </div>
+
+        {/* Loading State */}
+        {loadingRates && (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="ml-2 text-sm text-zinc-600 dark:text-zinc-400">
+              Loading rates from database...
+            </span>
+          </div>
+        )}
 
         {/* Add/Edit Form Dialog */}
         <Dialog
@@ -349,10 +417,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
             if (!open) resetForm();
           }}
         >
-          <DialogContent
-            // fullScreen={true}
-            className="overflow-y-auto bg-zinc-900 text-white"
-          >
+          <DialogContent className="overflow-y-auto bg-zinc-900 text-white">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-center">
                 {editingRate ? "Edit Rate" : "Add New Rate"}
@@ -373,6 +438,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                     })
                   }
                   className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-white"
+                  disabled={savingRate}
                 >
                   <option value="gold">Gold</option>
                   <option value="silver">Silver</option>
@@ -389,6 +455,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                   }
                   placeholder="24K, 22K, 925, etc."
                   className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                  disabled={savingRate}
                 />
               </div>
               <div>
@@ -403,6 +470,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                   }
                   placeholder="0"
                   className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                  disabled={savingRate}
                 />
               </div>
               <div>
@@ -415,6 +483,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                     setFormData({ ...formData, unit: e.target.value })
                   }
                   className="w-full px-3 py-2 border border-zinc-700 rounded-md bg-zinc-800 text-white"
+                  disabled={savingRate}
                 >
                   <option value="per gram">per gram</option>
                   <option value="per tola">per tola</option>
@@ -426,15 +495,25 @@ export const EnhancedMetalRatesManager: React.FC = () => {
             <DialogFooter className="mt-8">
               <Button
                 onClick={editingRate ? handleUpdateRate : handleAddRate}
-                disabled={!formData.purity || !formData.rate}
+                disabled={!formData.purity || !formData.rate || savingRate}
                 className="w-full sm:w-auto"
               >
-                {editingRate ? "Update Rate" : "Add Rate"}
+                {savingRate ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    {editingRate ? "Updating..." : "Adding..."}
+                  </>
+                ) : editingRate ? (
+                  "Update Rate"
+                ) : (
+                  "Add Rate"
+                )}
               </Button>
               <Button
                 onClick={resetForm}
                 variant="secondary"
                 className="w-full sm:w-auto"
+                disabled={savingRate}
               >
                 Cancel
               </Button>
@@ -443,11 +522,11 @@ export const EnhancedMetalRatesManager: React.FC = () => {
         </Dialog>
 
         {/* Custom Rates Grid */}
-        {localRates.length > 0 ? (
+        {!loadingRates && localRates.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {localRates.map((rate) => (
               <div
-                key={rate.id}
+                key={rate._id || rate.id}
                 className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4"
               >
                 <div className="flex justify-between items-start mb-2">
@@ -462,7 +541,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDeleteRate(rate.id)}
+                      onClick={() => handleDeleteRate(rate)}
                       className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
                       title="Delete"
                     >
@@ -479,13 +558,20 @@ export const EnhancedMetalRatesManager: React.FC = () => {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   {rate.unit}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                  Updated: {rate.lastUpdated}
-                </p>
+                <div className="mt-2 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded">
+                    {rate.source}
+                  </span>
+                  <span>
+                    {rate.updatedAt
+                      ? new Date(rate.updatedAt).toLocaleDateString()
+                      : rate.lastUpdated || "Unknown"}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
-        ) : (
+        ) : !loadingRates ? (
           <div className="text-center py-8">
             <p className="text-zinc-500 dark:text-zinc-400 mb-4">
               No custom rates added yet
@@ -498,7 +584,7 @@ export const EnhancedMetalRatesManager: React.FC = () => {
               Add Your First Custom Rate
             </Button>
           </div>
-        )}
+        ) : null}
       </Card>
 
       {/* Web Scraping & Debug Tools */}
