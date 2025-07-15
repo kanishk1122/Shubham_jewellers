@@ -13,6 +13,7 @@ import {
 import ExcelActions from "@/components/ExcelActions";
 import { useProducts, type Product } from "@/hooks/useProducts";
 import { useBulkProducts, type BulkProduct } from "@/hooks/useBulkProducts";
+import { useCategories, type Category } from "@/hooks/useCategories";
 import {
   Package,
   Circle as RingIcon,
@@ -30,6 +31,8 @@ import {
   RefreshCw,
   Warehouse,
   PackageOpen,
+  Settings,
+  Plus,
 } from "lucide-react";
 
 export const EnhancedProductManager: React.FC = () => {
@@ -53,6 +56,16 @@ export const EnhancedProductManager: React.FC = () => {
     deleteBulkProduct,
   } = useBulkProducts();
 
+  const {
+    categories,
+    loading: categoriesLoading,
+    error: categoriesError,
+    loadCategories,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+  } = useCategories();
+
   const [activeTab, setActiveTab] = useState<"individual" | "bulk">(
     "individual"
   );
@@ -64,6 +77,10 @@ export const EnhancedProductManager: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterMetal, setFilterMetal] = useState<string>("all");
   const [savingProduct, setSavingProduct] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
 
   // Individual product form data
   const [formData, setFormData] = useState({
@@ -92,6 +109,14 @@ export const EnhancedProductManager: React.FC = () => {
     purchaseDate: new Date().toISOString().split("T")[0],
     batchNumber: "",
     notes: "",
+  });
+
+  // Category form data
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: "",
+    description: "",
+    icon: "",
+    color: "#3B82F6",
   });
 
   const handleAddProduct = async () => {
@@ -353,6 +378,231 @@ export const EnhancedProductManager: React.FC = () => {
     setShowAddForm(false);
   };
 
+  // Category management functions
+  const handleAddCategory = async () => {
+    if (!categoryFormData.name) return;
+
+    setSavingCategory(true);
+    try {
+      const result = await createCategory({
+        name: categoryFormData.name,
+        description: categoryFormData.description,
+        icon: categoryFormData.icon,
+        color: categoryFormData.color,
+        isActive: true,
+        productCount: 0,
+      });
+
+      if (result.success) {
+        resetCategoryForm();
+      } else {
+        alert(result.error || "Failed to create category. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to create category:", error);
+      alert("Failed to create category. Please try again.");
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setCategoryFormData({
+      name: category.name,
+      description: category.description || "",
+      icon: category.icon || "",
+      color: category.color || "#3B82F6",
+    });
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!editingCategory || !categoryFormData.name) return;
+
+    setSavingCategory(true);
+    try {
+      const categoryId = editingCategory._id || editingCategory.id!;
+      const result = await updateCategory(categoryId, {
+        name: categoryFormData.name,
+        description: categoryFormData.description,
+        icon: categoryFormData.icon,
+        color: categoryFormData.color,
+      });
+
+      if (result.success) {
+        resetCategoryForm();
+      } else {
+        alert(result.error || "Failed to update category. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to update category:", error);
+      alert("Failed to update category. Please try again.");
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (category: Category) => {
+    if (!confirm("Are you sure you want to delete this category?")) return;
+
+    try {
+      const categoryId = category._id || category.id!;
+      const result = await deleteCategory(categoryId);
+      if (!result.success) {
+        alert(result.error || "Failed to delete category. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to delete category:", error);
+      alert("Failed to delete category. Please try again.");
+    }
+  };
+
+  const resetCategoryForm = () => {
+    setCategoryFormData({
+      name: "",
+      description: "",
+      icon: "",
+      color: "#3B82F6",
+    });
+    setEditingCategory(null);
+    setShowAddCategory(false);
+  };
+
+  // Get category icon by type for dropdown
+  const getCategoryIconByType = (iconType: string) => {
+    switch (iconType) {
+      case "ring":
+        return <RingIcon className="w-4 h-4" />;
+      case "gem":
+        return <Gem className="w-4 h-4" />;
+      case "necklace":
+        return (
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24" />
+          </svg>
+        );
+      case "watch":
+        return <Watch className="w-4 h-4" />;
+      case "earring":
+        return <CircleDot className="w-4 h-4" />;
+      case "pendant":
+        return (
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path d="M10 2v20M14 2v20M4 7l8-5 8 5M6 20h12" />
+          </svg>
+        );
+      case "chain":
+        return <Link className="w-4 h-4" />;
+      case "crown":
+        return (
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path d="M6 3h12l4 6-10 13L2 9z" />
+            <path d="m6 3 6 6 6-6" />
+          </svg>
+        );
+      case "coin":
+        return (
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <path d="M12 17h.01" />
+          </svg>
+        );
+      case "star":
+        return (
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+          </svg>
+        );
+      case "heart":
+        return (
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        );
+      case "circle":
+        return (
+          <svg
+            className="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+        );
+      case "square":
+        return <Square className="w-4 h-4" />;
+      case "other":
+        return <Package className="w-4 h-4" />;
+      default:
+        return <Gem className="w-4 h-4" />;
+    }
+  };
+
+  // Get category icon dynamically (updated to handle new icon types)
+  const getCategoryIcon = (categorySlug: string) => {
+    const category = categories.find((c) => c.slug === categorySlug);
+    if (category?.icon) {
+      return getCategoryIconByType(category.icon);
+    }
+
+    // Fallback to default icons based on slug
+    switch (categorySlug) {
+      case "ring":
+      case "rings":
+        return <RingIcon className="w-5 h-5" />;
+      case "necklace":
+      case "necklaces":
+        return <Gem className="w-5 h-5" />;
+      case "bracelet":
+      case "bracelets":
+        return <Watch className="w-5 h-5" />;
+      case "earring":
+      case "earrings":
+        return <CircleDot className="w-5 h-5" />;
+      case "pendant":
+      case "pendants":
+        return <Gem className="w-5 h-5" />;
+      case "chain":
+      case "chains":
+        return <Link className="w-5 h-5" />;
+      default:
+        return <Gem className="w-5 h-5" />;
+    }
+  };
+
   // Filter products
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
@@ -367,59 +617,16 @@ export const EnhancedProductManager: React.FC = () => {
     return matchesSearch && matchesCategory && matchesMetal;
   });
 
-  const categories = [
-    "ring",
-    "necklace",
-    "bracelet",
-    "earring",
-    "pendant",
-    "chain",
-    "other",
-  ];
-  const metals = ["gold", "silver", "platinum"];
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "ring":
-        return <RingIcon className="w-5 h-5" />;
-      case "necklace":
-        return <Gem className="w-5 h-5" />;
-      case "bracelet":
-        return <Watch className="w-5 h-5" />;
-      case "earring":
-        return <CircleDot className="w-5 h-5" />;
-      case "pendant":
-        return <Gem className="w-5 h-5" />;
-      case "chain":
-        return <Link className="w-5 h-5" />;
-      default:
-        return <Gem className="w-5 h-5" />;
-    }
-  };
-
-  const getMetalIcon = (metal: string) => {
-    switch (metal) {
-      case "gold":
-        return <Medal className="w-5 h-5 text-yellow-500" />;
-      case "silver":
-        return <Medal className="w-5 h-5 text-gray-400" />;
-      case "platinum":
-        return <Medal className="w-5 h-5 text-gray-300" />;
-      default:
-        return <Square className="w-5 h-5" />;
-    }
-  };
-
   // Handle Excel import
   const handleExcelImport = async (importedProducts: Product[]) => {
     console.log("Excel import not yet implemented for MongoDB backend");
     alert("Excel import feature will be implemented soon for MongoDB backend");
   };
 
-  const isDialogOpen = showAddForm || editingProduct;
+  const metals = ["gold", "silver", "platinum"];
 
-  const loading = productsLoading || bulkLoading;
-  const error = productsError || bulkError;
+  const loading = productsLoading || bulkLoading || categoriesLoading;
+  const error = productsError || bulkError || categoriesError;
 
   return (
     <div className="space-y-6">
@@ -431,14 +638,25 @@ export const EnhancedProductManager: React.FC = () => {
             Product & Bulk Inventory Management
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 mt-1">
-            Manage individual products and bulk inventory with MongoDB backend
+            Manage individual products, bulk inventory, and categories with
+            MongoDB backend
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
+            onClick={() => setShowCategoryManager(true)}
+            variant="secondary"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Manage Categories
+          </Button>
+          <Button
             onClick={() => {
               loadProducts();
               loadBulkProducts();
+              loadCategories();
             }}
             disabled={loading}
             variant="secondary"
@@ -457,6 +675,220 @@ export const EnhancedProductManager: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Category Manager Dialog */}
+      <Dialog
+        open={showCategoryManager}
+        onOpenChange={(open: boolean) => {
+          if (!open) {
+            setShowCategoryManager(false);
+            resetCategoryForm();
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Category Management
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Add Category Button */}
+          <div className="flex justify-end mb-4">
+            <Button
+              onClick={() => setShowAddCategory(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Category
+            </Button>
+          </div>
+
+          {/* Categories Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+            {categories.map((category) => (
+              <Card
+                key={category._id || category.id}
+                className="p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    {category.icon ? (
+                      <span style={{ color: category.color }}>
+                        {getCategoryIconByType(category.icon)}
+                      </span>
+                    ) : (
+                      <Gem
+                        className="w-5 h-5"
+                        style={{ color: category.color }}
+                      />
+                    )}
+                    <span
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: category.color }}
+                    ></span>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleEditCategory(category)}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
+                      title="Edit"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(category)}
+                      className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                <h4 className="font-semibold text-zinc-900 dark:text-white">
+                  {category.name}
+                </h4>
+                {category.description && (
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                    {category.description}
+                  </p>
+                )}
+                <div className="mt-2 flex justify-between text-xs text-zinc-500">
+                  <span>{category.productCount} products</span>
+                  <span>{category.slug}</span>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Add/Edit Category Form */}
+          {(showAddCategory || editingCategory) && (
+            <div className="mt-6 p-4 border-t border-zinc-200 dark:border-zinc-600">
+              <h4 className="text-lg font-semibold mb-4">
+                {editingCategory ? "Edit Category" : "Add New Category"}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Category Name *
+                  </label>
+                  <Input
+                    value={categoryFormData.name}
+                    onChange={(e) =>
+                      setCategoryFormData({
+                        ...categoryFormData,
+                        name: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., Rings, Necklaces, Bracelets"
+                    disabled={savingCategory}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Icon
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={categoryFormData.icon}
+                      onChange={(e) =>
+                        setCategoryFormData({
+                          ...categoryFormData,
+                          icon: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 pl-10 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white appearance-none"
+                      disabled={savingCategory}
+                    >
+                      <option value="">Select an icon</option>
+                      <option value="ring">💍 Ring</option>
+                      <option value="gem">💎 Gem/Diamond</option>
+                      <option value="necklace">📿 Necklace</option>
+                      <option value="watch">⌚ Watch/Bracelet</option>
+                      <option value="earring">👂 Earring</option>
+                      <option value="pendant">🔗 Pendant</option>
+                      <option value="chain">⛓️ Chain</option>
+                      <option value="crown">👑 Crown</option>
+                      <option value="coin">🪙 Coin</option>
+                      <option value="star">⭐ Star</option>
+                      <option value="heart">💖 Heart</option>
+                      <option value="circle">⭕ Circle</option>
+                      <option value="square">⬜ Square</option>
+                      <option value="other">📦 Other</option>
+                    </select>
+                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      {categoryFormData.icon ? (
+                        getCategoryIconByType(categoryFormData.icon)
+                      ) : (
+                        <Gem className="w-4 h-4 text-zinc-400" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Color
+                  </label>
+                  <Input
+                    type="color"
+                    value={categoryFormData.color}
+                    onChange={(e) =>
+                      setCategoryFormData({
+                        ...categoryFormData,
+                        color: e.target.value,
+                      })
+                    }
+                    disabled={savingCategory}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Description
+                  </label>
+                  <Input
+                    value={categoryFormData.description}
+                    onChange={(e) =>
+                      setCategoryFormData({
+                        ...categoryFormData,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Category description"
+                    disabled={savingCategory}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <Button
+                  onClick={
+                    editingCategory ? handleUpdateCategory : handleAddCategory
+                  }
+                  disabled={!categoryFormData.name || savingCategory}
+                >
+                  {savingCategory ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      {editingCategory ? "Updating..." : "Adding..."}
+                    </>
+                  ) : editingCategory ? (
+                    "Update Category"
+                  ) : (
+                    "Add Category"
+                  )}
+                </Button>
+                <Button
+                  onClick={resetCategoryForm}
+                  variant="secondary"
+                  disabled={savingCategory}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Tabs */}
       <Card className="p-1">
@@ -680,8 +1112,11 @@ export const EnhancedProductManager: React.FC = () => {
                     className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                   >
                     {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      <option
+                        key={category._id || category.id}
+                        value={category.slug}
+                      >
+                        {category.name}
                       </option>
                     ))}
                   </select>
@@ -838,8 +1273,11 @@ export const EnhancedProductManager: React.FC = () => {
                   >
                     <option value="all">All Categories</option>
                     {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      <option
+                        key={category._id || category.id}
+                        value={category.slug}
+                      >
+                        {category.name}
                       </option>
                     ))}
                   </select>
@@ -908,8 +1346,11 @@ export const EnhancedProductManager: React.FC = () => {
                     className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                   >
                     {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      <option
+                        key={category._id || category.id}
+                        value={category.slug}
+                      >
+                        {category.name}
                       </option>
                     ))}
                   </select>
