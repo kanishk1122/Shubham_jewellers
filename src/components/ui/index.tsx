@@ -330,6 +330,22 @@ export const DialogContent = React.forwardRef<
 ));
 DialogContent.displayName = "DialogContent";
 
+export const VisuallyHidden = React.forwardRef<
+  HTMLSpanElement,
+  React.HTMLAttributes<HTMLSpanElement>
+>(({ className = "", ...props }, ref) => (
+  <span
+    ref={ref}
+    className={
+      "absolute h-px w-px overflow-hidden whitespace-nowrap border-0 p-0 " +
+      "[clip:rect(0,0,0,0)] " +
+      className
+    }
+    {...props}
+  />
+));
+VisuallyHidden.displayName = "VisuallyHidden";
+
 export const DialogHeader = ({
   children,
   className = "",
@@ -345,22 +361,24 @@ export const DialogHeader = ({
     {children}
   </div>
 );
-export const DialogTitle = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <h2
+
+export const DialogTitle = React.forwardRef<
+  HTMLHeadingElement,
+  React.ComponentProps<typeof ReactDialog.Title>
+>(({ className = "", children, ...props }, ref) => (
+  <ReactDialog.Title
+    ref={ref}
     className={
       "text-lg font-semibold leading-none tracking-tight text-zinc-900 dark:text-zinc-100 " +
       className
     }
+    {...props}
   >
     {children}
-  </h2>
-);
+  </ReactDialog.Title>
+));
+DialogTitle.displayName = "DialogTitle";
+
 export const DialogFooter = ({
   children,
   className = "",

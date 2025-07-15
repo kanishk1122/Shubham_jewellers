@@ -1123,6 +1123,43 @@ export const EnhancedProductManager: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Metal *
+                  </label>
+                  <select
+                    value={bulkFormData.metal}
+                    onChange={(e) =>
+                      setBulkFormData({
+                        ...bulkFormData,
+                        metal: e.target.value as BulkProduct["metal"],
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                  >
+                    {metals.map((metal) => (
+                      <option key={metal} value={metal}>
+                        {metal.charAt(0).toUpperCase() + metal.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Purity *
+                  </label>
+                  <Input
+                    value={bulkFormData.purity}
+                    onChange={(e) =>
+                      setBulkFormData({
+                        ...bulkFormData,
+                        purity: e.target.value,
+                      })
+                    }
+                    placeholder="22K, 925, PT950"
+                    disabled={savingProduct}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                     Total Weight (grams) *
                   </label>
                   <Input
@@ -1177,6 +1214,23 @@ export const EnhancedProductManager: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Making Charges (₹) *
+                  </label>
+                  <Input
+                    type="number"
+                    value={bulkFormData.makingCharges}
+                    onChange={(e) =>
+                      setBulkFormData({
+                        ...bulkFormData,
+                        makingCharges: e.target.value,
+                      })
+                    }
+                    placeholder="0"
+                    disabled={savingProduct}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                     Supplier
                   </label>
                   <Input
@@ -1207,6 +1261,40 @@ export const EnhancedProductManager: React.FC = () => {
                     disabled={savingProduct}
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Batch Number
+                  </label>
+                  <Input
+                    value={bulkFormData.batchNumber}
+                    onChange={(e) =>
+                      setBulkFormData({
+                        ...bulkFormData,
+                        batchNumber: e.target.value,
+                      })
+                    }
+                    placeholder="BATCH001"
+                    disabled={savingProduct}
+                  />
+                </div>
+                <div className="md:col-span-2 lg:col-span-1">
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    value={bulkFormData.notes}
+                    onChange={(e) =>
+                      setBulkFormData({
+                        ...bulkFormData,
+                        notes: e.target.value,
+                      })
+                    }
+                    placeholder="Additional notes..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                    disabled={savingProduct}
+                  />
+                </div>
               </div>
               <div className="flex gap-2 mt-4">
                 <Button
@@ -1217,9 +1305,11 @@ export const EnhancedProductManager: React.FC = () => {
                   }
                   disabled={
                     !bulkFormData.name ||
+                    !bulkFormData.purity ||
                     !bulkFormData.totalWeight ||
                     !bulkFormData.packageWeight ||
                     !bulkFormData.unitPrice ||
+                    !bulkFormData.makingCharges ||
                     savingProduct
                   }
                 >
