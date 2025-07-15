@@ -88,6 +88,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const createslug = (name: string, supplier: string, date: Date) => {
+      const formattedDate = date.toISOString().split("T")[0].replace(/-/g, "");
+      return `${name.toLowerCase().replace(/\s+/g, "-")}-${supplier
+        .toLowerCase()
+        .replace(/\s+/g, "-")}-${formattedDate}`;
+    };
+
     const bulkProduct = new BulkProduct({
       name,
       category,
@@ -102,6 +109,7 @@ export async function POST(request: NextRequest) {
       batchNumber,
       notes,
       isActive: true,
+      slug: createslug(name, supplier, new Date(purchaseDate)),
     });
 
     await bulkProduct.save();

@@ -58,7 +58,7 @@ const BulkProductSchema = new Schema<IBulkProduct>(
     },
     slug: {
       type: String,
-      required: true,
+      required: false, // Change to false since it's auto-generated
       unique: true,
     },
     category: {
@@ -131,17 +131,16 @@ const BulkProductSchema = new Schema<IBulkProduct>(
 
 // Pre-save middleware to generate slug
 BulkProductSchema.pre("save", function (next) {
+  // Always generate slug for new documents or when key fields change
   if (
     this.isNew ||
     this.isModified("name") ||
     this.isModified("supplier") ||
     this.isModified("purchaseDate")
   ) {
-    this.slug = generateBulkSlug(
-      this.name,
-      this.supplier || "",
-      this.purchaseDate
-    );
+    // Use current date if purchaseDate is not set
+    const date = this.purchaseDate || new Date();
+    this.slug = generateBulkSlug(this.name, this.supplier || "", date);
   }
   next();
 });
