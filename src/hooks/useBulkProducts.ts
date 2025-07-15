@@ -17,7 +17,7 @@ export interface BulkProduct {
   totalWeight: number;
   remainingWeight: number;
   packageWeight: number;
-  unitPrice: number;
+  unitPrice?: number; // MAKE OPTIONAL
   makingCharges: number;
   supplier?: string;
   purchaseDate: string;

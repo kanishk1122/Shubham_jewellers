@@ -15,7 +15,7 @@ export interface IBulkProduct extends Document {
   totalWeight: number; // Total weight purchased in bulk
   remainingWeight: number; // Remaining weight available
   packageWeight: number; // Weight per individual unit/package
-  unitPrice: number; // Price per gram
+  unitPrice?: number; // Price per gram - MAKE OPTIONAL
   makingCharges: number; // Making charges per unit
   supplier?: string;
   purchaseDate: Date;
@@ -76,7 +76,7 @@ if (typeof window === "undefined") {
       },
       unitPrice: {
         type: Number,
-        required: true,
+        required: false, // CHANGE TO FALSE
         min: 0,
       },
       makingCharges: {

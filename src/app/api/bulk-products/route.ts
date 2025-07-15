@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       purity,
       totalWeight,
       packageWeight,
-      unitPrice,
+      unitPrice, // OPTIONAL
       makingCharges,
       supplier,
       purchaseDate,
@@ -77,14 +77,13 @@ export async function POST(request: NextRequest) {
       !purity ||
       !totalWeight ||
       !packageWeight ||
-      !unitPrice ||
       !makingCharges
     ) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "Required fields: name, category, metal, purity, totalWeight, packageWeight, unitPrice, makingCharges",
+            "Required fields: name, category, metal, purity, totalWeight, packageWeight, makingCharges", // REMOVE unitPrice
         },
         { status: 400 }
       );
@@ -98,7 +97,7 @@ export async function POST(request: NextRequest) {
       totalWeight: parseFloat(totalWeight),
       remainingWeight: parseFloat(totalWeight), // Initially same as total weight
       packageWeight: parseFloat(packageWeight),
-      unitPrice: parseFloat(unitPrice),
+      unitPrice: unitPrice ? parseFloat(unitPrice) : undefined, // HANDLE OPTIONAL
       makingCharges: parseFloat(makingCharges),
       supplier,
       purchaseDate: new Date(purchaseDate),
@@ -119,6 +118,101 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: "Failed to create bulk product",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    await connectDB();
+
+    const url = new URL(request.url);
+    const id = url.pathname.split("/").pop();
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Product ID is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    const updatedBulkProduct = await BulkProduct.findByIdAndUpdate(id, body, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedBulkProduct) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Bulk product not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updatedBulkProduct,
+      message: "Bulk product updated successfully",
+    });
+  } catch (error) {
+    console.error("Failed to update bulk product:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to update bulk product",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectDB();
+
+    const url = new URL(request.url);
+    const id = url.pathname.split("/").pop();
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Product ID is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const deletedBulkProduct = await BulkProduct.findByIdAndDelete(id);
+
+    if (!deletedBulkProduct) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Bulk product not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Bulk product deleted successfully",
+    });
+  } catch (error) {
+    console.error("Failed to delete bulk product:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to delete bulk product",
       },
       { status: 500 }
     );

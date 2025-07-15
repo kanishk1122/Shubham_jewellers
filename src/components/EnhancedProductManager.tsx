@@ -103,7 +103,6 @@ export const EnhancedProductManager: React.FC = () => {
     purity: "",
     totalWeight: "",
     packageWeight: "",
-    unitPrice: "",
     makingCharges: "",
     supplier: "",
     purchaseDate: new Date().toISOString().split("T")[0],
@@ -250,7 +249,6 @@ export const EnhancedProductManager: React.FC = () => {
       !bulkFormData.purity ||
       !bulkFormData.totalWeight ||
       !bulkFormData.packageWeight ||
-      !bulkFormData.unitPrice ||
       !bulkFormData.makingCharges
     )
       return;
@@ -264,7 +262,6 @@ export const EnhancedProductManager: React.FC = () => {
         purity: bulkFormData.purity,
         totalWeight: parseFloat(bulkFormData.totalWeight),
         packageWeight: parseFloat(bulkFormData.packageWeight),
-        unitPrice: parseFloat(bulkFormData.unitPrice),
         makingCharges: parseFloat(bulkFormData.makingCharges),
         supplier: bulkFormData.supplier,
         purchaseDate: bulkFormData.purchaseDate,
@@ -296,7 +293,6 @@ export const EnhancedProductManager: React.FC = () => {
       purity: product.purity,
       totalWeight: product.totalWeight.toString(),
       packageWeight: product.packageWeight.toString(),
-      unitPrice: product.unitPrice.toString(),
       makingCharges: product.makingCharges.toString(),
       supplier: product.supplier || "",
       purchaseDate: product.purchaseDate.split("T")[0],
@@ -319,7 +315,6 @@ export const EnhancedProductManager: React.FC = () => {
         totalWeight: parseFloat(bulkFormData.totalWeight),
         remainingWeight: editingBulkProduct.remainingWeight, // Keep existing remaining weight
         packageWeight: parseFloat(bulkFormData.packageWeight),
-        unitPrice: parseFloat(bulkFormData.unitPrice),
         makingCharges: parseFloat(bulkFormData.makingCharges),
         supplier: bulkFormData.supplier,
         purchaseDate: bulkFormData.purchaseDate,
@@ -367,7 +362,6 @@ export const EnhancedProductManager: React.FC = () => {
       purity: "",
       totalWeight: "",
       packageWeight: "",
-      unitPrice: "",
       makingCharges: "",
       supplier: "",
       purchaseDate: new Date().toISOString().split("T")[0],
@@ -390,7 +384,6 @@ export const EnhancedProductManager: React.FC = () => {
         icon: categoryFormData.icon,
         color: categoryFormData.color,
         isActive: true,
-        productCount: 0,
       });
 
       if (result.success) {
@@ -1015,9 +1008,11 @@ export const EnhancedProductManager: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-zinc-500 dark:text-zinc-400">
-                      Unit Price:
+                      Making Charges:
                     </span>
-                    <span className="font-medium">₹{product.unitPrice}/g</span>
+                    <span className="font-medium">
+                      ₹{product.makingCharges.toLocaleString()}
+                    </span>
                   </div>
                   {product.supplier && (
                     <div className="flex justify-between">
@@ -1196,24 +1191,6 @@ export const EnhancedProductManager: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                    Unit Price (₹/gram) *
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={bulkFormData.unitPrice}
-                    onChange={(e) =>
-                      setBulkFormData({
-                        ...bulkFormData,
-                        unitPrice: e.target.value,
-                      })
-                    }
-                    placeholder="5000.00"
-                    disabled={savingProduct}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                     Making Charges (₹) *
                   </label>
                   <Input
@@ -1308,7 +1285,6 @@ export const EnhancedProductManager: React.FC = () => {
                     !bulkFormData.purity ||
                     !bulkFormData.totalWeight ||
                     !bulkFormData.packageWeight ||
-                    !bulkFormData.unitPrice ||
                     !bulkFormData.makingCharges ||
                     savingProduct
                   }
@@ -1792,3 +1768,4 @@ export const EnhancedProductManager: React.FC = () => {
     </div>
   );
 };
+      
