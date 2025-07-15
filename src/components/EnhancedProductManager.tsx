@@ -1011,12 +1011,7 @@ export const EnhancedProductManager: React.FC = () => {
                 {/* Add slug display for bulk products */}
                 <div className="flex flex-wrap gap-2 mb-3">
                   <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs rounded-full font-mono">
-                    {product.slug ||
-                      generateBulkSlug(
-                        product.name,
-                        product.supplier || "",
-                        product.purchaseDate
-                      )}
+                    {product.slug || "No slug"}
                   </span>
                   {product.batchNumber && (
                     <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs rounded-full font-medium">

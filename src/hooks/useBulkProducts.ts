@@ -4,7 +4,7 @@ export interface BulkProduct {
   _id?: string;
   id?: string;
   name: string;
-  slug?: string; // Add slug field
+  slug?: string; // Ensure slug is included
   category:
     | "ring"
     | "necklace"
