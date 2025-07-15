@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import BulkProduct from "@/models/BulkProduct";
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest) {
   try {
     await connectDB();
+    const url = new URL(request.url);
+    const id = url.pathname.split("/").pop();
 
     const body = await request.json();
     const {
@@ -16,9 +15,7 @@ export async function PUT(
       metal,
       purity,
       totalWeight,
-      remainingWeight,
       packageWeight,
-      unitPrice,
       makingCharges,
       supplier,
       purchaseDate,
@@ -26,32 +23,28 @@ export async function PUT(
       notes,
     } = body;
 
-    const bulkProduct = await BulkProduct.findByIdAndUpdate(
-      params.id,
-      {
-        name,
-        category,
-        metal,
-        purity,
-        totalWeight: parseFloat(totalWeight),
-        remainingWeight: parseFloat(remainingWeight),
-        packageWeight: parseFloat(packageWeight),
-        unitPrice: parseFloat(unitPrice),
-        makingCharges: parseFloat(makingCharges),
-        supplier,
-        purchaseDate: new Date(purchaseDate),
-        batchNumber,
-        notes,
-      },
-      { new: true, runValidators: true }
-    );
+    const updateData: any = {
+      name,
+      category,
+      metal,
+      purity,
+      totalWeight: parseFloat(totalWeight),
+      packageWeight: parseFloat(packageWeight),
+      makingCharges: parseFloat(makingCharges),
+      supplier,
+      purchaseDate,
+      batchNumber,
+      notes,
+    };
+
+    const bulkProduct = await BulkProduct.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!bulkProduct) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Bulk product not found",
-        },
+        { success: false, error: "Bulk product not found" },
         { status: 404 }
       );
     }
@@ -73,25 +66,21 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
     await connectDB();
+    const url = new URL(request.url);
+    const id = url.pathname.split("/").pop();
 
     const bulkProduct = await BulkProduct.findByIdAndUpdate(
-      params.id,
+      id,
       { isActive: false },
       { new: true }
     );
 
     if (!bulkProduct) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Bulk product not found",
-        },
+        { success: false, error: "Bulk product not found" },
         { status: 404 }
       );
     }

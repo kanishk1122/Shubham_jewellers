@@ -4,6 +4,7 @@ export interface BulkProduct {
   _id?: string;
   id?: string;
   name: string;
+  slug?: string; // Add slug field
   category:
     | "ring"
     | "necklace"
@@ -17,7 +18,6 @@ export interface BulkProduct {
   totalWeight: number;
   remainingWeight: number;
   packageWeight: number;
-  unitPrice?: number; // MAKE OPTIONAL
   makingCharges: number;
   supplier?: string;
   purchaseDate: string;

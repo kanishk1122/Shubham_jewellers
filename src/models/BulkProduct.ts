@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBulkProduct extends Document {
   name: string;
+  slug: string;
   category:
     | "ring"
     | "necklace"
@@ -12,11 +13,10 @@ export interface IBulkProduct extends Document {
     | "other";
   metal: "gold" | "silver" | "platinum";
   purity: string;
-  totalWeight: number; // Total weight purchased in bulk
-  remainingWeight: number; // Remaining weight available
-  packageWeight: number; // Weight per individual unit/package
-  unitPrice?: number; // Price per gram - MAKE OPTIONAL
-  makingCharges: number; // Making charges per unit
+  totalWeight: number;
+  remainingWeight: number;
+  packageWeight: number;
+  makingCharges: number;
   supplier?: string;
   purchaseDate: Date;
   batchNumber?: string;
@@ -26,98 +26,128 @@ export interface IBulkProduct extends Document {
   updatedAt: Date;
 }
 
-// Only create schema and model on server side
-let BulkProductModel: any = null;
+// Generate slug function
+const generateBulkSlug = (
+  name: string,
+  supplier: string,
+  purchaseDate: Date
+): string => {
+  const dateStr = purchaseDate.toISOString().slice(2, 10).replace(/-/g, ""); // YYMMDD
+  const hour = purchaseDate.getHours().toString().padStart(2, "0");
 
-if (typeof window === "undefined") {
-  const BulkProductSchema = new Schema<IBulkProduct>(
-    {
-      name: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-      category: {
-        type: String,
-        required: true,
-        enum: [
-          "ring",
-          "necklace",
-          "bracelet",
-          "earring",
-          "pendant",
-          "chain",
-          "other",
-        ],
-      },
-      metal: {
-        type: String,
-        required: true,
-        enum: ["gold", "silver", "platinum"],
-      },
-      purity: {
-        type: String,
-        required: true,
-      },
-      totalWeight: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
-      remainingWeight: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
-      packageWeight: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
-      unitPrice: {
-        type: Number,
-        required: false, // CHANGE TO FALSE
-        min: 0,
-      },
-      makingCharges: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
-      supplier: {
-        type: String,
-        trim: true,
-      },
-      purchaseDate: {
-        type: Date,
-        required: true,
-      },
-      batchNumber: {
-        type: String,
-        trim: true,
-      },
-      notes: {
-        type: String,
-        trim: true,
-      },
-      isActive: {
-        type: Boolean,
-        default: true,
-      },
+  const supplierCode = supplier
+    ? supplier.substring(0, 3).toLowerCase().replace(/\s/g, "")
+    : "sp";
+
+  const nameCode = name
+    .split(" ")
+    .map((word) => word.charAt(0))
+    .join("")
+    .toLowerCase()
+    .substring(0, 3);
+
+  return `${supplierCode}-${nameCode}-${dateStr}-${hour}`;
+};
+
+const BulkProductSchema = new Schema<IBulkProduct>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    {
-      timestamps: true,
-    }
-  );
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    category: {
+      type: String,
+      required: true,
+      enum: [
+        "ring",
+        "necklace",
+        "bracelet",
+        "earring",
+        "pendant",
+        "chain",
+        "other",
+      ],
+    },
+    metal: {
+      type: String,
+      required: true,
+      enum: ["gold", "silver", "platinum"],
+    },
+    purity: {
+      type: String,
+      required: true,
+    },
+    totalWeight: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    remainingWeight: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    packageWeight: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    makingCharges: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    supplier: {
+      type: String,
+      trim: true,
+    },
+    purchaseDate: {
+      type: Date,
+      required: true,
+    },
+    batchNumber: {
+      type: String,
+      trim: true,
+    },
+    notes: {
+      type: String,
+      trim: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
-  // Create indexes for better performance
-  BulkProductSchema.index({ category: 1, metal: 1, purity: 1 });
-  BulkProductSchema.index({ remainingWeight: 1 });
-  BulkProductSchema.index({ isActive: 1 });
+// Pre-save middleware to generate slug
+BulkProductSchema.pre("save", function (next) {
+  if (
+    this.isNew ||
+    this.isModified("name") ||
+    this.isModified("supplier") ||
+    this.isModified("purchaseDate")
+  ) {
+    this.slug = generateBulkSlug(
+      this.name,
+      this.supplier || "",
+      this.purchaseDate
+    );
+  }
+  next();
+});
 
-  BulkProductModel =
-    mongoose.models.BulkProduct ||
-    mongoose.model<IBulkProduct>("BulkProduct", BulkProductSchema);
-}
+const BulkProduct =
+  mongoose.models.BulkProduct ||
+  mongoose.model<IBulkProduct>("BulkProduct", BulkProductSchema);
 
-export default BulkProductModel;
+export default BulkProduct;

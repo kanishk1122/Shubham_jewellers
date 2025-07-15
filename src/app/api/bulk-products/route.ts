@@ -62,7 +62,6 @@ export async function POST(request: NextRequest) {
       purity,
       totalWeight,
       packageWeight,
-      unitPrice, // OPTIONAL
       makingCharges,
       supplier,
       purchaseDate,
@@ -83,7 +82,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error:
-            "Required fields: name, category, metal, purity, totalWeight, packageWeight, makingCharges", // REMOVE unitPrice
+            "Required fields: name, category, metal, purity, totalWeight, packageWeight, makingCharges",
         },
         { status: 400 }
       );
@@ -95,14 +94,14 @@ export async function POST(request: NextRequest) {
       metal,
       purity,
       totalWeight: parseFloat(totalWeight),
-      remainingWeight: parseFloat(totalWeight), // Initially same as total weight
+      remainingWeight: parseFloat(totalWeight),
       packageWeight: parseFloat(packageWeight),
-      unitPrice: unitPrice ? parseFloat(unitPrice) : undefined, // HANDLE OPTIONAL
       makingCharges: parseFloat(makingCharges),
       supplier,
       purchaseDate: new Date(purchaseDate),
       batchNumber,
       notes,
+      isActive: true,
     });
 
     await bulkProduct.save();

@@ -299,6 +299,7 @@ export const EnhancedProductManager: React.FC = () => {
       batchNumber: product.batchNumber || "",
       notes: product.notes || "",
     });
+    setShowAddForm(true); // Add this line to show the form
   };
 
   const handleUpdateBulkProduct = async () => {
@@ -620,6 +621,46 @@ export const EnhancedProductManager: React.FC = () => {
 
   const loading = productsLoading || bulkLoading || categoriesLoading;
   const error = productsError || bulkError || categoriesError;
+
+  // Add the missing getMetalIcon function
+  const getMetalIcon = (metal: string) => {
+    switch (metal) {
+      case "gold":
+        return <Medal className="w-5 h-5 text-yellow-500" />;
+      case "silver":
+        return <Medal className="w-5 h-5 text-gray-400" />;
+      case "platinum":
+        return <Medal className="w-5 h-5 text-gray-300" />;
+      default:
+        return <Square className="w-5 h-5" />;
+    }
+  };
+
+  // Generate bulk product slug
+  const generateBulkSlug = (
+    name: string,
+    supplier: string,
+    purchaseDate: string
+  ) => {
+    const date = new Date(purchaseDate);
+    const dateStr = date.toISOString().slice(2, 10).replace(/-/g, ""); // YYMMDD
+    const hour = date.getHours().toString().padStart(2, "0");
+
+    // Get supplier initials (first 2-3 letters)
+    const supplierCode = supplier
+      ? supplier.substring(0, 3).toLowerCase().replace(/\s/g, "")
+      : "sp";
+
+    // Get product name initials or first few letters
+    const nameCode = name
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toLowerCase()
+      .substring(0, 3);
+
+    return `${supplierCode}-${nameCode}-${dateStr}-${hour}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -966,6 +1007,23 @@ export const EnhancedProductManager: React.FC = () => {
                 <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
                   {product.name}
                 </h3>
+
+                {/* Add slug display for bulk products */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs rounded-full font-mono">
+                    {product.slug ||
+                      generateBulkSlug(
+                        product.name,
+                        product.supplier || "",
+                        product.purchaseDate
+                      )}
+                  </span>
+                  {product.batchNumber && (
+                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs rounded-full font-medium">
+                      #{product.batchNumber}
+                    </span>
+                  )}
+                </div>
 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
@@ -1768,4 +1826,3 @@ export const EnhancedProductManager: React.FC = () => {
     </div>
   );
 };
-      
