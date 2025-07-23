@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   Card,
   Input,
@@ -72,6 +72,7 @@ export const EnhancedBillingManager: React.FC = () => {
     customers: customersData,
     loading: customersLoading,
     loadCustomers,
+    searchCustomers,
   } = useCustomers();
 
   // Ensure arrays are always defined
@@ -613,6 +614,40 @@ export const EnhancedBillingManager: React.FC = () => {
     }));
   }, [bulkProductForm.grossWeight, bulkProductForm.packageWeight]);
 
+  // Customer search and dropdown logic (backend)
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const [customerSearchResults, setCustomerSearchResults] = useState<
+    Customer[]
+  >([]);
+  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Backend search handler for customer selection
+  const handleCustomerSearch = (term: string) => {
+    setCustomerSearch(term);
+    setCustomerDropdownOpen(true);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+    if (!term.trim()) {
+      setCustomerSearchResults(customers);
+      setCustomerDropdownOpen(false);
+      return;
+    }
+
+    setCustomerSearchLoading(true);
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const result = await searchCustomers(term, 1, 20); // limit to 20 results
+        setCustomerSearchResults(result.data || []);
+      } catch (err) {
+        setCustomerSearchResults([]);
+      } finally {
+        setCustomerSearchLoading(false);
+      }
+    }, 400);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -948,27 +983,94 @@ export const EnhancedBillingManager: React.FC = () => {
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Select Customer *
               </label>
-              <select
-                value={currentBill.customerId || ""}
-                onChange={(e) =>
-                  setCurrentBill((prev) => ({
-                    ...prev,
-                    customerId: e.target.value,
-                  }))
-                }
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-                disabled={savingBill}
-              >
-                <option value="">Select a customer</option>
-                {customers.map((customer) => (
-                  <option
-                    key={customer._id || customer.id}
-                    value={customer._id || customer.id}
+              <div className="relative">
+                <Input
+                  placeholder="Search customer by name, phone, or GST..."
+                  value={customerSearch}
+                  onChange={(e) => handleCustomerSearch(e.target.value)}
+                  onFocus={() => setCustomerDropdownOpen(true)}
+                  className="w-full"
+                  disabled={savingBill}
+                />
+                {customerDropdownOpen && (
+                  <div
+                    className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded shadow-lg max-h-60 overflow-y-auto"
+                    onMouseLeave={() => setCustomerDropdownOpen(false)}
                   >
-                    {customer.name} - {customer.phone}
-                  </option>
-                ))}
-              </select>
+                    {customerSearchLoading ? (
+                      <div className="p-2 text-sm text-zinc-500">
+                        Searching...
+                      </div>
+                    ) : customerSearchResults.length === 0 ? (
+                      <div className="p-2 text-sm text-zinc-500">
+                        No customers found
+                      </div>
+                    ) : (
+                      customerSearchResults.map((customer) => (
+                        <div
+                          key={customer._id || customer.id}
+                          className={`p-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-zinc-700 ${
+                            currentBill.customerId ===
+                            (customer._id || customer.id)
+                              ? "bg-blue-100 dark:bg-blue-900"
+                              : ""
+                          }`}
+                          onClick={() => {
+                            setCurrentBill((prev) => ({
+                              ...prev,
+                              customerId: customer._id || customer.id,
+                            }));
+                            setCustomerSearch(
+                              `${customer.name} - ${customer.phone}`
+                            );
+                            setCustomerDropdownOpen(false);
+                          }}
+                        >
+                          <span className="font-medium">{customer.name}</span>
+                          <span className="ml-2 text-xs text-zinc-500">
+                            {customer.phone}
+                          </span>
+                          {customer.gstNumber && (
+                            <span className="ml-2 text-xs text-green-600">
+                              GST: {customer.gstNumber}
+                            </span>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* Show selected customer details */}
+              {currentBill.customerId && (
+                <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
+                  {(() => {
+                    const selected =
+                      customerSearchResults.find(
+                        (c) => (c._id || c.id) === currentBill.customerId
+                      ) ||
+                      customers.find(
+                        (c) => (c._id || c.id) === currentBill.customerId
+                      );
+                    if (!selected) return null;
+                    return (
+                      <div>
+                        <span className="font-medium">{selected.name}</span>
+                        {" - "}
+                        <span>{selected.phone}</span>
+                        {selected.gstNumber && (
+                          <>
+                            {" - "}
+                            <span className="text-green-600">
+                              GST: {selected.gstNumber}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
 
             <div>
