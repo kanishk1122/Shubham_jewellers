@@ -753,13 +753,35 @@ export const EnhancedBillingManager: React.FC = () => {
                     >
                       <div
                         className="flex justify-between items-start"
-                        onClick={() => setSelectedBulkProduct(bulkProduct)}
+                        onClick={() => {
+                          setSelectedBulkProduct(bulkProduct);
+                          setBulkProductForm({
+                            productName: bulkProduct.name, // default to bulk name
+                            grossWeight: 0,
+                            packageWeight: 0,
+                            netWeight: 0,
+                            makingCharges: bulkProduct.makingCharges,
+                            makingChargesType: "fixed",
+                            wastage: 0,
+                            wastageType: "percentage",
+                          });
+                        }}
                         role="button"
                         tabIndex={0}
                         style={{ cursor: "pointer" }}
                         onKeyPress={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             setSelectedBulkProduct(bulkProduct);
+                            setBulkProductForm({
+                              productName: bulkProduct.name,
+                              grossWeight: 0,
+                              packageWeight: 0,
+                              netWeight: 0,
+                              makingCharges: bulkProduct.makingCharges,
+                              makingChargesType: "fixed",
+                              wastage: 0,
+                              wastageType: "percentage",
+                            });
                           }
                         }}
                       >
@@ -796,7 +818,7 @@ export const EnhancedBillingManager: React.FC = () => {
                     Product Name *
                   </label>
                   <Input
-                    value={bulkProductForm.productName}
+                    value={selectedBulkProduct.category}
                     onChange={(e) =>
                       setBulkProductForm((prev) => ({
                         ...prev,
@@ -890,7 +912,24 @@ export const EnhancedBillingManager: React.FC = () => {
                       <option value="percentage">%</option>
                     </select>
                   </div>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Default from inventory: ₹{selectedBulkProduct.makingCharges}
+                  </p>
                 </div>
+
+                {/* <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Category
+                  </label>
+                  <Input
+                    value={selectedBulkProduct.category}
+                    readOnly
+                    className="bg-zinc-100 dark:bg-zinc-600"
+                  />
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Default from inventory
+                  </p>
+                </div> */}
 
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -1411,7 +1450,7 @@ export const EnhancedBillingManager: React.FC = () => {
             <Button
               onClick={editingBill ? handleUpdateBill : handleCreateBill}
               disabled={
-                !currentBill.customerId ||
+                (editingBill && !currentBill.id) ||
                 !currentBill.items?.length ||
                 savingBill
               }
