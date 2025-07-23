@@ -13,6 +13,7 @@ import {
 import { useMetalRates } from "@/services/metalRatesService";
 import { useBills } from "@/hooks/useBills";
 import { useProducts } from "@/hooks/useProducts";
+import { useBulkProducts } from "@/hooks/useBulkProducts";
 import { useCustomers } from "@/hooks/useCustomers";
 import ExcelActions from "@/components/ExcelActions";
 import {
@@ -22,6 +23,8 @@ import {
   Trash2,
   Printer,
   RefreshCw,
+  Package,
+  Warehouse,
 } from "lucide-react";
 import type { Bill, BillItem } from "@/types/bill";
 
@@ -60,6 +63,12 @@ export const EnhancedBillingManager: React.FC = () => {
   } = useBills();
   const { products: productsData, loading: productsLoading } = useProducts();
   const {
+    bulkProducts: bulkProductsData,
+    loading: bulkLoading,
+    updateBulkProduct,
+    loadBulkProducts,
+  } = useBulkProducts();
+  const {
     customers: customersData,
     loading: customersLoading,
     loadCustomers,
@@ -68,6 +77,7 @@ export const EnhancedBillingManager: React.FC = () => {
   // Ensure arrays are always defined
   const bills = Array.isArray(billsData) ? billsData : [];
   const products = Array.isArray(productsData) ? productsData : [];
+  const bulkProducts = Array.isArray(bulkProductsData) ? bulkProductsData : [];
   const customers = Array.isArray(customersData) ? customersData : [];
 
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
@@ -81,15 +91,42 @@ export const EnhancedBillingManager: React.FC = () => {
     paymentMode: "cash",
     paymentStatus: "paid",
   });
+  const [showBulkProductDialog, setShowBulkProductDialog] = useState(false);
+  const [selectedBulkProduct, setSelectedBulkProduct] = useState<any>(null);
+  const [bulkProductForm, setBulkProductForm] = useState({
+    productName: "",
+    grossWeight: 0,
+    packageWeight: 0,
+    netWeight: 0,
+    makingCharges: 0,
+    makingChargesType: "fixed" as "fixed" | "percentage",
+    wastage: 0,
+    wastageType: "percentage" as "fixed" | "percentage",
+  });
 
   const { rates: liveRates } = useMetalRates();
-  const loading = billsLoading || productsLoading || customersLoading;
+  const loading =
+    billsLoading || productsLoading || bulkLoading || customersLoading;
 
-  // Calculate item amount
+  // Calculate item amount with proper rate conversion
   const calculateItemAmount = (item: Partial<BillItem>): number => {
     if (!item.netWeight || !item.rate) return 0;
 
-    const baseAmount = item.netWeight * item.rate;
+    // Convert rate to per-gram basis based on metal type
+    let ratePerGram = item.rate;
+
+    if (item.metal === "silver") {
+      // Silver rates are typically per kg (1000g), convert to per gram
+      ratePerGram = item.rate / 1000;
+    } else if (item.metal === "gold") {
+      // Gold rates are typically per 10g, convert to per gram
+      ratePerGram = item.rate / 10;
+    } else if (item.metal === "platinum") {
+      // Platinum rates are typically per gram already
+      ratePerGram = item.rate;
+    }
+
+    const baseAmount = item.netWeight * ratePerGram;
     let makingAmount = 0;
     let wastageAmount = 0;
 
@@ -137,7 +174,7 @@ export const EnhancedBillingManager: React.FC = () => {
     };
   };
 
-  // Add item to current bill
+  // Add item to current bill with proper rate handling
   const addItemToBill = (productId: string) => {
     const product = products.find((p) => (p._id || p.id) === productId);
     if (!product) return;
@@ -207,7 +244,115 @@ export const EnhancedBillingManager: React.FC = () => {
     setShowAddForm(true);
   };
 
-  // Create new bill
+  // Add item from bulk inventory
+  const addBulkItemToBill = () => {
+    if (!selectedBulkProduct || !bulkProductForm.productName) return;
+
+    // Get live rate for the metal
+    const liveRate = liveRates.find(
+      (rate) =>
+        rate.metal === selectedBulkProduct.metal &&
+        rate.purity === selectedBulkProduct.purity
+    );
+
+    const newItem: BillItem = {
+      id: Date.now().toString(),
+      productId: `bulk-${selectedBulkProduct._id || selectedBulkProduct.id}`,
+      productSerialNumber: `BULK-${Date.now()}`,
+      productName: bulkProductForm.productName,
+      category: selectedBulkProduct.category,
+      metal: selectedBulkProduct.metal,
+      purity: selectedBulkProduct.purity,
+      weight: bulkProductForm.grossWeight,
+      stoneWeight: 0,
+      netWeight: bulkProductForm.netWeight,
+      packageWeight: bulkProductForm.packageWeight,
+      rate: liveRate?.rate || 0,
+      makingCharges: bulkProductForm.makingCharges,
+      makingChargesType: bulkProductForm.makingChargesType,
+      wastage: bulkProductForm.wastage,
+      wastageType: bulkProductForm.wastageType,
+      amount: 0,
+      bulkProductId: selectedBulkProduct._id || selectedBulkProduct.id,
+      isFromBulk: true,
+    };
+
+    newItem.amount = calculateItemAmount(newItem);
+
+    setCurrentBill((prev) => ({
+      ...prev,
+      items: [...(prev.items || []), newItem],
+    }));
+
+    // Reset form and close dialog
+    setBulkProductForm({
+      productName: "",
+      grossWeight: 0,
+      packageWeight: 0,
+      netWeight: 0,
+      makingCharges: 0,
+      makingChargesType: "fixed",
+      wastage: 0,
+      wastageType: "percentage",
+    });
+    setSelectedBulkProduct(null);
+    setShowBulkProductDialog(false);
+  };
+
+  // Deduct weight from bulk inventory when bill is created
+  const deductWeightFromBulk = async (items: BillItem[]) => {
+    for (const item of items) {
+      if (item.isFromBulk && item.bulkProductId) {
+        try {
+          // Find the actual bulk product to get current remaining weight
+          const bulkProduct = bulkProducts.find(
+            (bp) => (bp._id || bp.id) === item.bulkProductId
+          );
+
+          if (!bulkProduct) {
+            console.error("Bulk product not found:", item.bulkProductId);
+            continue;
+          }
+
+          const totalDeduction = (item.weight || 0) + (item.packageWeight || 0);
+          const newRemainingWeight =
+            bulkProduct.remainingWeight - totalDeduction;
+
+          // Use the PATCH endpoint to deduct weight
+          const response = await fetch(
+            `/api/bulk-products/${item.bulkProductId}`,
+            {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                deductWeight: totalDeduction,
+              }),
+            }
+          );
+
+          const result = await response.json();
+
+          if (!result.success) {
+            console.error("Failed to deduct weight:", result.error);
+            alert(
+              `Failed to deduct weight from ${item.productName}: ${result.error}`
+            );
+          } else {
+            console.log(
+              `Successfully deducted ${totalDeduction}g from ${item.productName}`
+            );
+          }
+        } catch (error) {
+          console.error("Failed to deduct weight from bulk product:", error);
+          alert(`Error deducting weight from ${item.productName}: ${error}`);
+        }
+      }
+    }
+  };
+
+  // Modified create bill function
   const handleCreateBill = async () => {
     if (!currentBill.customerId || !currentBill.items?.length) return;
 
@@ -242,8 +387,16 @@ export const EnhancedBillingManager: React.FC = () => {
       const result = await createBill(newBillData);
 
       if (result.success) {
+        // Deduct weight from bulk inventory AFTER bill creation
+        await deductWeightFromBulk(currentBill.items || []);
+
+        // Reload bulk products to reflect the changes
+        await loadBulkProducts();
+
         resetForm();
-        await loadCustomers(); // Reload customers to get updated purchase data
+        await loadCustomers();
+
+        alert("Bill created successfully and inventory updated!");
       } else {
         alert(result.error || "Failed to create bill. Please try again.");
       }
@@ -450,6 +603,16 @@ export const EnhancedBillingManager: React.FC = () => {
   const currentBillTotals = calculateBillTotals(currentBill);
   const isDialogOpen = showAddForm || editingBill;
 
+  // Auto-calculate net weight when gross weight or package weight changes
+  React.useEffect(() => {
+    const netWeight =
+      bulkProductForm.grossWeight - bulkProductForm.packageWeight;
+    setBulkProductForm((prev) => ({
+      ...prev,
+      netWeight: Math.max(0, netWeight),
+    }));
+  }, [bulkProductForm.grossWeight, bulkProductForm.packageWeight]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -530,6 +693,241 @@ export const EnhancedBillingManager: React.FC = () => {
         </Card>
       )}
 
+      {/* Bulk Product Selection Dialog */}
+      <Dialog
+        open={showBulkProductDialog}
+        onOpenChange={setShowBulkProductDialog}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create Product from Bulk Inventory</DialogTitle>
+          </DialogHeader>
+
+          {!selectedBulkProduct ? (
+            <div>
+              <h4 className="text-md font-semibold mb-3">
+                Select Bulk Product
+              </h4>
+              <div className="grid gap-3 max-h-96 overflow-y-auto">
+                {bulkProducts
+                  .filter((bp) => bp.remainingWeight > 0)
+                  .map((bulkProduct) => (
+                    <Card
+                      key={bulkProduct._id || bulkProduct.id}
+                      className="p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-700"
+                    >
+                      <div
+                        className="flex justify-between items-start"
+                        onClick={() => setSelectedBulkProduct(bulkProduct)}
+                        role="button"
+                        tabIndex={0}
+                        style={{ cursor: "pointer" }}
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            setSelectedBulkProduct(bulkProduct);
+                          }
+                        }}
+                      >
+                        <div>
+                          <h5 className="font-medium">{bulkProduct.name}</h5>
+                          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                            {bulkProduct.metal} {bulkProduct.purity}
+                          </p>
+                          <p className="text-sm text-green-600 dark:text-green-400">
+                            Available: {bulkProduct.remainingWeight}g
+                          </p>
+                        </div>
+                        <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 px-2 py-1 rounded font-mono">
+                          {bulkProduct.slug}
+                        </span>
+                      </div>
+                    </Card>
+                  ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="bg-zinc-50 dark:bg-zinc-700 p-4 rounded-lg mb-4">
+                <h4 className="font-medium">{selectedBulkProduct.name}</h4>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {selectedBulkProduct.metal} {selectedBulkProduct.purity} •
+                  Available: {selectedBulkProduct.remainingWeight}g
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Product Name *
+                  </label>
+                  <Input
+                    value={bulkProductForm.productName}
+                    onChange={(e) =>
+                      setBulkProductForm((prev) => ({
+                        ...prev,
+                        productName: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g., Gold Ring, Gold Chain"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Gross Weight (g) *
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={bulkProductForm.grossWeight}
+                    onChange={(e) =>
+                      setBulkProductForm((prev) => ({
+                        ...prev,
+                        grossWeight: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                    max={selectedBulkProduct.remainingWeight}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Package Weight (g)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={bulkProductForm.packageWeight}
+                    onChange={(e) =>
+                      setBulkProductForm((prev) => ({
+                        ...prev,
+                        packageWeight: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Net Weight (g)
+                  </label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={bulkProductForm.netWeight}
+                    readOnly
+                    className="bg-zinc-100 dark:bg-zinc-600"
+                  />
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Auto-calculated: Gross Weight - Package Weight
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Making Charges
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      value={bulkProductForm.makingCharges}
+                      onChange={(e) =>
+                        setBulkProductForm((prev) => ({
+                          ...prev,
+                          makingCharges: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      className="flex-1"
+                    />
+                    <select
+                      value={bulkProductForm.makingChargesType}
+                      onChange={(e) =>
+                        setBulkProductForm((prev) => ({
+                          ...prev,
+                          makingChargesType: e.target.value as
+                            | "fixed"
+                            | "percentage",
+                        }))
+                      }
+                      className="w-16 px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800"
+                    >
+                      <option value="fixed">₹</option>
+                      <option value="percentage">%</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                    Wastage
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      value={bulkProductForm.wastage}
+                      onChange={(e) =>
+                        setBulkProductForm((prev) => ({
+                          ...prev,
+                          wastage: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      className="flex-1"
+                    />
+                    <select
+                      value={bulkProductForm.wastageType}
+                      onChange={(e) =>
+                        setBulkProductForm((prev) => ({
+                          ...prev,
+                          wastageType: e.target.value as "fixed" | "percentage",
+                        }))
+                      }
+                      className="w-16 px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800"
+                    >
+                      <option value="fixed">₹</option>
+                      <option value="percentage">%</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <Button
+                  onClick={addBulkItemToBill}
+                  disabled={
+                    !bulkProductForm.productName ||
+                    !bulkProductForm.grossWeight ||
+                    bulkProductForm.grossWeight >
+                      selectedBulkProduct.remainingWeight
+                  }
+                  className="flex-1"
+                >
+                  Add to Bill
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedBulkProduct(null);
+                    setBulkProductForm({
+                      productName: "",
+                      grossWeight: 0,
+                      packageWeight: 0,
+                      netWeight: 0,
+                      makingCharges: 0,
+                      makingChargesType: "fixed",
+                      wastage: 0,
+                      wastageType: "percentage",
+                    });
+                  }}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Create/Edit Bill Form Dialog */}
       <Dialog
         open={!!isDialogOpen}
@@ -544,8 +942,8 @@ export const EnhancedBillingManager: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
 
-          {/* Customer Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Customer Selection and Product Addition */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 Select Customer *
@@ -572,9 +970,10 @@ export const EnhancedBillingManager: React.FC = () => {
                 ))}
               </select>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Add Product to Bill
+                Add Individual Product
               </label>
               <select
                 onChange={(e) => {
@@ -586,7 +985,7 @@ export const EnhancedBillingManager: React.FC = () => {
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                 disabled={savingBill}
               >
-                <option value="">Select a product to add</option>
+                <option value="">Select individual product</option>
                 {products.map((product) => (
                   <option
                     key={product._id || product.id}
@@ -597,6 +996,21 @@ export const EnhancedBillingManager: React.FC = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                Add from Bulk Inventory
+              </label>
+              <Button
+                onClick={() => setShowBulkProductDialog(true)}
+                variant="secondary"
+                className="w-full flex items-center gap-2"
+                disabled={savingBill}
+              >
+                <Warehouse className="w-4 h-4" />
+                Create from Bulk
+              </Button>
             </div>
           </div>
 
@@ -672,6 +1086,11 @@ export const EnhancedBillingManager: React.FC = () => {
                             }
                             className="w-24"
                           />
+                          <div className="text-xs text-zinc-500 mt-1">
+                            {item.metal === "silver" && "₹/kg"}
+                            {item.metal === "gold" && "₹/10g"}
+                            {item.metal === "platinum" && "₹/g"}
+                          </div>
                         </td>
                         <td className="px-3 py-2 text-sm text-zinc-900 dark:text-white">
                           <div className="flex flex-col gap-1">

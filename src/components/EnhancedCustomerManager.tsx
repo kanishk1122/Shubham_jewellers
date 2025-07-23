@@ -40,12 +40,18 @@ export const EnhancedCustomerManager: React.FC = () => {
     createCustomer,
     updateCustomer,
     deleteCustomer,
+    bulkImportCustomers,
   } = useCustomers();
 
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [savingCustomer, setSavingCustomer] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -149,6 +155,129 @@ export const EnhancedCustomerManager: React.FC = () => {
     );
   });
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentCustomers = filteredCustomers.slice(startIndex, endIndex);
+
+  // Reset to first page when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of customer grid
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
+  // Pagination component
+  const PaginationControls = () => {
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const maxVisible = 5;
+
+      if (totalPages <= maxVisible) {
+        for (let i = 1; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        if (currentPage <= 3) {
+          for (let i = 1; i <= 4; i++) pages.push(i);
+          pages.push("...");
+          pages.push(totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          pages.push(1);
+          pages.push("...");
+          for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+        } else {
+          pages.push(1);
+          pages.push("...");
+          for (let i = currentPage - 1; i <= currentPage + 1; i++)
+            pages.push(i);
+          pages.push("...");
+          pages.push(totalPages);
+        }
+      }
+
+      return pages;
+    };
+
+    return (
+      <Card className="p-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <span>Show</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+              className="px-2 py-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            >
+              <option value={6}>6</option>
+              <option value={12}>12</option>
+              <option value={24}>24</option>
+              <option value={48}>48</option>
+            </select>
+            <span>per page</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <span>
+              Showing {startIndex + 1}-
+              {Math.min(endIndex, filteredCustomers.length)} of{" "}
+              {filteredCustomers.length} customers
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              variant="secondary"
+              size="sm"
+            >
+              Previous
+            </Button>
+
+            {getPageNumbers().map((page, index) => (
+              <React.Fragment key={index}>
+                {page === "..." ? (
+                  <span className="px-2 py-1 text-zinc-500">...</span>
+                ) : (
+                  <Button
+                    onClick={() => handlePageChange(page as number)}
+                    variant={currentPage === page ? "primary" : "secondary"}
+                    size="sm"
+                    className="min-w-[32px]"
+                  >
+                    {page}
+                  </Button>
+                )}
+              </React.Fragment>
+            ))}
+
+            <Button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              variant="secondary"
+              size="sm"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   const getCustomerTypeIcon = (customer: Customer) => {
     if (customer.gstNumber) return <Building className="w-5 h-5" />; // Business customer
     if (customer.totalPurchases > 100000) return <Star className="w-5 h-5" />; // VIP customer
@@ -165,9 +294,36 @@ export const EnhancedCustomerManager: React.FC = () => {
 
   // Handle Excel import
   const handleExcelImport = async (importedCustomers: Customer[]) => {
-    // Implementation for bulk import via API would go here
-    console.log("Excel import not yet implemented for MongoDB backend");
-    alert("Excel import feature will be implemented soon for MongoDB backend");
+    if (!importedCustomers || importedCustomers.length === 0) {
+      alert("No customers to import");
+      return;
+    }
+
+    try {
+      const result = await bulkImportCustomers(importedCustomers);
+
+      if (result.success) {
+        const { successful, failed, errors } = result.data;
+        let message = `Import completed!\n✅ ${successful} customers imported successfully`;
+
+        if (failed > 0) {
+          message += `\n❌ ${failed} customers failed to import`;
+          if (errors.length > 0) {
+            message += `\n\nErrors:\n${errors.slice(0, 5).join("\n")}`;
+            if (errors.length > 5) {
+              message += `\n... and ${errors.length - 5} more errors`;
+            }
+          }
+        }
+
+        alert(message);
+      } else {
+        alert(`Import failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("Failed to import customers:", error);
+      alert("Failed to import customers. Please try again.");
+    }
   };
 
   // Handle Dialog open state explicitly
@@ -252,6 +408,9 @@ export const EnhancedCustomerManager: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Pagination Controls - Top */}
+      {!loading && filteredCustomers.length > 0 && <PaginationControls />}
 
       {/* Add/Edit Form Dialog */}
       <Dialog
@@ -407,10 +566,10 @@ export const EnhancedCustomerManager: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Customers Grid */}
+      {/* Customers Grid - Updated to use currentCustomers */}
       {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCustomers.map((customer) => (
+          {currentCustomers.map((customer) => (
             <Card
               key={customer._id || customer.id}
               className="p-6 hover:shadow-lg transition-shadow"
@@ -527,6 +686,10 @@ export const EnhancedCustomerManager: React.FC = () => {
         </div>
       )}
 
+      {/* Pagination Controls - Bottom */}
+      {!loading && filteredCustomers.length > 0 && <PaginationControls />}
+
+      {/* Empty State */}
       {!loading && filteredCustomers.length === 0 && (
         <Card className="p-8 text-center">
           <div className="flex justify-center mb-4">
@@ -552,10 +715,10 @@ export const EnhancedCustomerManager: React.FC = () => {
         </Card>
       )}
 
-      {/* Summary */}
+      {/* Summary - Updated to show pagination info */}
       {!loading && customers.length > 0 && (
         <Card className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center text-sm">
             <div>
               <p className="font-semibold text-zinc-900 dark:text-white">
                 {customers.length}
@@ -567,6 +730,12 @@ export const EnhancedCustomerManager: React.FC = () => {
             <div>
               <p className="font-semibold text-zinc-900 dark:text-white">
                 {filteredCustomers.length}
+              </p>
+              <p className="text-zinc-600 dark:text-zinc-400">Filtered</p>
+            </div>
+            <div>
+              <p className="font-semibold text-zinc-900 dark:text-white">
+                {currentCustomers.length}
               </p>
               <p className="text-zinc-600 dark:text-zinc-400">Showing</p>
             </div>

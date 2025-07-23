@@ -15,72 +15,92 @@ export interface ICustomer extends Document {
   updatedAt: Date;
 }
 
-// Only create schema and model on server side
-let CustomerModel: any = null;
-
-if (typeof window === "undefined") {
-  const CustomerSchema = new Schema<ICustomer>(
-    {
-      name: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-      phone: {
-        type: String,
-        required: true,
-        index: true,
-      },
-      email: {
-        type: String,
-        trim: true,
-        lowercase: true,
-      },
-      address: {
-        type: String,
-        trim: true,
-      },
-      gstNumber: {
-        type: String,
-        trim: true,
-        uppercase: true,
-      },
-      panNumber: {
-        type: String,
-        trim: true,
-        uppercase: true,
-      },
-      notes: {
-        type: String,
-        trim: true,
-      },
-      totalPurchases: {
-        type: Number,
-        default: 0,
-        min: 0,
-      },
-      lastPurchaseDate: {
-        type: Date,
-      },
-      isActive: {
-        type: Boolean,
-        default: true,
+const CustomerSchema = new Schema<ICustomer>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      unique: true,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true, // Allows multiple null values
+      validate: {
+        validator: function (v: string) {
+          return !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+        },
+        message: "Invalid email format",
       },
     },
-    {
-      timestamps: true,
-    }
-  );
+    address: {
+      type: String,
+      trim: true,
+    },
+    gstNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      sparse: true,
+      validate: {
+        validator: function (v: string) {
+          return (
+            !v ||
+            /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(v)
+          );
+        },
+        message: "Invalid GST number format",
+      },
+    },
+    panNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      sparse: true,
+      validate: {
+        validator: function (v: string) {
+          return !v || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(v);
+        },
+        message: "Invalid PAN number format",
+      },
+    },
+    notes: {
+      type: String,
+      trim: true,
+    },
+    totalPurchases: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    lastPurchaseDate: {
+      type: Date,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
-  // Create indexes for better performance
-  CustomerSchema.index({ phone: 1 });
-  CustomerSchema.index({ email: 1 });
-  CustomerSchema.index({ gstNumber: 1 });
-  CustomerSchema.index({ name: "text", email: "text", phone: "text" });
+// Indexes for better performance
+CustomerSchema.index({ phone: 1 });
+CustomerSchema.index({ email: 1 }, { sparse: true });
+CustomerSchema.index({ gstNumber: 1 }, { sparse: true });
+CustomerSchema.index({ name: "text", phone: "text" });
 
-  CustomerModel =
-    mongoose.models.Customer ||
-    mongoose.model<ICustomer>("Customer", CustomerSchema);
-}
+const Customer =
+  mongoose.models.Customer ||
+  mongoose.model<ICustomer>("Customer", CustomerSchema);
 
-export default CustomerModel;
+export default Customer;

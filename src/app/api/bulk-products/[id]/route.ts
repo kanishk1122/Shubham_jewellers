@@ -102,12 +102,21 @@ export async function DELETE(request: NextRequest) {
 }
 
 // API to deduct weight from bulk inventory
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest) {
   try {
     await connectDB();
+    const url = new URL(request.url);
+    const id = url.pathname.split("/").pop();
+
+    if (!id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Product ID is required",
+        },
+        { status: 400 }
+      );
+    }
 
     const body = await request.json();
     const { deductWeight } = body;
@@ -122,7 +131,7 @@ export async function PATCH(
       );
     }
 
-    const bulkProduct = await BulkProduct.findById(params.id);
+    const bulkProduct = await BulkProduct.findById(id);
     if (!bulkProduct) {
       return NextResponse.json(
         {
@@ -137,7 +146,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: "Insufficient weight available in bulk inventory",
+          error: `Insufficient weight available. Available: ${bulkProduct.remainingWeight}g, Requested: ${deductWeight}g`,
         },
         { status: 400 }
       );
@@ -149,7 +158,7 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: bulkProduct,
-      message: "Weight deducted successfully",
+      message: `Successfully deducted ${deductWeight}g. Remaining: ${bulkProduct.remainingWeight}g`,
     });
   } catch (error) {
     console.error("Failed to deduct weight:", error);

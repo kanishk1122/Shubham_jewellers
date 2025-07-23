@@ -169,6 +169,43 @@ export const useCustomers = () => {
     }
   }, []);
 
+  // Bulk import customers
+  const bulkImportCustomers = async (customers: any[], options = {}) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/customers/bulk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ customers, options }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Refresh the customers list
+        await loadCustomers();
+        return {
+          success: true,
+          data: result.data,
+          message: result.message,
+        };
+      } else {
+        setError(result.error || "Failed to import customers");
+        return { success: false, error: result.error };
+      }
+    } catch (err: any) {
+      const errorMessage = "Failed to import customers";
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load customers on component mount
   useEffect(() => {
     loadCustomers();
@@ -182,5 +219,6 @@ export const useCustomers = () => {
     createCustomer,
     updateCustomer,
     deleteCustomer,
+    bulkImportCustomers,
   };
 };

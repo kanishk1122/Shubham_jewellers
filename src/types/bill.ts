@@ -10,12 +10,15 @@ export interface BillItem {
   weight: number;
   stoneWeight?: number;
   netWeight: number;
+  packageWeight?: number; // Add package weight field
   rate: number;
   makingCharges: number;
   makingChargesType: "fixed" | "percentage";
   wastage: number;
   wastageType: "fixed" | "percentage";
   amount: number;
+  bulkProductId?: string; // Add bulk product reference
+  isFromBulk?: boolean; // Flag to identify bulk items
 }
 
 export interface Bill {
