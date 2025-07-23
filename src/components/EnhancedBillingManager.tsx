@@ -1450,7 +1450,7 @@ export const EnhancedBillingManager: React.FC = () => {
             <Button
               onClick={editingBill ? handleUpdateBill : handleCreateBill}
               disabled={
-                (editingBill && !currentBill.id) ||
+                !currentBill.customerId ||
                 !currentBill.items?.length ||
                 savingBill
               }
