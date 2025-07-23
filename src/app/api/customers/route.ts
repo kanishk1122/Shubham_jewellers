@@ -8,40 +8,35 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
-    const limit = parseInt(searchParams.get("limit") || "50");
-    const skip = parseInt(searchParams.get("skip") || "0");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "50", 10), 200); // max 200 per page
 
-    let query = { isActive: true };
+    let query: any = {};
 
-    if (search) {
-      query = {
-        ...query,
-        $or: [
-          { name: { $regex: search, $options: "i" } },
-          { phone: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
-          { gstNumber: { $regex: search, $options: "i" } },
-        ],
-      } as any;
+    if (search && search.trim().length > 0) {
+      const regex = new RegExp(search.trim(), "i");
+      query.$or = [
+        { name: regex },
+        { phone: regex },
+        { email: regex },
+        { gstNumber: regex },
+      ];
     }
 
+    const total = await Customer.countDocuments(query);
     const customers = await Customer.find(query)
       .sort({ updatedAt: -1 })
+      .skip((page - 1) * limit)
       .limit(limit)
-      .skip(skip)
       .lean();
-
-    const total = await Customer.countDocuments(query);
 
     return NextResponse.json({
       success: true,
       data: customers,
-      pagination: {
-        total,
-        limit,
-        skip,
-        hasMore: skip + customers.length < total,
-      },
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
     console.error("Failed to fetch customers:", error);

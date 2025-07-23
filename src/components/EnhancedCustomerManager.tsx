@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Card,
   Input,
@@ -41,6 +41,7 @@ export const EnhancedCustomerManager: React.FC = () => {
     updateCustomer,
     deleteCustomer,
     bulkImportCustomers,
+    searchCustomers, // <-- Add this to your hook
   } = useCustomers();
 
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -51,6 +52,13 @@ export const EnhancedCustomerManager: React.FC = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
+
+  // Backend search state
+  const [backendCustomers, setBackendCustomers] = useState<Customer[]>([]);
+  const [backendSearchLoading, setBackendSearchLoading] = useState(false);
+  const [backendSearchActive, setBackendSearchActive] = useState(false);
+  const [backendTotal, setBackendTotal] = useState(0);
+  const [backendTotalPages, setBackendTotalPages] = useState(1);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -143,38 +151,104 @@ export const EnhancedCustomerManager: React.FC = () => {
     setShowAddForm(false);
   };
 
-  // Filter customers
-  const filteredCustomers = customers.filter((customer) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      customer.name.toLowerCase().includes(searchLower) ||
-      customer.phone.includes(searchTerm) ||
-      (customer.email && customer.email.toLowerCase().includes(searchLower)) ||
-      (customer.gstNumber &&
-        customer.gstNumber.toLowerCase().includes(searchLower))
-    );
-  });
+  // Debounce search
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchBackendCustomers = async (
+    term: string,
+    page: number,
+    limit: number
+  ) => {
+    setBackendSearchLoading(true);
+    try {
+      const result = await searchCustomers(term, page, limit);
+      setBackendCustomers(result.data || []);
+      setBackendTotal(result.total || 0);
+      setBackendTotalPages(result.totalPages || 1);
+    } catch (err) {
+      setBackendCustomers([]);
+      setBackendTotal(0);
+      setBackendTotalPages(1);
+    } finally {
+      setBackendSearchLoading(false);
+    }
+  };
+
+  // Initial load for all customers (pagination)
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
+  const [allTotal, setAllTotal] = useState(0);
+  const [allTotalPages, setAllTotalPages] = useState(1);
+
+  const fetchAllCustomers = async (page: number, limit: number) => {
+    setBackendSearchLoading(true);
+    try {
+      const result = await searchCustomers("", page, limit);
+      setAllCustomers(result.data || []);
+      setAllTotal(result.total || 0);
+      setAllTotalPages(result.totalPages || 1);
+    } catch (err) {
+      setAllCustomers([]);
+      setAllTotal(0);
+      setAllTotalPages(1);
+    } finally {
+      setBackendSearchLoading(false);
+    }
+  };
+
+  // On mount, load first page of all customers
+  React.useEffect(() => {
+    fetchAllCustomers(currentPage, itemsPerPage);
+  }, [currentPage, itemsPerPage]);
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+    if (term.trim().length === 0) {
+      setBackendSearchActive(false);
+      setBackendCustomers([]);
+      setBackendTotal(0);
+      setBackendTotalPages(1);
+      return;
+    }
+
+    setBackendSearchActive(true);
+
+    searchTimeout.current = setTimeout(() => {
+      fetchBackendCustomers(term, 1, itemsPerPage);
+      setCurrentPage(1);
+    }, 400); // 400ms debounce
+  };
+
+  // Use backend results if searching, otherwise use paginated allCustomers
+  const filteredCustomers = backendSearchActive
+    ? backendCustomers
+    : allCustomers;
+  const totalPages = backendSearchActive ? backendTotalPages : allTotalPages;
+  const totalCount = backendSearchActive ? backendTotal : allTotal;
 
   // Pagination calculations
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentCustomers = filteredCustomers.slice(startIndex, endIndex);
+  const currentCustomers = backendSearchActive
+    ? backendCustomers
+    : customers.slice(startIndex, endIndex);
 
-  // Reset to first page when search changes
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-
+  // Handle page change for backend search and normal mode
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // Scroll to top of customer grid
+    if (backendSearchActive) {
+      fetchBackendCustomers(searchTerm, page, itemsPerPage);
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
+    if (backendSearchActive) {
+      fetchBackendCustomers(searchTerm, 1, newItemsPerPage);
+    }
   };
 
   // Pagination component
@@ -184,11 +258,8 @@ export const EnhancedCustomerManager: React.FC = () => {
     const getPageNumbers = () => {
       const pages = [];
       const maxVisible = 5;
-
       if (totalPages <= maxVisible) {
-        for (let i = 1; i <= totalPages; i++) {
-          pages.push(i);
-        }
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
       } else {
         if (currentPage <= 3) {
           for (let i = 1; i <= 4; i++) pages.push(i);
@@ -207,7 +278,6 @@ export const EnhancedCustomerManager: React.FC = () => {
           pages.push(totalPages);
         }
       }
-
       return pages;
     };
 
@@ -225,18 +295,17 @@ export const EnhancedCustomerManager: React.FC = () => {
               <option value={12}>12</option>
               <option value={24}>24</option>
               <option value={48}>48</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
             </select>
             <span>per page</span>
           </div>
-
           <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
             <span>
-              Showing {startIndex + 1}-
-              {Math.min(endIndex, filteredCustomers.length)} of{" "}
-              {filteredCustomers.length} customers
+              Showing {startIndex + 1}-{Math.min(endIndex, totalCount)} of{" "}
+              {totalCount} customers
             </span>
           </div>
-
           <div className="flex items-center gap-1">
             <Button
               onClick={() => handlePageChange(currentPage - 1)}
@@ -246,7 +315,6 @@ export const EnhancedCustomerManager: React.FC = () => {
             >
               Previous
             </Button>
-
             {getPageNumbers().map((page, index) => (
               <React.Fragment key={index}>
                 {page === "..." ? (
@@ -263,7 +331,6 @@ export const EnhancedCustomerManager: React.FC = () => {
                 )}
               </React.Fragment>
             ))}
-
             <Button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
@@ -369,16 +436,6 @@ export const EnhancedCustomerManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <Card className="p-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Loading customers from database...
-          </p>
-        </Card>
-      )}
-
       {/* Error State */}
       {error && (
         <Card className="p-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700">
@@ -395,17 +452,26 @@ export const EnhancedCustomerManager: React.FC = () => {
       )}
 
       {/* Search */}
-      {!loading && (
-        <Card className="p-4">
-          <div className="relative">
-            <Input
-              placeholder="Search customers by name, phone, email, or GST number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10"
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          </div>
+
+      <Card className="p-4">
+        <div className="relative">
+          <Input
+            placeholder="Search customers by name, phone, email, or GST number..."
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="w-full pl-10"
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+        </div>
+      </Card>
+
+      {/* Loading State */}
+      {(loading || backendSearchLoading) && (
+        <Card className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Loading customers from database...
+          </p>
         </Card>
       )}
 
@@ -715,13 +781,13 @@ export const EnhancedCustomerManager: React.FC = () => {
         </Card>
       )}
 
-      {/* Summary - Updated to show pagination info */}
-      {!loading && customers.length > 0 && (
+      {/* Summary - Updated to show backend total */}
+      {!loading && (
         <Card className="p-4">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center text-sm">
             <div>
               <p className="font-semibold text-zinc-900 dark:text-white">
-                {customers.length}
+                {totalCount}
               </p>
               <p className="text-zinc-600 dark:text-zinc-400">
                 Total Customers
@@ -729,19 +795,19 @@ export const EnhancedCustomerManager: React.FC = () => {
             </div>
             <div>
               <p className="font-semibold text-zinc-900 dark:text-white">
-                {filteredCustomers.length}
+                {totalCount}
               </p>
               <p className="text-zinc-600 dark:text-zinc-400">Filtered</p>
             </div>
             <div>
               <p className="font-semibold text-zinc-900 dark:text-white">
-                {currentCustomers.length}
+                {filteredCustomers.length}
               </p>
               <p className="text-zinc-600 dark:text-zinc-400">Showing</p>
             </div>
             <div>
               <p className="font-semibold text-zinc-900 dark:text-white">
-                {customers.filter((c) => c.gstNumber).length}
+                {filteredCustomers.filter((c) => c.gstNumber).length}
               </p>
               <p className="text-zinc-600 dark:text-zinc-400">
                 Business Customers
@@ -750,7 +816,7 @@ export const EnhancedCustomerManager: React.FC = () => {
             <div>
               <p className="font-semibold text-green-600 dark:text-green-400">
                 ₹
-                {customers
+                {filteredCustomers
                   .reduce((sum, c) => sum + c.totalPurchases, 0)
                   .toLocaleString()}
               </p>

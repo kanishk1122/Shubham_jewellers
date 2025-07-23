@@ -267,11 +267,7 @@ export const ExcelActions: React.FC<ExcelActionsProps> = ({
     setImporting(true);
     try {
       // Call the onImport function with processed data and options
-      if (type === "customers") {
-        onImport?.(importData, importOptions);
-      } else {
-        onImport?.(importData);
-      }
+      onImport?.(importData);
       setShowPreview(false);
       setImportData([]);
     } catch (error) {

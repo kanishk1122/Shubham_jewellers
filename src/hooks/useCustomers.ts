@@ -206,6 +206,21 @@ export const useCustomers = () => {
     }
   };
 
+  // Search customers
+  const searchCustomers = async (searchTerm: string, page = 1, limit = 50) => {
+    try {
+      const response = await fetch(
+        `/api/customers?search=${encodeURIComponent(
+          searchTerm
+        )}&page=${page}&limit=${limit}`
+      );
+      const result = await response.json();
+      return result;
+    } catch (err) {
+      return { success: false, data: [], error: "Search failed" };
+    }
+  };
+
   // Load customers on component mount
   useEffect(() => {
     loadCustomers();
@@ -220,5 +235,6 @@ export const useCustomers = () => {
     updateCustomer,
     deleteCustomer,
     bulkImportCustomers,
+    searchCustomers,
   };
 };
