@@ -592,9 +592,9 @@ export const EnhancedBillingManager: React.FC = () => {
   // Filter bills
   const filteredBills = bills.filter((bill) => {
     const matchesSearch =
-      bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bill.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bill.customerPhone.includes(searchTerm);
+      (bill.billNumber && bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (bill.customerName && bill.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (bill.customerPhone && bill.customerPhone.includes(searchTerm));
     const matchesStatus =
       filterStatus === "all" || bill.paymentStatus === filterStatus;
 
