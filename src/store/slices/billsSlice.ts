@@ -17,6 +17,7 @@ const initialState: BillsState = {
 
 export const fetchBills = createAsyncThunk("bills/fetchBills", async () => {
   const res = await fetch("/api/bills");
+  console.log("Fetching bills from API");
   const data = await res.json();
   if (!data.success) throw new Error(data.error || "Failed to fetch bills");
   return data.data as Bill[];

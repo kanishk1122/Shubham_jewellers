@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Card,
   Input,
@@ -11,7 +11,14 @@ import {
   DialogTitle,
 } from "@/components/ui";
 import { useMetalRates } from "@/services/metalRatesService";
-import { useBills } from "@/hooks/useBills";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchBills,
+  fetchBillById,
+  createBill as createBillThunk,
+  updateBill as updateBillThunk,
+  deleteBill as deleteBillThunk,
+} from "@/store/slices/billsSlice";
 import { useProducts } from "@/hooks/useProducts";
 import { useBulkProducts } from "@/hooks/useBulkProducts";
 import { useCustomers } from "@/hooks/useCustomers";
@@ -53,14 +60,10 @@ interface Customer {
 }
 
 export const EnhancedBillingManager: React.FC = () => {
-  const {
-    bills: billsData,
-    loading: billsLoading,
-    createBill,
-    updateBill,
-    deleteBill,
-    loadBills,
-  } = useBills();
+  // Redux hooks for bills
+  const dispatch = useAppDispatch();
+  const billsState = useAppSelector((state) => state.bills);
+  const { bills, loading: billsLoading } = billsState;
   const { products: productsData, loading: productsLoading } = useProducts();
   const {
     bulkProducts: bulkProductsData,
@@ -76,7 +79,6 @@ export const EnhancedBillingManager: React.FC = () => {
   } = useCustomers();
 
   // Ensure arrays are always defined
-  const bills = Array.isArray(billsData) ? billsData : [];
   const products = Array.isArray(productsData) ? productsData : [];
   const bulkProducts = Array.isArray(bulkProductsData) ? bulkProductsData : [];
   const customers = Array.isArray(customersData) ? customersData : [];
@@ -108,6 +110,16 @@ export const EnhancedBillingManager: React.FC = () => {
   const { rates: liveRates } = useMetalRates();
   const loading =
     billsLoading || productsLoading || bulkLoading || customersLoading;
+
+    useEffect(() => {
+    // Load initial data
+    const loadData = async () => {
+      await dispatch(fetchBills());
+      await loadBulkProducts();
+      await loadCustomers();
+    };
+    loadData();
+  }, [dispatch, loadBulkProducts, loadCustomers]);
 
   // Calculate item amount with proper rate conversion
   const calculateItemAmount = (item: Partial<BillItem>): number => {
@@ -408,9 +420,11 @@ export const EnhancedBillingManager: React.FC = () => {
         date: new Date().toISOString().split("T")[0],
       };
 
-      const result = await createBill(newBillData);
+      // Use Redux thunk
+      const resultAction = await dispatch(createBillThunk(newBillData));
+      const result = (resultAction as any).payload;
 
-      if (result.success) {
+      if (result && !result.error) {
         // Deduct weight from bulk inventory AFTER bill creation
         await deductWeightFromBulk(currentBill.items || []);
 
@@ -422,7 +436,7 @@ export const EnhancedBillingManager: React.FC = () => {
 
         alert("Bill created successfully and inventory updated!");
       } else {
-        alert(result.error || "Failed to create bill. Please try again.");
+        alert((result && result.error) || "Failed to create bill. Please try again.");
       }
     } catch (error) {
       console.error("Failed to create bill:", error);
@@ -432,7 +446,7 @@ export const EnhancedBillingManager: React.FC = () => {
     }
   };
 
-  // Update bill
+  // Update bill using Redux thunk
   const handleUpdateBill = async () => {
     if (!editingBill || !currentBill.customerId || !currentBill.items?.length)
       return;
@@ -450,8 +464,6 @@ export const EnhancedBillingManager: React.FC = () => {
       }
 
       const totals = calculateBillTotals(currentBill);
-
-      console.log("Bill totals calculated:", currentBill);
 
       const updateData = {
         customerId: currentBill.customerId,
@@ -472,12 +484,15 @@ export const EnhancedBillingManager: React.FC = () => {
       };
 
       const billId = editingBill._id || editingBill.id!;
-      const result = await updateBill(billId, updateData);
+      const resultAction = await dispatch(
+        updateBillThunk({ id: billId, billData: updateData })
+      );
+      const result = (resultAction as any).payload;
 
-      if (result.success) {
+      if (result && !result.error) {
         resetForm();
       } else {
-        alert(result.error || "Failed to update bill. Please try again.");
+        alert((result && result.error) || "Failed to update bill. Please try again.");
       }
     } catch (error) {
       console.error("Failed to update bill:", error);
@@ -487,15 +502,18 @@ export const EnhancedBillingManager: React.FC = () => {
     }
   };
 
-  // Delete bill
+  // Delete bill using Redux thunk
   const handleDeleteBill = async (bill: Bill) => {
     if (!confirm("Are you sure you want to delete this bill?")) return;
 
     const billId = bill._id || bill.id!;
-    const result = await deleteBill(billId);
+    const resultAction = await dispatch(deleteBillThunk(billId));
+    const result = (resultAction as any).payload;
 
-    if (!result.success) {
-      alert(result.error || "Failed to delete bill. Please try again.");
+    if (result && !result.error) {
+      // success
+    } else {
+      alert((result && result.error) || "Failed to delete bill. Please try again.");
     }
   };
 
@@ -696,7 +714,7 @@ export const EnhancedBillingManager: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => {
-              loadBills();
+              dispatch(fetchBills());
               loadCustomers();
             }}
             disabled={loading}
