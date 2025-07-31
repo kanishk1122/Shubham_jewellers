@@ -245,6 +245,8 @@ export const EnhancedBillingManager: React.FC = () => {
     setShowAddForm(true);
   };
 
+  console.log("Current Bill:", editingBill);
+
   // Add item from bulk inventory
   const addBulkItemToBill = () => {
     if (!selectedBulkProduct || !bulkProductForm.productName) return;
@@ -353,17 +355,33 @@ export const EnhancedBillingManager: React.FC = () => {
     }
   };
 
+  // Helper to fetch customer from backend by ID
+  const fetchCustomerById = async (customerId: string): Promise<Customer | null> => {
+    try {
+      const res = await fetch(`/api/customers/${customerId}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.data || null;
+    } catch {
+      return null;
+    }
+  };
+
   // Modified create bill function
   const handleCreateBill = async () => {
     if (!currentBill.customerId || !currentBill.items?.length) return;
 
-    const customer = customers.find(
-      (c) => (c._id || c.id) === currentBill.customerId
-    );
-    if (!customer) return;
-
     setSavingBill(true);
+
     try {
+      // Fetch customer from backend
+      const customer = await fetchCustomerById(currentBill.customerId as string);
+      if (!customer) {
+        alert("Customer not found. Please select a valid customer.");
+        setSavingBill(false);
+        return;
+      }
+
       const totals = calculateBillTotals(currentBill);
 
       const newBillData = {
@@ -414,14 +432,19 @@ export const EnhancedBillingManager: React.FC = () => {
     if (!editingBill || !currentBill.customerId || !currentBill.items?.length)
       return;
 
-    const customer = customers.find(
-      (c) => (c._id || c.id) === currentBill.customerId
-    );
-    if (!customer) return;
-
     setSavingBill(true);
     try {
+      // Fetch customer from backend
+      const customer = await fetchCustomerById(currentBill.customerId as string);
+      if (!customer) {
+        alert("Customer not found. Please select a valid customer.");
+        setSavingBill(false);
+        return;
+      }
+
       const totals = calculateBillTotals(currentBill);
+
+      console.log("Bill totals calculated:", currentBill);
 
       const updateData = {
         customerId: currentBill.customerId,
@@ -1055,7 +1078,8 @@ export const EnhancedBillingManager: React.FC = () => {
                               : ""
                           }`}
                           onClick={() => {
-                            setCurrentBill((prev) => ({
+                            setCurrentBill((prev) => (
+                              {
                               ...prev,
                               customerId: customer._id || customer.id,
                             }));
@@ -1077,6 +1101,7 @@ export const EnhancedBillingManager: React.FC = () => {
                         </div>
                       ))
                     )}
+                    
                   </div>
                 )}
               </div>
@@ -1110,6 +1135,14 @@ export const EnhancedBillingManager: React.FC = () => {
                   })()}
                 </div>
               )}
+              {editingBill?.customerId  && (
+                <div className="mt-2 text-xs text-zinc-500">
+                  Editing Bill for{" "
+                  }{editingBill.customerName} - {editingBill.customerPhone}
+                  </div>
+              )}
+
+
             </div>
 
             <div>

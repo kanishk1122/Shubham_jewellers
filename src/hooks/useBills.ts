@@ -34,7 +34,7 @@ export function useBills() {
     const result = await BillService.createBill(billData);
 
     if (result.success && result.data) {
-      setBills((prev : any) => [result.data, ...prev]);
+      setBills((prev : Bill[] | any) => [result.data, ...prev]);
       return { success: true, data: result.data };
     } else {
       setError(result.error || "Failed to create bill");

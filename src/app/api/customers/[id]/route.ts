@@ -3,45 +3,36 @@ import { connectDB } from "@/lib/mongodb";
 import Customer from "@/models/Customer";
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: Request,
+  context: { params: { id: string } }
 ) {
-  try {
-    await connectDB();
-
-    const customer = await Customer.findById(params.id);
-    if (!customer) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Customer not found",
-        },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: customer,
-    });
-  } catch (error) {
-    console.error("Failed to fetch customer:", error);
+  await connectDB();
+  const customerId = context.params.id;
+  if (!customerId) {
     return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch customer",
-      },
-      { status: 500 }
+      { success: false, error: "Customer ID is required" },
+      { status: 400 }
     );
   }
+
+  const customer = await Customer.findById(customerId);
+  if (!customer) {
+    return NextResponse.json(
+      { success: false, error: "Customer not found" },
+      { status: 404 }
+    );
+  }
+  return NextResponse.json({ success: true, data: customer });
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     await connectDB();
+
+    const { params } = context;
 
     const body = await request.json();
     const { name, phone, email, address, gstNumber, panNumber, notes } = body;
@@ -116,10 +107,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     await connectDB();
+
+    const { params } = context;
 
     // Soft delete - set isActive to false
     const customer = await Customer.findByIdAndUpdate(

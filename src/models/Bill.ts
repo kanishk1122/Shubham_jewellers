@@ -112,7 +112,7 @@ const BillSchema = new Schema<IBill>(
       type: String,
       required: true,
       unique: true,
-      index: true,
+      index: true, // Only this index, remove .index() below for billNumber
     },
     date: {
       type: Date,
@@ -186,11 +186,16 @@ const BillSchema = new Schema<IBill>(
   }
 );
 
-// Create indexes
-BillSchema.index({ billNumber: 1 });
-BillSchema.index({ customerId: 1 });
-BillSchema.index({ date: -1 });
-BillSchema.index({ paymentStatus: 1 });
+let BillModel: any;
+if (typeof window === "undefined") {
+  // Only create indexes and export model on server
+  BillSchema.index({ customerId: 1 });
+  BillSchema.index({ date: -1 });
+  BillSchema.index({ paymentStatus: 1 });
+  // Always use "Bill" as the model name and check mongoose.models.Bill
+  BillModel = mongoose.models.Bill || mongoose.model<IBill>("Bill", BillSchema);
+} else {
+  BillModel = undefined;
+}
 
-export default mongoose.models.Bill ||
-  mongoose.model<IBill>("Bill", BillSchema);
+export default BillModel;

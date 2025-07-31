@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
+    
 
     const customer = new Customer({
       name,

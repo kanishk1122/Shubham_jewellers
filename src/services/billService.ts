@@ -1,5 +1,4 @@
 import type { Bill, BillItem } from "@/types/bill";
-
 export class BillService {
   private static readonly API_BASE = "/api/bills";
 
