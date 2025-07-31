@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Bill, PaymentStatus } from "@/types/billing";
-import { useBilling } from "@/hooks/useBilling";
 import { BillingCalculator } from "@/utils/billing";
 import { Button, Input, Card, Badge, Modal } from "@/components/ui";
 
@@ -325,8 +324,6 @@ const BillDetailModal: React.FC<BillDetailModalProps> = ({
 };
 
 export const BillHistory: React.FC = () => {
-  const { bills, searchBills, updateBillPaymentStatus, getTotalSales } =
-    useBilling();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -335,7 +332,36 @@ export const BillHistory: React.FC = () => {
     endDate: "",
   });
 
-  const displayBills = searchQuery ? searchBills(searchQuery) : bills;
+  // New: Fetch bills from backend
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setLoading(true);
+    fetch("/api/bills")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch bills");
+        console.log("Fetching bills...");
+        const data = await res.json();
+        setBills(data.data || []);
+        console.log("Bills loaded:", data.data);
+        setError(null);
+      })
+      .catch((err) => setError(err.message || "Error loading bills"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Remove useBilling searchBills, use local filter
+  const displayBills = bills.filter((bill : any) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (bill.billNumber && String(bill.billNumber).toLowerCase().includes(q)) ||
+      (bill.customerName && bill.customerName.toLowerCase().includes(q)) ||
+      (bill.customerPhone && bill.customerPhone.includes(q))
+    );
+  });
 
   const filteredBills = displayBills.filter((bill) => {
     if (!dateFilter.startDate || !dateFilter.endDate) return true;
@@ -345,24 +371,28 @@ export const BillHistory: React.FC = () => {
     return billDate >= startDate && billDate <= endDate;
   });
 
+  // Remove updateBillPaymentStatus, just local UI for now
   const handleViewBill = (bill: Bill) => {
     setSelectedBill(bill);
     setIsDetailModalOpen(true);
   };
 
-  const handleUpdatePaymentStatus = (billId: string, status: PaymentStatus) => {
-    updateBillPaymentStatus(billId, status);
-  };
-
+  // Totals
   const totalSales = filteredBills.reduce(
-    (total, bill) => total + bill.grandTotal,
+    (total, bill : any) => total + (bill.finalAmount || bill.grandTotal || 0),
     0
   );
   const paidBills = filteredBills.filter(
-    (bill) => bill.paymentStatus === PaymentStatus.PAID
+    (bill : any) =>
+      bill.paymentStatus === "paid" ||
+      bill.paymentStatus === "PAID" ||
+      bill.paymentStatus === "Paid"
   );
   const pendingBills = filteredBills.filter(
-    (bill) => bill.paymentStatus === PaymentStatus.PENDING
+    (bill : any) =>
+      bill.paymentStatus === "pending" ||
+      bill.paymentStatus === "PENDING" ||
+      bill.paymentStatus === "Pending"
   );
 
   return (
@@ -432,92 +462,103 @@ export const BillHistory: React.FC = () => {
 
       {/* Bills List */}
       <Card title="Bills History">
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-zinc-300">
-            <thead className="bg-zinc-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
-                  Bill No.
-                </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
-                  Date
-                </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
-                  Customer
-                </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
-                  Items
-                </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
-                  Amount
-                </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
-                  Payment
-                </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
-                  Status
-                </th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200">
-              {filteredBills.map((bill) => (
-                <tr key={bill.id} className="hover:bg-zinc-50">
-                  <td className="px-4 py-2 font-medium">{bill.billNumber}</td>
-                  <td className="px-4 py-2 text-sm">
-                    {new Date(bill.date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div>
-                      <p className="font-medium">{bill.customer.name}</p>
-                      <p className="text-sm text-zinc-500">
-                        {bill.customer.phone}
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {bill.items.length} item(s)
-                  </td>
-                  <td className="px-4 py-2 font-medium">
-                    ₹{bill.grandTotal.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-2 text-sm">{bill.paymentMethod}</td>
-                  <td className="px-4 py-2">
-                    <Badge
-                      variant={
-                        bill.paymentStatus === PaymentStatus.PAID
-                          ? "success"
-                          : bill.paymentStatus === PaymentStatus.PENDING
-                          ? "warning"
-                          : "danger"
-                      }
-                    >
-                      {bill.paymentStatus}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2 space-x-2">
-                    <Button size="sm" onClick={() => handleViewBill(bill)}>
-                      View
-                    </Button>
-                    {bill.paymentStatus !== PaymentStatus.PAID && (
-                      <Button
-                        size="sm"
-                        variant="success"
-                        onClick={() =>
-                          handleUpdatePaymentStatus(bill.id, PaymentStatus.PAID)
+        {loading ? (
+          <div className="p-8 text-center text-zinc-500">Loading bills...</div>
+        ) : error ? (
+          <div className="p-8 text-center text-red-600">{error}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-zinc-300">
+              <thead className="bg-zinc-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
+                    Bill No.
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
+                    Date
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
+                    Customer
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
+                    Items
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
+                    Amount
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
+                    Payment
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
+                    Status
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-zinc-500">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200">
+                {filteredBills.map((bill : any) => (
+                  <tr key={bill._id || bill.id} className="hover:bg-zinc-50">
+                    <td className="px-4 py-2 font-medium">{bill.billNumber}</td>
+                    <td className="px-4 py-2 text-sm">
+                      {bill.date
+                        ? new Date(bill.date).toLocaleDateString()
+                        : ""}
+                    </td>
+                    <td className="px-4 py-2">
+                      <div>
+                        <p className="font-medium">
+                          {bill.customerName || bill.customer?.name}
+                        </p>
+                        <p className="text-sm text-zinc-500">
+                          {bill.customerPhone || bill.customer?.phone}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 text-sm">
+                      {bill.items?.length || 0} item(s)
+                    </td>
+                    <td className="px-4 py-2 font-medium">
+                      ₹
+                      {(
+                        bill.finalAmount ||
+                        bill.grandTotal ||
+                        0
+                      ).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 text-sm">
+                      {bill.paymentMode || bill.paymentMethod}
+                    </td>
+                    <td className="px-4 py-2">
+                      <Badge
+                        variant={
+                          bill.paymentStatus === "paid" ||
+                          bill.paymentStatus === "PAID" ||
+                          bill.paymentStatus === "Paid"
+                            ? "success"
+                            : bill.paymentStatus === "pending" ||
+                              bill.paymentStatus === "PENDING" ||
+                              bill.paymentStatus === "Pending"
+                            ? "warning"
+                            : "danger"
                         }
                       >
-                        Mark Paid
+                        {bill.paymentStatus}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2 space-x-2">
+                      <Button size="sm" onClick={() => handleViewBill(bill)}>
+                        View
                       </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      {/* Optionally, add Mark Paid button if you implement backend update */}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
       <BillDetailModal

@@ -1,0 +1,5 @@
+
+{
+  "entry": ["src/index.js"],
+  "ignorePatterns": ["**/*.test.js", "**/__mocks__/**"]
+}

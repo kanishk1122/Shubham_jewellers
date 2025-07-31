@@ -260,7 +260,8 @@ export const EnhancedBillingManager: React.FC = () => {
 
     const newItem: BillItem = {
       id: Date.now().toString(),
-      productId: `bulk-${selectedBulkProduct._id || selectedBulkProduct.id}`,
+      // FIX: Use only the ObjectId string for productId
+      productId: selectedBulkProduct._id || selectedBulkProduct.id || "",
       productSerialNumber: `BULK-${Date.now()}`,
       productName: bulkProductForm.productName,
       category: selectedBulkProduct.category,
@@ -1000,8 +1001,6 @@ export const EnhancedBillingManager: React.FC = () => {
                   onClick={addBulkItemToBill}
                   disabled={
                     !bulkProductForm.productName || !bulkProductForm.grossWeight
-                    // Remove the check for available weight if you want to allow any value
-                    // bulkProductForm.grossWeight > selectedBulkProduct.remainingWeight
                   }
                   className="flex-1"
                 >

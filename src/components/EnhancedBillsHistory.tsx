@@ -63,17 +63,21 @@ export const EnhancedBillsHistory: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterDateRange, setFilterDateRange] = useState<string>("all");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load bills from localStorage
+  // Load bills from backend API
   useEffect(() => {
-    const saved = localStorage.getItem("bills");
-    if (saved) {
-      try {
-        setBills(JSON.parse(saved));
-      } catch (error) {
-        console.error("Failed to parse bills:", error);
-      }
-    }
+    setLoading(true);
+    fetch("/api/bills")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch bills");
+        const data = await res.json();
+        setBills(data.data || []);
+        setError(null);
+      })
+      .catch((err) => setError(err.message || "Error loading bills"))
+      .finally(() => setLoading(false));
   }, []);
 
   // Filter bills
@@ -372,112 +376,123 @@ export const EnhancedBillsHistory: React.FC = () => {
       </Card>
 
       {/* Bills List */}
-      <div className="grid grid-cols-1 gap-4">
-        {sortedBills.map((bill) => (
-          <Card key={bill.id} className="p-6 hover:shadow-lg transition-shadow">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-4 mb-3">
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
-                    Bill #{bill.billNumber}
-                  </h3>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      bill.paymentStatus === "paid"
-                        ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
-                        : bill.paymentStatus === "pending"
-                        ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
-                        : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
-                    }`}
-                  >
-                    {bill.paymentStatus.charAt(0).toUpperCase() +
-                      bill.paymentStatus.slice(1)}
-                  </span>
-                  <span className="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                    {bill.paymentMode.replace("_", " ").toUpperCase()}
-                  </span>
-                </div>
+      {loading ? (
+        <Card className="p-8 text-center text-zinc-500">Loading bills...</Card>
+      ) : error ? (
+        <Card className="p-8 text-center text-red-600">{error}</Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {sortedBills.map((bill) => (
+            <Card
+              key={bill.id}
+              className="p-6 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-4 mb-3">
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                      Bill #{bill.billNumber}
+                    </h3>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        bill.paymentStatus === "paid"
+                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
+                          : bill.paymentStatus === "pending"
+                          ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
+                          : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
+                      }`}
+                    >
+                      {bill.paymentStatus.charAt(0).toUpperCase() +
+                        bill.paymentStatus.slice(1)}
+                    </span>
+                    <span className="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      {bill.paymentMode.replace("_", " ").toUpperCase()}
+                    </span>
+                  </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
-                  <div>
-                    <p className="text-zinc-500 dark:text-zinc-400">Customer</p>
-                    <p className="font-medium">{bill.customerName}</p>
-                    <p className="text-zinc-600 dark:text-zinc-400">
-                      {bill.customerPhone}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-zinc-500 dark:text-zinc-400">Date</p>
-                    <p className="font-medium">
-                      {new Date(bill.date).toLocaleDateString()}
-                    </p>
-                    <p className="text-zinc-600 dark:text-zinc-400">
-                      {new Date(bill.createdAt).toLocaleTimeString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-zinc-500 dark:text-zinc-400">Items</p>
-                    <p className="font-medium">{bill.items.length} item(s)</p>
-                    <p className="text-zinc-600 dark:text-zinc-400">
-                      {bill.items
-                        .reduce((sum, item) => sum + item.netWeight, 0)
-                        .toFixed(2)}
-                      g total
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-zinc-500 dark:text-zinc-400">Amount</p>
-                    <p className="font-bold text-green-600 dark:text-green-400">
-                      ₹{bill.finalAmount.toLocaleString()}
-                    </p>
-                    {bill.discount > 0 && (
-                      <p className="text-red-600 dark:text-red-400 text-xs">
-                        Discount: ₹{bill.discount.toLocaleString()}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400">
+                        Customer
                       </p>
-                    )}
+                      <p className="font-medium">{bill.customerName}</p>
+                      <p className="text-zinc-600 dark:text-zinc-400">
+                        {bill.customerPhone}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400">Date</p>
+                      <p className="font-medium">
+                        {new Date(bill.date).toLocaleDateString()}
+                      </p>
+                      <p className="text-zinc-600 dark:text-zinc-400">
+                        {new Date(bill.createdAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400">Items</p>
+                      <p className="font-medium">{bill.items.length} item(s)</p>
+                      <p className="text-zinc-600 dark:text-zinc-400">
+                        {bill.items
+                          .reduce((sum, item) => sum + item.netWeight, 0)
+                          .toFixed(2)}
+                        g total
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400">Amount</p>
+                      <p className="font-bold text-green-600 dark:text-green-400">
+                        ₹{bill.finalAmount.toLocaleString()}
+                      </p>
+                      {bill.discount > 0 && (
+                        <p className="text-red-600 dark:text-red-400 text-xs">
+                          Discount: ₹{bill.discount.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400">
+                        Tax (GST)
+                      </p>
+                      <p className="font-medium">
+                        ₹{(bill.cgst + bill.sgst + bill.igst).toLocaleString()}
+                      </p>
+                      <p className="text-zinc-600 dark:text-zinc-400 text-xs">
+                        CGST + SGST
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-zinc-500 dark:text-zinc-400">
-                      Tax (GST)
-                    </p>
-                    <p className="font-medium">
-                      ₹{(bill.cgst + bill.sgst + bill.igst).toLocaleString()}
-                    </p>
-                    <p className="text-zinc-600 dark:text-zinc-400 text-xs">
-                      CGST + SGST
-                    </p>
-                  </div>
+
+                  {bill.notes && (
+                    <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-sm">
+                      <p className="text-zinc-600 dark:text-zinc-400">
+                        <strong>Notes:</strong> {bill.notes}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                {bill.notes && (
-                  <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-sm">
-                    <p className="text-zinc-600 dark:text-zinc-400">
-                      <strong>Notes:</strong> {bill.notes}
-                    </p>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedBill(bill)}
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2"
+                    title="View Details"
+                  >
+                    <Eye className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => printBill(bill)}
+                    className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-2"
+                    title="Print Bill"
+                  >
+                    <Printer className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelectedBill(bill)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2"
-                  title="View Details"
-                >
-                  <Eye className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => printBill(bill)}
-                  className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-2"
-                  title="Print Bill"
-                >
-                  <Printer className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {sortedBills.length === 0 && (
         <Card className="p-8 text-center">

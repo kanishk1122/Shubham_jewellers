@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import BillModel from "@/models/Bill";
+import mongoose from "mongoose";
 
 export async function GET() {
   try {
@@ -17,7 +18,27 @@ export async function POST(request: NextRequest) {
   try {
     const billData = await request.json();
 
-    const billNumber = await BillModel.countDocuments() + 1; // Generate a new bill number
+    const billNumber = (await BillModel.countDocuments()) + 1; // Generate a new bill number
+
+    // Fix: Ensure productId is a valid ObjectId or undefined/null for bulk items
+    const sanitizedItems = (billData.items || []).map((item: any) => {
+      let productId = item.productId;
+      // If productId looks like a valid ObjectId, keep it, else set to undefined
+      if (
+        productId &&
+        typeof productId === "string" &&
+        mongoose.Types.ObjectId.isValid(productId) &&
+        String(new mongoose.Types.ObjectId(productId)) === productId
+      ) {
+        // valid ObjectId string
+        return { ...item, productId };
+      } else {
+        // Not a valid ObjectId (likely a bulk id or custom string)
+        // Remove productId so Mongoose doesn't try to cast it
+        const { productId, ...rest } = item;
+        return { ...rest };
+      }
+    });
 
     const newBill = new BillModel({
       customerId: billData.customerId,
@@ -25,7 +46,7 @@ export async function POST(request: NextRequest) {
       customerName: billData.customerName,
       customerPhone: billData.customerPhone,
       customerGST: billData.customerGST,
-      items: billData.items,
+      items: sanitizedItems,
       subtotal: billData.subtotal,
       cgst: billData.cgst,
       sgst: billData.sgst,

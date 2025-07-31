@@ -1,0 +1,129 @@
+
+       summary               unimported v1.31.0 (next)
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+       unresolved imports  : 0
+       unused dependencies : 8
+       unimported files    : 99
+
+
+─────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     │ 8 unused dependencies
+─────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ @radix-ui/react-dialog
+   2 │ @types/puppeteer
+   3 │ @types/uuid
+   4 │ lucide-react
+   5 │ mongoose
+   6 │ puppeteer
+   7 │ uuid
+   8 │ xlsx
+─────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+─────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+     │ 99 unimported files
+─────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ D:\shubham_jewellers\src\app\api\bills\route.ts
+   2 │ D:\shubham_jewellers\src\app\api\bulk-inventory\deduct\route.ts
+   3 │ D:\shubham_jewellers\src\app\api\bulk-inventory\route.ts
+   4 │ D:\shubham_jewellers\src\app\api\bulk-products\[id]\route.ts
+   5 │ D:\shubham_jewellers\src\app\api\bulk-products\route.ts
+   6 │ D:\shubham_jewellers\src\app\api\categories\[id]\route.ts
+   7 │ D:\shubham_jewellers\src\app\api\categories\route.ts
+   8 │ D:\shubham_jewellers\src\app\api\customers\[id]\route.ts
+   9 │ D:\shubham_jewellers\src\app\api\customers\bulk\route.ts
+  10 │ D:\shubham_jewellers\src\app\api\customers\route.ts
+  11 │ D:\shubham_jewellers\src\app\api\metal-rates\[id]\route.ts
+  12 │ D:\shubham_jewellers\src\app\api\metal-rates\bulk-import\route.ts
+  13 │ D:\shubham_jewellers\src\app\api\metal-rates\route.ts
+  14 │ D:\shubham_jewellers\src\app\api\products\[id]\route.ts
+  15 │ D:\shubham_jewellers\src\app\api\products\route.ts
+  16 │ D:\shubham_jewellers\src\app\api\scrape-narnoli\route.ts
+  17 │ D:\shubham_jewellers\src\app\billing\page.tsx
+  18 │ D:\shubham_jewellers\src\app\bills\page.tsx
+  19 │ D:\shubham_jewellers\src\app\customers\page.tsx
+  20 │ D:\shubham_jewellers\src\app\dashboard\page.tsx
+  21 │ D:\shubham_jewellers\src\app\layout.tsx
+  22 │ D:\shubham_jewellers\src\app\page_final.tsx
+  23 │ D:\shubham_jewellers\src\app\page_new.tsx
+  24 │ D:\shubham_jewellers\src\app\page_test.tsx
+  25 │ D:\shubham_jewellers\src\app\page.tsx
+  26 │ D:\shubham_jewellers\src\app\products\page.tsx
+  27 │ D:\shubham_jewellers\src\app\rates\page.tsx
+  28 │ D:\shubham_jewellers\src\app\test-scraper\page.tsx
+  29 │ D:\shubham_jewellers\src\components\BeautifulSoupTestPanel.tsx
+  30 │ D:\shubham_jewellers\src\components\BillHistory.tsx
+  31 │ D:\shubham_jewellers\src\components\BillingSystem.tsx
+  32 │ D:\shubham_jewellers\src\components\BulkInventoryManager.tsx
+  33 │ D:\shubham_jewellers\src\components\CustomerManager.tsx
+  34 │ D:\shubham_jewellers\src\components\EnhancedBillingManagement.tsx
+  35 │ D:\shubham_jewellers\src\components\EnhancedBillingManager.tsx
+  36 │ D:\shubham_jewellers\src\components\EnhancedBillsHistory.tsx
+  37 │ D:\shubham_jewellers\src\components\EnhancedCustomerManager.tsx
+  38 │ D:\shubham_jewellers\src\components\EnhancedDashboard.tsx
+  39 │ D:\shubham_jewellers\src\components\EnhancedMetalRatesManager.tsx
+  40 │ D:\shubham_jewellers\src\components\EnhancedProductManager.tsx
+  41 │ D:\shubham_jewellers\src\components\EnhancedPuppeteerRatesDisplay.tsx
+  42 │ D:\shubham_jewellers\src\components\EnhancedQuickRatesWidget.tsx
+  43 │ D:\shubham_jewellers\src\components\EnhancedScrapingTestPanel.tsx
+  44 │ D:\shubham_jewellers\src\components\ExcelActions.tsx
+  45 │ D:\shubham_jewellers\src\components\HTMLStructureAnalyzer.tsx
+  46 │ D:\shubham_jewellers\src\components\Layout.tsx
+  47 │ D:\shubham_jewellers\src\components\LiveMetalRatesWidget.tsx
+  48 │ D:\shubham_jewellers\src\components\LiveRatesComparison.tsx
+  49 │ D:\shubham_jewellers\src\components\MetalRatesManager.tsx
+  50 │ D:\shubham_jewellers\src\components\NarnoliDebugPanel.tsx
+  51 │ D:\shubham_jewellers\src\components\NarnoliRatesDisplay.tsx
+  52 │ D:\shubham_jewellers\src\components\Navigation.tsx
+  53 │ D:\shubham_jewellers\src\components\pages\Dashboard.tsx
+  54 │ D:\shubham_jewellers\src\components\pages\index.tsx
+  55 │ D:\shubham_jewellers\src\components\ProductManager.tsx
+  56 │ D:\shubham_jewellers\src\components\PuppeteerLiveRatesWidget.tsx
+  57 │ D:\shubham_jewellers\src\components\PuppeteerQuickRatesWidget.tsx
+  58 │ D:\shubham_jewellers\src\components\PuppeteerTestPanel.tsx
+  59 │ D:\shubham_jewellers\src\components\QuickRatesWidget.tsx
+  60 │ D:\shubham_jewellers\src\components\SPAScrapingTestPanel.tsx
+  61 │ D:\shubham_jewellers\src\components\ui\enhanced.tsx
+  62 │ D:\shubham_jewellers\src\components\ui\index.tsx
+  63 │ D:\shubham_jewellers\src\contexts\ThemeContext_fixed.tsx
+  64 │ D:\shubham_jewellers\src\contexts\ThemeContext.tsx
+  65 │ D:\shubham_jewellers\src\hooks\useBilling.ts
+  66 │ D:\shubham_jewellers\src\hooks\useBills.ts
+  67 │ D:\shubham_jewellers\src\hooks\useBulkInventory.ts
+  68 │ D:\shubham_jewellers\src\hooks\useBulkProducts.ts
+  69 │ D:\shubham_jewellers\src\hooks\useCategories.ts
+  70 │ D:\shubham_jewellers\src\hooks\useCustomers.ts
+  71 │ D:\shubham_jewellers\src\hooks\useProducts.ts
+  72 │ D:\shubham_jewellers\src\lib\mongodb.ts
+  73 │ D:\shubham_jewellers\src\models\Bill.ts
+  74 │ D:\shubham_jewellers\src\models\BulkInventory.ts
+  75 │ D:\shubham_jewellers\src\models\BulkProduct.ts
+  76 │ D:\shubham_jewellers\src\models\Category.ts
+  77 │ D:\shubham_jewellers\src\models\Customer.ts
+  78 │ D:\shubham_jewellers\src\models\MetalRate.ts
+  79 │ D:\shubham_jewellers\src\models\Product.ts
+  80 │ D:\shubham_jewellers\src\services\beautifulSoupTS.ts
+  81 │ D:\shubham_jewellers\src\services\billService.ts
+  82 │ D:\shubham_jewellers\src\services\customerService.ts
+  83 │ D:\shubham_jewellers\src\services\enhancedNarnoliScraper.ts
+  84 │ D:\shubham_jewellers\src\services\metalRatesService.ts
+  85 │ D:\shubham_jewellers\src\services\narnolicorporationService.ts
+  86 │ D:\shubham_jewellers\src\services\narnoliDebugService.ts
+  87 │ D:\shubham_jewellers\src\services\productService.ts
+  88 │ D:\shubham_jewellers\src\services\puppeteerNarnoliScraper.ts
+  89 │ D:\shubham_jewellers\src\services\puppeteerRatesService.ts
+  90 │ D:\shubham_jewellers\src\services\spaNarnoliScraper.ts
+  91 │ D:\shubham_jewellers\src\types\bill.ts
+  92 │ D:\shubham_jewellers\src\types\billing.ts
+  93 │ D:\shubham_jewellers\src\types\customer.ts
+  94 │ D:\shubham_jewellers\src\types\index.ts
+  95 │ D:\shubham_jewellers\src\types\product.ts
+  96 │ D:\shubham_jewellers\src\utils\billing.ts
+  97 │ D:\shubham_jewellers\src\utils\excelService.ts
+  98 │ D:\shubham_jewellers\src\utils\testBeautifulSoup.ts
+  99 │ D:\shubham_jewellers\src\utils\testNarnoli.ts
+─────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+       Inspect the results and run npx unimported -u to update ignore lists
