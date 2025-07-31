@@ -5,12 +5,14 @@ interface BillsState {
   bills: Bill[];
   loading: boolean;
   error: string | null;
+  selectedBill: Bill | null;
 }
 
 const initialState: BillsState = {
   bills: [],
   loading: false,
   error: null,
+  selectedBill: null,
 };
 
 export const fetchBills = createAsyncThunk("bills/fetchBills", async () => {
@@ -19,6 +21,17 @@ export const fetchBills = createAsyncThunk("bills/fetchBills", async () => {
   if (!data.success) throw new Error(data.error || "Failed to fetch bills");
   return data.data as Bill[];
 });
+
+export const fetchBillById = createAsyncThunk(
+  "bills/fetchBillById",
+  async (id: string, { rejectWithValue }) => {
+    const res = await fetch(`/api/bills/${id}`);
+    const data = await res.json();
+    if (!data.success)
+      return rejectWithValue(data.error || "Failed to fetch bill");
+    return data.data as Bill;
+  }
+);
 
 export const createBill = createAsyncThunk(
   "bills/createBill",
@@ -67,7 +80,14 @@ export const deleteBill = createAsyncThunk(
 const billsSlice = createSlice({
   name: "bills",
   initialState,
-  reducers: {},
+  reducers: {
+    setSelectedBill(state, action: PayloadAction<Bill | null>) {
+      state.selectedBill = action.payload;
+    },
+    clearError(state) {
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchBills.pending, (state) => {
@@ -81,6 +101,23 @@ const billsSlice = createSlice({
       .addCase(fetchBills.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || "Failed to fetch bills";
+      })
+      .addCase(fetchBillById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.selectedBill = null;
+      })
+      .addCase(
+        fetchBillById.fulfilled,
+        (state, action: PayloadAction<Bill>) => {
+          state.loading = false;
+          state.selectedBill = action.payload;
+        }
+      )
+      .addCase(fetchBillById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to fetch bill";
+        state.selectedBill = null;
       })
       .addCase(createBill.pending, (state) => {
         state.loading = true;
@@ -105,6 +142,13 @@ const billsSlice = createSlice({
             ? action.payload
             : bill
         );
+        if (
+          state.selectedBill &&
+          (state.selectedBill._id || state.selectedBill.id) ===
+            (action.payload._id || action.payload.id)
+        ) {
+          state.selectedBill = action.payload;
+        }
       })
       .addCase(updateBill.rejected, (state, action) => {
         state.loading = false;
@@ -119,6 +163,12 @@ const billsSlice = createSlice({
         state.bills = state.bills.filter(
           (bill) => (bill._id || bill.id) !== action.payload
         );
+        if (
+          state.selectedBill &&
+          (state.selectedBill._id || state.selectedBill.id) === action.payload
+        ) {
+          state.selectedBill = null;
+        }
       })
       .addCase(deleteBill.rejected, (state, action) => {
         state.loading = false;
@@ -127,4 +177,5 @@ const billsSlice = createSlice({
   },
 });
 
+export const { setSelectedBill, clearError } = billsSlice.actions;
 export default billsSlice.reducer;
