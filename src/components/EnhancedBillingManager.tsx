@@ -356,7 +356,9 @@ export const EnhancedBillingManager: React.FC = () => {
   };
 
   // Helper to fetch customer from backend by ID
-  const fetchCustomerById = async (customerId: string): Promise<Customer | null> => {
+  const fetchCustomerById = async (
+    customerId: string
+  ): Promise<Customer | null> => {
     try {
       const res = await fetch(`/api/customers/${customerId}`);
       if (!res.ok) return null;
@@ -375,7 +377,9 @@ export const EnhancedBillingManager: React.FC = () => {
 
     try {
       // Fetch customer from backend
-      const customer = await fetchCustomerById(currentBill.customerId as string);
+      const customer = await fetchCustomerById(
+        currentBill.customerId as string
+      );
       if (!customer) {
         alert("Customer not found. Please select a valid customer.");
         setSavingBill(false);
@@ -435,7 +439,9 @@ export const EnhancedBillingManager: React.FC = () => {
     setSavingBill(true);
     try {
       // Fetch customer from backend
-      const customer = await fetchCustomerById(currentBill.customerId as string);
+      const customer = await fetchCustomerById(
+        currentBill.customerId as string
+      );
       if (!customer) {
         alert("Customer not found. Please select a valid customer.");
         setSavingBill(false);
@@ -615,8 +621,10 @@ export const EnhancedBillingManager: React.FC = () => {
   // Filter bills
   const filteredBills = bills.filter((bill) => {
     const matchesSearch =
-      (bill.billNumber && bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (bill.customerName && bill.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (bill.billNumber &&
+        bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (bill.customerName &&
+        bill.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (bill.customerPhone && bill.customerPhone.includes(searchTerm));
     const matchesStatus =
       filterStatus === "all" || bill.paymentStatus === filterStatus;
@@ -991,10 +999,9 @@ export const EnhancedBillingManager: React.FC = () => {
                 <Button
                   onClick={addBulkItemToBill}
                   disabled={
-                    !bulkProductForm.productName ||
-                    !bulkProductForm.grossWeight ||
-                    bulkProductForm.grossWeight >
-                      selectedBulkProduct.remainingWeight
+                    !bulkProductForm.productName || !bulkProductForm.grossWeight
+                    // Remove the check for available weight if you want to allow any value
+                    // bulkProductForm.grossWeight > selectedBulkProduct.remainingWeight
                   }
                   className="flex-1"
                 >
@@ -1078,8 +1085,7 @@ export const EnhancedBillingManager: React.FC = () => {
                               : ""
                           }`}
                           onClick={() => {
-                            setCurrentBill((prev) => (
-                              {
+                            setCurrentBill((prev) => ({
                               ...prev,
                               customerId: customer._id || customer.id,
                             }));
@@ -1101,7 +1107,6 @@ export const EnhancedBillingManager: React.FC = () => {
                         </div>
                       ))
                     )}
-                    
                   </div>
                 )}
               </div>
@@ -1135,14 +1140,12 @@ export const EnhancedBillingManager: React.FC = () => {
                   })()}
                 </div>
               )}
-              {editingBill?.customerId  && (
+              {editingBill?.customerId && (
                 <div className="mt-2 text-xs text-zinc-500">
-                  Editing Bill for{" "
-                  }{editingBill.customerName} - {editingBill.customerPhone}
-                  </div>
+                  Editing Bill for {editingBill.customerName} -{" "}
+                  {editingBill.customerPhone}
+                </div>
               )}
-
-
             </div>
 
             <div>
