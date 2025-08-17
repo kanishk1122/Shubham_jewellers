@@ -27,7 +27,7 @@ const initialState: BillsState = {
 // params: { page?, limit?, startDate?, endDate?, paymentStatus?, search?, sort?, tag? }
 export const fetchBills = createAsyncThunk(
   "bills/fetchBills",
-  async (params?: Record<string, any>, { rejectWithValue }) => {
+  async (params: Record<string, any> | undefined, { rejectWithValue }: { rejectWithValue: any }) => {
     try {
       let url = "/api/bills";
       if (params && Object.keys(params).length > 0) {

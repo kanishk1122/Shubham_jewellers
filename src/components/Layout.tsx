@@ -1,13 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter, usePathname } from "next/navigation";
-
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
+import Image from "next/image";
 import {
   BarChart,
   FileText,
@@ -15,7 +11,21 @@ import {
   Users,
   ClipboardList,
   Coins,
+  Loader2,
 } from "lucide-react";
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+// Define interface for today's summary data
+interface TodaySummary {
+  salesAmount: number;
+  billsCount: number;
+  pendingBillsCount: number;
+  isLoading: boolean;
+  error: string | null;
+}
 
 const menuItems = [
   {
@@ -61,7 +71,6 @@ const menuItems = [
     href: "/rates",
   },
 ];
-
 
 const ThemeToggle: React.FC = () => {
   const { theme, actualTheme, toggleTheme } = useTheme();
@@ -111,9 +120,82 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Today's summary state
+  const [todaySummary, setTodaySummary] = useState<TodaySummary>({
+    salesAmount: 0,
+    billsCount: 0,
+    pendingBillsCount: 0,
+    isLoading: true,
+    error: null,
+  });
+
+  // Function to fetch today's summary data
+  const fetchTodaySummary = async () => {
+    try {
+      // Get today's date in ISO format (YYYY-MM-DD)
+      const today = new Date().toISOString().split("T")[0];
+
+      // Fetch today's bills
+      const response = await fetch(
+        `/api/bills?startDate=${today}&endDate=${today}&limit=1000`
+      );
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to fetch today's summary");
+      }
+
+      const bills = data.data || [];
+
+      // Calculate summary metrics
+      const salesAmount = bills.reduce(
+        (sum: number, bill: any) => sum + (Number(bill.finalAmount) || 0),
+        0
+      );
+      const billsCount = bills.length;
+      const pendingBillsCount = bills.filter(
+        (bill: any) => bill.paymentStatus === "pending"
+      ).length;
+
+      setTodaySummary({
+        salesAmount,
+        billsCount,
+        pendingBillsCount,
+        isLoading: false,
+        error: null,
+      });
+    } catch (error: any) {
+      console.error("Error fetching today's summary:", error);
+      setTodaySummary((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: error.message || "Failed to load summary",
+      }));
+    }
+  };
+
+  // Fetch summary on initial load and then every 5 minutes
+  useEffect(() => {
+    fetchTodaySummary();
+
+    // Set up automatic refresh every 5 minutes
+    const intervalId = setInterval(fetchTodaySummary, 5 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   const getActiveTab = () => {
     if (pathname === "/") return "dashboard";
     return pathname.slice(1); // Remove leading slash
+  };
+
+  // Format number as Indian currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   return (
@@ -135,7 +217,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-200 dark:border-zinc-700 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700">
           <div className="flex items-center text-white">
-            <div className="text-2xl mr-2">✨</div>
+            <div className="text-2xl mr-2">
+              <Image src="/logo.png" alt="Logo" width={40} height={40} />
+            </div>
             <div>
               <h1 className="text-lg font-bold">Shubham</h1>
               <p className="text-xs opacity-90">Jewellers</p>
@@ -194,25 +278,52 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </ul>
         </nav>
 
-        {/* Quick Stats in Sidebar */}
+        {/* Quick Stats in Sidebar - Updated with real data */}
         <div className="absolute bottom-20 left-4 right-4">
           <div className="bg-zinc-50 dark:bg-zinc-700 rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-2">
+            <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-2 flex items-center">
               Today's Summary
+              {todaySummary.isLoading && (
+                <Loader2 className="w-3 h-3 ml-2 animate-spin text-blue-500" />
+              )}
             </h4>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span className="text-zinc-600 dark:text-zinc-400">Sales</span>
-                <span className="font-medium text-green-600 dark:text-green-400">
-                  ₹1,25,000
-                </span>
+            {todaySummary.error ? (
+              <div className="text-xs text-red-500">Error loading summary</div>
+            ) : (
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Sales
+                  </span>
+                  <span className="font-medium text-green-600 dark:text-green-400">
+                    {formatCurrency(todaySummary.salesAmount)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Bills
+                  </span>
+                  <span className="font-medium text-blue-600 dark:text-blue-400">
+                    {todaySummary.billsCount} total
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Pending
+                  </span>
+                  <span className="font-medium text-amber-600 dark:text-amber-400">
+                    {todaySummary.pendingBillsCount} bills
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-600 dark:text-zinc-400">Bills</span>
-                <span className="font-medium text-blue-600 dark:text-blue-400">
-                  8 pending
-                </span>
-              </div>
+            )}
+            <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-600">
+              <button
+                onClick={() => router.push("/bills")}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                View all bills →
+              </button>
             </div>
           </div>
         </div>
