@@ -634,123 +634,129 @@ export const EnhancedCustomerManager: React.FC = () => {
 
       {/* Customers Grid - Updated to use currentCustomers */}
       {!loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {currentCustomers.map((customer) => (
-            <Card
-              key={customer._id || customer.id}
-              className="p-6 hover:shadow-lg transition-shadow"
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {currentCustomers.map((customer) => (
+      <Card
+        key={customer._id || customer.id}
+        className="p-6 rounded-2xl shadow-md hover:shadow-xl transition-all duration-200 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
+      >
+        {/* Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-blue-600 dark:text-blue-400 text-lg">
+              {getCustomerTypeIcon(customer)}
+            </span>
+            <span className="text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+              {getCustomerTypeLabel(customer)}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleEditCustomer(customer)}
+              className="p-2 rounded-full hover:bg-blue-50 dark:hover:bg-zinc-700 transition"
+              title="Edit"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-blue-600 dark:text-blue-400">
-                    {getCustomerTypeIcon(customer)}
-                  </span>
-                  <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
-                    {getCustomerTypeLabel(customer)}
-                  </span>
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => handleEditCustomer(customer)}
-                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
-                    title="Edit"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteCustomer(customer)}
-                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              <Pencil className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </button>
+            <button
+              onClick={() => handleDeleteCustomer(customer)}
+              className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-zinc-700 transition"
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+            </button>
+          </div>
+        </div>
 
-              <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">
-                {customer.name}
-              </h3>
+        {/* Name */}
+        <h3 className="font-semibold text-lg text-zinc-900 dark:text-white mb-2 truncate">
+          {customer.name}
+        </h3>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-zinc-500" />
-                  <span className="text-zinc-600 dark:text-zinc-400">
-                    {customer.phone}
-                  </span>
-                </div>
-                {customer.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-zinc-500" />
-                    <span className="text-zinc-600 dark:text-zinc-400 truncate">
-                      {customer.email}
-                    </span>
-                  </div>
-                )}
-                {customer.address && (
-                  <div className="flex items-start gap-2">
-                    <Home className="w-4 h-4 text-zinc-500 mt-0.5" />
-                    <span className="text-zinc-600 dark:text-zinc-400 text-xs">
-                      {customer.address}
-                    </span>
-                  </div>
-                )}
-                {customer.gstNumber && (
-                  <div className="flex items-center gap-2">
-                    <Building className="w-4 h-4 text-zinc-500" />
-                    <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
-                      {customer.gstNumber}
-                    </span>
-                  </div>
-                )}
-                {customer.panNumber && (
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4 text-zinc-500" />
-                    <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
-                      {customer.panNumber}
-                    </span>
-                  </div>
-                )}
-              </div>
+        {/* Details */}
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4 text-zinc-500" />
+            <span className="text-zinc-700 dark:text-zinc-300">{customer.phone}</span>
+          </div>
+          {customer.email && (
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-zinc-500" />
+              <span className="text-zinc-600 dark:text-zinc-400 truncate">{customer.email}</span>
+            </div>
+          )}
+          {customer.address && (
+            <div className="flex items-start gap-2">
+              <Home className="w-4 h-4 text-zinc-500 mt-0.5" />
+              <span className="text-zinc-600 dark:text-zinc-400 text-xs line-clamp-2">
+                {customer.address}
+              </span>
+            </div>
+          )}
+          {customer.gstNumber && (
+            <div className="flex items-center gap-2">
+              <Building className="w-4 h-4 text-zinc-500" />
+              <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
+                {customer.gstNumber}
+              </span>
+            </div>
+          )}
+          {customer.panNumber && (
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-zinc-500" />
+              <span className="text-zinc-600 dark:text-zinc-400 font-mono text-xs">
+                {customer.panNumber}
+              </span>
+            </div>
+          )}
+        </div>
 
-              {customer.notes && (
-                <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-xs text-zinc-600 dark:text-zinc-400 flex items-start gap-2">
-                  <FileText className="w-3 h-3 text-zinc-500 mt-0.5" />
-                  {customer.notes}
-                </div>
-              )}
+        {/* Notes */}
+        {customer.notes && (
+          <div className="mt-3 p-3 bg-zinc-50 dark:bg-zinc-700/50 rounded-lg text-xs text-zinc-600 dark:text-zinc-400">
+            <div className="flex items-start gap-2">
+              <FileText className="w-3 h-3 text-zinc-500 mt-0.5" />
+              <span className="line-clamp-2">{customer.notes}</span>
+            </div>
+          </div>
+        )}
 
-              <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-                <div className="flex justify-between items-center text-sm">
-                  <div>
-                    <p className="font-medium text-green-600 dark:text-green-400">
-                      ₹{customer.totalPurchases.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Total Purchases
-                    </p>
-                  </div>
-                  {customer.lastPurchaseDate && (
-                    <div className="text-right">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        Last Purchase
-                      </p>
-                      <p className="text-xs font-medium">
-                        {new Date(
-                          customer.lastPurchaseDate
-                        ).toLocaleDateString()}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                  Customer since:{" "}
-                  {new Date(customer.createdAt).toLocaleDateString()}
+        {/* Footer */}
+        <div className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                ₹{customer.totalPurchases.toLocaleString()}
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Total Purchases</p>
+            </div>
+            {customer.lastPurchaseDate && (
+              <div className="text-right">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Last Purchase</p>
+                <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
+                  {new Date(customer.lastPurchaseDate).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
                 </p>
               </div>
-            </Card>
-          ))}
+            )}
+          </div>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+            Customer since:{" "}
+            {new Date(customer.createdAt).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
         </div>
-      )}
+      </Card>
+    ))}
+  </div>
+)}
+
 
       {/* Pagination Controls - Bottom */}
       {!loading && filteredCustomers.length > 0 && <PaginationControls />}

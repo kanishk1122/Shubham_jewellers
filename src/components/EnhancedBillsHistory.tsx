@@ -318,91 +318,96 @@ export const EnhancedBillsHistory: React.FC = () => {
       </div>
 
       {/* Search and Filters */}
-      <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <div className="md:col-span-2">
-            <div className="relative">
-              <Input
-                placeholder="Search bills by number, customer name, or phone..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full pl-9"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            </div>
-          </div>
-          <div>
-            <div className="relative">
-              <select
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full px-3 py-2 pl-9 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-              >
-                <option value="all">All Status</option>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-                <option value="partial">Partial</option>
-              </select>
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            </div>
-          </div>
-          {/* Date range inputs */}
-          <div className="flex gap-2 items-center">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => {
-                setStartDate(e.target.value);
-                setPage(1);
-              }}
-              className="px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-            />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => {
-                setEndDate(e.target.value);
-                setPage(1);
-              }}
-              className="px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-            />
-          </div>
-          <div className="flex gap-2 items-center">
-            <select
-              value={limit}
-              onChange={(e) => {
-                setLimit(Number(e.target.value));
-                setPage(1);
-              }}
-              className="px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-            <select
-              value={sort}
-              onChange={(e) => {
-                setSort(e.target.value);
-                setPage(1);
-              }}
-              className="px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800"
-            >
-              <option value="-date">Newest</option>
-              <option value="date">Oldest</option>
-              <option value="-finalAmount">Highest Amount</option>
-              <option value="finalAmount">Lowest Amount</option>
-            </select>
-          </div>
-        </div>
-      </Card>
+      <Card className="p-4 shadow-md">
+  <div className="flex flex-wrap gap-3 items-center">
+    {/* 🔍 Search */}
+    <div className="relative flex-1 min-w-[200px] max-w-sm">
+      <Input
+        placeholder="Search bills..."
+        value={searchTerm}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          setPage(1);
+        }}
+        className="w-full pl-9"
+      />
+      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+    </div>
+
+    {/* 📌 Status Filter */}
+    <div className="relative">
+      <select
+        value={filterStatus}
+        onChange={(e) => {
+          setFilterStatus(e.target.value);
+          setPage(1);
+        }}
+        className="appearance-none pl-9 pr-8 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-sm text-zinc-900 dark:text-white"
+      >
+        <option value="all">All Status</option>
+        <option value="paid">Paid</option>
+        <option value="pending">Pending</option>
+        <option value="partial">Partial</option>
+      </select>
+      <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+    </div>
+
+    {/* 📅 Date Range */}
+    <div className="flex items-center gap-2">
+      <input
+        type="date"
+        value={startDate}
+        onChange={(e) => {
+          setStartDate(e.target.value);
+          setPage(1);
+        }}
+        className="px-2 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-sm"
+      />
+      <span className="text-zinc-500">–</span>
+      <input
+        type="date"
+        value={endDate}
+        onChange={(e) => {
+          setEndDate(e.target.value);
+          setPage(1);
+        }}
+        className="px-2 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-sm"
+      />
+    </div>
+
+    {/* ⚙️ Limit + Sort */}
+    <div className="flex items-center gap-2 ml-auto">
+      <select
+        value={limit}
+        onChange={(e) => {
+          setLimit(Number(e.target.value));
+          setPage(1);
+        }}
+        className="px-2 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-sm"
+      >
+        <option value={10}>10</option>
+        <option value={20}>20</option>
+        <option value={50}>50</option>
+        <option value={100}>100</option>
+      </select>
+
+      <select
+        value={sort}
+        onChange={(e) => {
+          setSort(e.target.value);
+          setPage(1);
+        }}
+        className="px-2 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-sm"
+      >
+        <option value="-date">Newest</option>
+        <option value="date">Oldest</option>
+        <option value="-finalAmount">Highest Amount</option>
+        <option value="finalAmount">Lowest Amount</option>
+      </select>
+    </div>
+  </div>
+</Card>
+
 
       {/* Bills List */}
       {loading ? (
