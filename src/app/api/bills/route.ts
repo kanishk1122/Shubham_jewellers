@@ -2,10 +2,91 @@ import { NextRequest, NextResponse } from "next/server";
 import BillModel from "@/models/Bill";
 import mongoose from "mongoose";
 
-export async function GET() {
+export async function GET(request?: NextRequest) {
   try {
-    const bills = await BillModel.find().sort({ date: -1 }); // Optional: recent first
-    return NextResponse.json({ success: true, data: bills });
+    // support both direct call and NextRequest (for tests)
+    const url = request ? new URL(request.url) : null;
+    const params = url ? url.searchParams : new URLSearchParams();
+
+    // parse pagination & filters
+    const page = parseInt(params.get("page") || "1", 10) || 1;
+    const limit = Math.min(
+      parseInt(params.get("limit") || "100", 10) || 100,
+      1000
+    );
+    const startDate = params.get("startDate");
+    const endDate = params.get("endDate");
+    const paymentStatus = params.get("paymentStatus");
+    const search = params.get("search");
+    const tag = params.get("tag"); // optional - model may ignore if not present
+    const sortParam = params.get("sort") || "-date";
+
+    const filter: any = {};
+
+    // date range filter
+    if (startDate || endDate) {
+      filter.date = {};
+      if (startDate) {
+        const s = new Date(startDate);
+        if (!isNaN(s.getTime())) filter.date.$gte = s;
+      }
+      if (endDate) {
+        const e = new Date(endDate);
+        if (!isNaN(e.getTime())) filter.date.$lte = e;
+      }
+      // clean if empty
+      if (Object.keys(filter.date).length === 0) delete filter.date;
+    }
+
+    if (paymentStatus) {
+      filter.paymentStatus = paymentStatus;
+    }
+
+    if (tag) {
+      // if your Bill schema has tags: [String] you can filter; harmless if not present
+      filter.tags = tag;
+    }
+
+    if (search) {
+      const s = search.trim();
+      const searchRegex = new RegExp(
+        s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "i"
+      );
+      filter.$or = [
+        { billNumber: { $regex: searchRegex } },
+        { customerName: { $regex: searchRegex } },
+        { customerPhone: { $regex: searchRegex } },
+        { "items.productName": { $regex: searchRegex } },
+      ];
+    }
+
+    // compute pagination
+    const skip = (page - 1) * limit;
+
+    // build sort
+    const sort: any = {};
+    if (sortParam.startsWith("-")) {
+      sort[sortParam.substring(1)] = -1;
+    } else {
+      sort[sortParam] = 1;
+    }
+
+    const [total, bills] = await Promise.all([
+      BillModel.countDocuments(filter),
+      BillModel.find(filter).sort(sort).skip(skip).limit(limit),
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return NextResponse.json({
+      success: true,
+      data: bills,
+      total,
+      page,
+      limit,
+      totalPages,
+    });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: "Failed to fetch bills" },
@@ -121,13 +202,14 @@ export async function POST(request: NextRequest) {
 
     const discount = toNum(billData.discount, 0);
     const discountedAmount = Math.max(0, subtotal - discount);
-      // compute taxes if not provided
-      let cgst = typeof billData.cgst === "number" ? billData.cgst : 0;
-      let sgst = typeof billData.sgst === "number" ? billData.sgst : 0;
-      let igst = typeof billData.igst === "number" ? billData.igst : 0;
+    // compute taxes if not provided
+    let cgst = typeof billData.cgst === "number" ? billData.cgst : 0;
+    let sgst = typeof billData.sgst === "number" ? billData.sgst : 0;
+    let igst = typeof billData.igst === "number" ? billData.igst : 0;
 
-      // taxType: 'cgst' (default) or 'igst'
-      const taxType = billData.taxType === "igst" ? "igst" : billData.taxType ? "none" : "cgst" ;
+    // taxType: 'cgst' (default) or 'igst'
+    const taxType =
+      billData.taxType === "igst" ? "igst" : billData.taxType ? "none" : "cgst";
 
     if (!cgst && !sgst && !igst) {
       if (taxType === "igst") {
@@ -138,8 +220,7 @@ export async function POST(request: NextRequest) {
         cgst = parseFloat(((discountedAmount * 3) / 100).toFixed(2)); // 3%
         sgst = parseFloat(((discountedAmount * 3) / 100).toFixed(2)); // 3%
         igst = 0;
-      }
-      else {
+      } else {
         igst = 0;
         cgst = 0;
         sgst = 0;

@@ -6,6 +6,11 @@ interface BillsState {
   loading: boolean;
   error: string | null;
   selectedBill: Bill | null;
+  // pagination/meta
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 const initialState: BillsState = {
@@ -13,15 +18,42 @@ const initialState: BillsState = {
   loading: false,
   error: null,
   selectedBill: null,
+  page: 1,
+  limit: 100,
+  total: 0,
+  totalPages: 1,
 };
 
-export const fetchBills = createAsyncThunk("bills/fetchBills", async () => {
-  const res = await fetch("/api/bills");
-  console.log("Fetching bills from API");
-  const data = await res.json();
-  if (!data.success) throw new Error(data.error || "Failed to fetch bills");
-  return data.data as Bill[];
-});
+// params: { page?, limit?, startDate?, endDate?, paymentStatus?, search?, sort?, tag? }
+export const fetchBills = createAsyncThunk(
+  "bills/fetchBills",
+  async (params?: Record<string, any>, { rejectWithValue }) => {
+    try {
+      let url = "/api/bills";
+      if (params && Object.keys(params).length > 0) {
+        const qp = new URLSearchParams();
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && String(v).length > 0)
+            qp.set(k, String(v));
+        });
+        url += `?${qp.toString()}`;
+      }
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to fetch bills");
+      // return structured payload with meta
+      return {
+        bills: data.data as Bill[],
+        page: data.page || 1,
+        limit: data.limit || (params?.limit ? Number(params.limit) : 100),
+        total: data.total || (data.data ? (data.data as Bill[]).length : 0),
+        totalPages: data.totalPages || 1,
+      };
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Failed to fetch bills");
+    }
+  }
+);
 
 export const fetchBillById = createAsyncThunk(
   "bills/fetchBillById",
@@ -95,13 +127,21 @@ const billsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchBills.fulfilled, (state, action: PayloadAction<Bill[]>) => {
+      .addCase(fetchBills.fulfilled, (state, action: PayloadAction<any>) => {
         state.loading = false;
-        state.bills = action.payload;
+        // action.payload has { bills, page, limit, total, totalPages }
+        state.bills = action.payload.bills || [];
+        state.page = action.payload.page || 1;
+        state.limit = action.payload.limit || state.limit;
+        state.total = action.payload.total || 0;
+        state.totalPages = action.payload.totalPages || 1;
       })
       .addCase(fetchBills.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || "Failed to fetch bills";
+        state.error =
+          (action.payload as string) ||
+          action.error.message ||
+          "Failed to fetch bills";
       })
       .addCase(fetchBillById.pending, (state) => {
         state.loading = true;

@@ -61,77 +61,67 @@ export const EnhancedBillsHistory: React.FC = () => {
   const [bills, setBills] = useState<Bill[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterDateRange, setFilterDateRange] = useState<string>("all");
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load bills from backend API
-  useEffect(() => {
+  // server-side pagination / filtering
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<number>(20);
+  const [total, setTotal] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [startDate, setStartDate] = useState<string>(""); // ISO yyyy-mm-dd
+  const [endDate, setEndDate] = useState<string>(""); // ISO yyyy-mm-dd
+  const [sort, setSort] = useState<string>("-date");
+
+  // Fetch with query params based on page/limit/search/status/date range/sort
+  const fetchBills = async () => {
     setLoading(true);
-    fetch("/api/bills")
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch bills");
-        const data = await res.json();
-        setBills(data.data || []);
-        setError(null);
-      })
-      .catch((err) => setError(err.message || "Error loading bills"))
-      .finally(() => setLoading(false));
-  }, []);
+    setError(null);
+    try {
+      const qp = new URLSearchParams();
+      qp.set("page", String(page));
+      qp.set("limit", String(limit));
+      if (searchTerm.trim()) qp.set("search", searchTerm.trim());
+      if (filterStatus && filterStatus !== "all") qp.set("paymentStatus", filterStatus);
+      if (startDate) qp.set("startDate", startDate);
+      if (endDate) qp.set("endDate", endDate);
+      if (sort) qp.set("sort", sort);
 
-  // Filter bills
-  const filteredBills = bills.filter((bill) => {
-    const matchesSearch =
-      bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bill.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bill.customerPhone.includes(searchTerm);
-
-    const matchesStatus =
-      filterStatus === "all" || bill.paymentStatus === filterStatus;
-
-    let matchesDate = true;
-    if (filterDateRange !== "all") {
-      const billDate = new Date(bill.date);
-      const today = new Date();
-      const daysDiff = Math.floor(
-        (today.getTime() - billDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-
-      switch (filterDateRange) {
-        case "today":
-          matchesDate = daysDiff === 0;
-          break;
-        case "week":
-          matchesDate = daysDiff <= 7;
-          break;
-        case "month":
-          matchesDate = daysDiff <= 30;
-          break;
-        case "quarter":
-          matchesDate = daysDiff <= 90;
-          break;
-      }
+      const res = await fetch(`/api/bills?${qp.toString()}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to fetch bills");
+      setBills(data.data || []);
+      setTotal(data.total || 0);
+      setTotalPages(data.totalPages || 1);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || "Error loading bills");
+      setBills([]);
+      setTotal(0);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return matchesSearch && matchesStatus && matchesDate;
-  });
+  useEffect(() => {
+    // whenever filters/pagination change, fetch
+    fetchBills();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, searchTerm, filterStatus, startDate, endDate, sort]);
 
-  // Sort bills by date (newest first)
-  const sortedBills = filteredBills.sort(
+  // server returns already paginated set; we'll sort client-side by date as fallback
+  const sortedBills = [...bills].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  // Calculate summary statistics
-  const totalRevenue = filteredBills.reduce(
-    (sum, bill) => sum + bill.finalAmount,
-    0
-  );
-  const pendingAmount = filteredBills
+  // Calculate summary statistics from current page result (you can also fetch server-side aggregates)
+  const totalRevenue = bills.reduce((sum, bill) => sum + bill.finalAmount, 0);
+  const pendingAmount = bills
     .filter((bill) => bill.paymentStatus === "pending")
     .reduce((sum, bill) => sum + bill.finalAmount, 0);
-  const avgBillValue =
-    filteredBills.length > 0 ? totalRevenue / filteredBills.length : 0;
+  const avgBillValue = bills.length > 0 ? totalRevenue / bills.length : 0;
 
   const printBill = (bill: Bill) => {
     // Create a printable bill format
@@ -198,18 +188,12 @@ export const EnhancedBillsHistory: React.FC = () => {
               .map(
                 (item) => `
               <tr>
-                <td>${
-                  item.productName
-                }<br><small style="color: #666; font-family: monospace;">#{item.productSerialNumber}</small></td>
+                <td>${item.productName}<br><small style="color:#666;font-family:monospace;">#${item.productSerialNumber}</small></td>
                 <td>${item.metal} ${item.purity}</td>
                 <td>${item.netWeight}</td>
                 <td>${item.rate}</td>
-                <td>${item.makingCharges}${
-                  item.makingChargesType === "percentage" ? "%" : ""
-                }</td>
-                <td>${item.wastage}${
-                  item.wastageType === "percentage" ? "%" : ""
-                }</td>
+                <td>${item.makingCharges}${item.makingChargesType === "percentage" ? "%" : ""}</td>
+                <td>${item.wastage}${item.wastageType === "percentage" ? "%" : ""}</td>
                 <td>${item.amount.toLocaleString()}</td>
               </tr>
             `
@@ -222,8 +206,12 @@ export const EnhancedBillsHistory: React.FC = () => {
           <table>
             <tr><td>Subtotal:</td><td>₹${bill.subtotal.toLocaleString()}</td></tr>
             <tr><td>Discount:</td><td>-₹${bill.discount.toLocaleString()}</td></tr>
-            <tr><td>CGST (3%):</td><td>₹${bill.cgst.toLocaleString()}</td></tr>
-            <tr><td>SGST (3%):</td><td>₹${bill.sgst.toLocaleString()}</td></tr>
+            ${
+              (bill.igst && bill.igst > 0)
+                ? `<tr><td>IGST (6%):</td><td>₹${bill.igst.toLocaleString()}</td></tr>`
+                : `<tr><td>CGST (3%):</td><td>₹${bill.cgst.toLocaleString()}</td></tr>
+                   <tr><td>SGST (3%):</td><td>₹${bill.sgst.toLocaleString()}</td></tr>`
+            }
             <tr class="total-row"><td><strong>Total Amount:</strong></td><td><strong>₹${bill.finalAmount.toLocaleString()}</strong></td></tr>
           </table>
         </div>
@@ -274,7 +262,7 @@ export const EnhancedBillsHistory: React.FC = () => {
                 Total Bills
               </p>
               <p className="text-2xl font-bold text-zinc-900 dark:text-white">
-                {filteredBills.length}
+                {total}
               </p>
             </div>
             <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
@@ -331,13 +319,16 @@ export const EnhancedBillsHistory: React.FC = () => {
 
       {/* Search and Filters */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="md:col-span-2">
             <div className="relative">
               <Input
                 placeholder="Search bills by number, customer name, or phone..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full pl-9"
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
@@ -347,7 +338,10 @@ export const EnhancedBillsHistory: React.FC = () => {
             <div className="relative">
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full px-3 py-2 pl-9 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
               >
                 <option value="all">All Status</option>
@@ -358,171 +352,153 @@ export const EnhancedBillsHistory: React.FC = () => {
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
             </div>
           </div>
-          <div>
+          {/* Date range inputs */}
+          <div className="flex gap-2 items-center">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setPage(1);
+              }}
+              className="px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setPage(1);
+              }}
+              className="px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            />
+          </div>
+          <div className="flex gap-2 items-center">
             <select
-              value={filterDateRange}
-              onChange={(e) => setFilterDateRange(e.target.value)}
-              className="w-full px-3 py-2 pl-9 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+              value={limit}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1);
+              }}
+              className="px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800"
             >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="quarter">This Quarter</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
             </select>
-            <Clock className="absolute transform -translate-y-8 ml-3 h-4 w-4 text-zinc-400" />
+            <select
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value);
+                setPage(1);
+              }}
+              className="px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800"
+            >
+              <option value="-date">Newest</option>
+              <option value="date">Oldest</option>
+              <option value="-finalAmount">Highest Amount</option>
+              <option value="finalAmount">Lowest Amount</option>
+            </select>
           </div>
         </div>
       </Card>
 
       {/* Bills List */}
-     {loading ? (
-  <Card className="p-8 text-center text-zinc-500">Loading bills...</Card>
-) : error ? (
-  <Card className="p-8 text-center text-red-600">{error}</Card>
-) : (
-  <div className="overflow-x-auto">
-    <table className="min-w-full border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
-      <thead className="bg-zinc-100 dark:bg-zinc-800 text-sm text-zinc-600 dark:text-zinc-300">
-        <tr>
-          <th className="px-4 py-3 text-left">Bill #</th>
-          <th className="px-4 py-3 text-left">Status</th>
-          <th className="px-4 py-3 text-left">Payment</th>
-          <th className="px-4 py-3 text-left">Customer</th>
-          <th className="px-4 py-3 text-left">Date</th>
-          <th className="px-4 py-3 text-left">Items</th>
-          <th className="px-4 py-3 text-left">Amount</th>
-          <th className="px-4 py-3 text-left">Tax (GST)</th>
-          <th className="px-4 py-3 text-center">Actions</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 text-sm">
-        {sortedBills.map((bill) => (
-          <tr
-            key={bill.id}
-            className="hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-          >
-            {/* Bill Number */}
-            <td className="px-4 py-3 font-medium text-zinc-900 dark:text-white">
-              #{bill.billNumber}
-            </td>
-
-            {/* Status */}
-            <td className="px-4 py-3">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  bill.paymentStatus === "paid"
-                    ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
-                    : bill.paymentStatus === "pending"
-                    ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
-                    : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
-                }`}
-              >
-                {bill.paymentStatus.charAt(0).toUpperCase() +
-                  bill.paymentStatus.slice(1)}
-              </span>
-            </td>
-
-            {/* Payment Mode */}
-            <td className="px-4 py-3">
-              <span className="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                {bill.paymentMode.replace("_", " ").toUpperCase()}
-              </span>
-            </td>
-
-            {/* Customer */}
-            <td className="px-4 py-3">
-              <p className="font-medium">{bill.customerName}</p>
-              <p className="text-zinc-500 dark:text-zinc-400 text-xs">
-                {bill.customerPhone}
-              </p>
-            </td>
-
-            {/* Date */}
-            <td className="px-4 py-3">
-              <p>{new Date(bill.date).toLocaleDateString()}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {new Date(bill.createdAt).toLocaleTimeString()}
-              </p>
-            </td>
-
-            {/* Items */}
-            <td className="px-4 py-3">
-              <p>{bill.items.length} item(s)</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {bill.items
-                  .reduce((sum, item) => sum + item.netWeight, 0)
-                  .toFixed(2)}
-                g
-              </p>
-            </td>
-
-            {/* Amount */}
-            <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
-              ₹{bill.finalAmount.toLocaleString()}
-              {bill.discount > 0 && (
-                <p className="text-red-600 dark:text-red-400 text-xs">
-                  –₹{bill.discount.toLocaleString()} (Disc.)
-                </p>
-              )}
-            </td>
-
-            {/* Tax */}
-            <td className="px-4 py-3">
-              <p>₹{(bill.cgst + bill.sgst + bill.igst).toLocaleString()}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {bill.igst > 0 ? "IGST" : "CGST + SGST"}
-              </p>
-            </td>
-
-            {/* Actions */}
-            <td className="px-4 py-3 text-center">
-              <div className="flex justify-center gap-2">
-                <button
-                  onClick={() => setSelectedBill(bill)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
-                  title="View Details"
-                >
-                  <Eye className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => printBill(bill)}
-                  className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-1"
-                  title="Print"
-                >
-                  <Printer className="w-5 h-5" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-
-        {/* Notes Row (optional inline display) */}
-        {sortedBills.map(
-          (bill) =>
-            bill.notes && (
-              <tr
-                key={bill.id + "-notes"}
-                className="bg-zinc-50 dark:bg-zinc-800"
-              >
-                <td colSpan={9} className="px-4 py-2 text-sm">
-                  <strong className="text-zinc-700 dark:text-zinc-300">
-                    Notes:
-                  </strong>{" "}
-                  <span className="text-zinc-600 dark:text-zinc-400">
-                    {bill.notes}
-                  </span>
-                </td>
+      {loading ? (
+        <Card className="p-8 text-center text-zinc-500">Loading bills...</Card>
+      ) : error ? (
+        <Card className="p-8 text-center text-red-600">{error}</Card>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+            <thead className="bg-zinc-100 dark:bg-zinc-800 text-sm text-zinc-600 dark:text-zinc-300">
+              <tr>
+                <th className="px-4 py-3 text-left">Bill #</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Payment</th>
+                <th className="px-4 py-3 text-left">Customer</th>
+                <th className="px-4 py-3 text-left">Date</th>
+                <th className="px-4 py-3 text-left">Items</th>
+                <th className="px-4 py-3 text-left">Amount</th>
+                <th className="px-4 py-3 text-left">Tax (GST)</th>
+                <th className="px-4 py-3 text-center">Actions</th>
               </tr>
-            )
-        )}
-      </tbody>
-    </table>
-  </div>
-)}
+            </thead>
+            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 text-sm">
+              {sortedBills.map((bill) => (
+                <React.Fragment key={bill.id}>
+                  <tr className="hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+                    <td className="px-4 py-3 font-medium text-zinc-900 dark:text-white">#{bill.billNumber}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        bill.paymentStatus === "paid"
+                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
+                          : bill.paymentStatus === "pending"
+                          ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
+                          : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
+                      }`}>
+                        {bill.paymentStatus.charAt(0).toUpperCase() + bill.paymentStatus.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                        {bill.paymentMode.replace("_", " ").toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{bill.customerName}</p>
+                      <p className="text-zinc-500 dark:text-zinc-400 text-xs">{bill.customerPhone}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p>{new Date(bill.date).toLocaleDateString()}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{new Date(bill.createdAt).toLocaleTimeString()}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p>{bill.items.length} item(s)</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{bill.items.reduce((sum, item) => sum + item.netWeight, 0).toFixed(2)}g</p>
+                    </td>
+                    <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
+                      ₹{bill.finalAmount.toLocaleString()}
+                      {bill.discount > 0 && <p className="text-red-600 dark:text-red-400 text-xs">–₹{bill.discount.toLocaleString()} (Disc.)</p>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <p>₹{(bill.cgst + bill.sgst + bill.igst).toLocaleString()}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{bill.igst > 0 ? "IGST" : "CGST + SGST"}</p>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => setSelectedBill(bill)} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1" title="View Details"><Eye className="w-5 h-5" /></button>
+                        <button onClick={() => printBill(bill)} className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-1" title="Print"><Printer className="w-5 h-5" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                  {bill.notes && (
+                    <tr className="bg-zinc-50 dark:bg-zinc-800">
+                      <td colSpan={9} className="px-4 py-2 text-sm">
+                        <strong className="text-zinc-700 dark:text-zinc-300">Notes:</strong>{" "}
+                        <span className="text-zinc-600 dark:text-zinc-400">{bill.notes}</span>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
 
+          {/* Pagination */}
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-sm text-zinc-600">Showing page {page} of {totalPages} — {total} records</div>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} variant="secondary">Previous</Button>
+              <div className="text-sm">Page {page}</div>
+              <Button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} variant="secondary">Next</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {sortedBills.length === 0 && (
+      {(!loading && bills.length === 0) && (
         <Card className="p-8 text-center">
           <div className="flex justify-center mb-4">
             <Receipt className="h-12 w-12 text-zinc-400" strokeWidth={1} />
@@ -531,7 +507,7 @@ export const EnhancedBillsHistory: React.FC = () => {
             No bills found
           </h3>
           <p className="text-zinc-600 dark:text-zinc-400 mb-4">
-            {bills.length === 0
+            {total === 0
               ? "No bills have been created yet."
               : "Try adjusting your search or filter criteria."}
           </p>
@@ -727,3 +703,4 @@ export const EnhancedBillsHistory: React.FC = () => {
     </div>
   );
 };
+   
