@@ -3,6 +3,9 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
   Input,
   Button,
   Dialog,
@@ -689,6 +692,50 @@ export const EnhancedBillingManager: React.FC = () => {
   });
   const [creatingQuickCustomer, setCreatingQuickCustomer] = useState(false);
 
+  // Custom product states
+  const [customProductName, setCustomProductName] = useState<string[]>([""]);
+  const [customProductWeight, setCustomProductWeight] = useState<string[]>([
+    "",
+  ]);
+  const [customProductPurity, setCustomProductPurity] = useState<string[]>([
+    "",
+  ]);
+  const [customProductPrice, setCustomProductPrice] = useState<string[]>([""]);
+  const [customProductRate, setCustomProductRate] = useState<string[]>([""]);
+  let newItems: BillItem[] = [];
+
+  const addCustomProduct = () => {
+    if (!customProductName || !customProductWeight) return;
+
+    newItems = customProductName.map((name, index) => ({
+      id: Date.now().toString(),
+      productId: "",
+      productSerialNumber: `CUSTOM-${Date.now()}`,
+      productName: name,
+      category: "Custom",
+      metal: "gold",
+      purity: "",
+      weight: parseFloat(customProductWeight[index]) || 0,
+      stoneWeight: 0,
+      netWeight: parseFloat(customProductWeight[index]) || 0,
+      rate: parseFloat(customProductRate[index]) || 0,
+      makingCharges: 0,
+      makingChargesType: "fixed",
+      wastage: 0,
+      wastageType: "percentage",
+      amount: 0,
+    }));
+    newItems.forEach((item) => {
+      item.amount = calculateItemAmount(item);
+    });
+    setCurrentBill((prev) => ({
+      ...prev,
+      items: [...(prev.items || []), ...newItems],
+    }));
+    setCustomProductName([""]);
+    setCustomProductWeight([""]);
+  };
+
   // Backend search handler for customer selection
   const handleCustomerSearch = (term: string) => {
     setCustomerSearch(term);
@@ -1118,41 +1165,33 @@ export const EnhancedBillingManager: React.FC = () => {
           </DialogHeader>
 
           {/* Customer Selection and Product Addition */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Select Customer *
-              </label>
-              <div className="relative">
-                <Input
-                  placeholder="Search customer by name, phone, or GST..."
-                  value={customerSearch}
-                  onChange={(e) => handleCustomerSearch(e.target.value)}
-                  onFocus={() => setCustomerDropdownOpen(true)}
-                  className="w-full"
-                  disabled={savingBill}
-                />
-                {customerDropdownOpen && (
-                  <div
-                    className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded shadow-lg max-h-60 overflow-y-auto"
-                    onMouseLeave={() => setCustomerDropdownOpen(false)}
-                  >
-                    {customerSearchLoading ? (
-                      <div className="p-2 text-sm text-zinc-500">
-                        Searching...
-                      </div>
-                    ) : customerSearchResults.length === 0 ? (
-                      <div className="p-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Customer Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Customer</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  <Input
+                    placeholder="Search customer by name, phone, or GST..."
+                    value={customerSearch}
+                    onChange={(e) => handleCustomerSearch(e.target.value)}
+                    onFocus={() => setCustomerDropdownOpen(true)}
+                    disabled={savingBill}
+                  />
+                  {customerDropdownOpen && (
+                    <div className="absolute z-20 mt-1 w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {customerSearchLoading ? (
+                        <div className="p-2 text-sm text-zinc-500">
+                          Searching...
+                        </div>
+                      ) : customerSearchResults.length === 0 ? (
                         <div className="p-2 text-sm text-zinc-500">
                           No customers found
-                        </div>
-
-                        {/* Show "Add new customer" action when user has typed something */}
-                        {customerSearch.trim().length > 0 && (
-                          <div className="p-2">
-                            <button
+                          {customerSearch.trim().length > 0 && (
+                            <Button
                               onClick={() => {
-                                // Pre-fill quick form: if term looks like phone, put in phone, else in name
                                 const term = customerSearch.trim();
                                 const isPhone = /^\+?\d{7,}$/.test(term);
                                 setQuickCustomerForm({
@@ -1163,164 +1202,177 @@ export const EnhancedBillingManager: React.FC = () => {
                                 setShowQuickAddCustomerDialog(true);
                                 setCustomerDropdownOpen(false);
                               }}
-                              className="w-full text-left px-3 py-2 bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 rounded"
+                              variant="secondary"
+                              className="w-full justify-start mt-2 text-blue-600 hover:text-blue-700"
                             >
-                              <span className="text-sm">
-                                ➕ Add new customer:{" "}
-                                <strong className="ml-1">
-                                  {customerSearch}
-                                </strong>
+                              <PlusCircle className="w-4 h-4 mr-2" />
+                              Add new customer:{" "}
+                              <strong>{customerSearch}</strong>
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          {customerSearchResults.map((customer) => (
+                            <div
+                              key={customer._id || customer.id}
+                              className={`px-3 py-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-zinc-800 rounded ${
+                                currentBill.customerId ===
+                                (customer._id || customer.id)
+                                  ? "bg-blue-100 dark:bg-blue-900"
+                                  : ""
+                              }`}
+                              onClick={() => {
+                                setCurrentBill((prev) => ({
+                                  ...prev,
+                                  customerId: customer._id || customer.id,
+                                }));
+                                setCustomerSearch(
+                                  `${customer.name} - ${customer.phone}`
+                                );
+                                setCustomerDropdownOpen(false);
+                              }}
+                            >
+                              <span className="font-medium">
+                                {customer.name}
                               </span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <>
-                      {
-                        customerSearchResults.map((customer) => (
-                        <div
-                          key={customer._id || customer.id}
-                          className={`p-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-zinc-700 ${
-                            currentBill.customerId ===
-                            (customer._id || customer.id)
-                              ? "bg-blue-100 dark:bg-blue-900"
-                              : ""
-                          }`}
-                          onClick={() => {
-                            setCurrentBill((prev) => ({
-                              ...prev,
-                              customerId: customer._id || customer.id,
-                            }));
-                            setCustomerSearch(
-                              `${customer.name} - ${customer.phone}`
-                            );
-                            setCustomerDropdownOpen(false);
-                          }}
-                        >
-                          <span className="font-medium">{customer.name}</span>
-                          <span className="ml-2 text-xs text-zinc-500">
-                            {customer.phone}
-                          </span>
-                          {customer.gstNumber && (
-                            <span className="ml-2 text-xs text-green-600">
-                              GST: {customer.gstNumber}
+                              <span className="ml-2 text-xs text-zinc-500">
+                                {customer.phone}
+                              </span>
+                              {customer.gstNumber && (
+                                <span className="ml-2 text-xs text-green-600">
+                                  GST: {customer.gstNumber}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected customer details */}
+                {currentBill.customerId && (
+                  <div className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    {(() => {
+                      const selected =
+                        customerSearchResults.find(
+                          (c) => (c._id || c.id) === currentBill.customerId
+                        ) ||
+                        customers.find(
+                          (c) => (c._id || c.id) === currentBill.customerId
+                        );
+                      if (!selected) return null;
+                      return (
+                        <div>
+                          <span className="font-medium">{selected.name}</span> –{" "}
+                          {selected.phone}
+                          {selected.gstNumber && (
+                            <span className="ml-2 text-green-600">
+                              GST: {selected.gstNumber}
                             </span>
                           )}
                         </div>
-                      ))
-                      
-                      }
-                      {customerSearch.trim().length > 0 && (
-                          <div className="p-2">
-                            <button
-                              onClick={() => {
-                                // Pre-fill quick form: if term looks like phone, put in phone, else in name
-                                const term = customerSearch.trim();
-                                const isPhone = /^\+?\d{7,}$/.test(term);
-                                setQuickCustomerForm({
-                                  name: isPhone ? "" : term,
-                                  phone: isPhone ? term : "",
-                                  gstNumber: "",
-                                });
-                                setShowQuickAddCustomerDialog(true);
-                                setCustomerDropdownOpen(false);
-                              }}
-                              className="w-full text-left px-3 py-2 bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 rounded"
-                            >
-                              <span className="text-sm">
-                                ➕ Add new customer:{" "}
-                                <strong className="ml-1">
-                                  {customerSearch}
-                                </strong>
-                              </span>
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
-              </div>
-              {/* Show selected customer details */}
-              {currentBill.customerId && (
-                <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  {(() => {
-                    const selected =
-                      customerSearchResults.find(
-                        (c) => (c._id || c.id) === currentBill.customerId
-                      ) ||
-                      customers.find(
-                        (c) => (c._id || c.id) === currentBill.customerId
-                      );
-                    if (!selected) return null;
-                    return (
-                      <div>
-                        <span className="font-medium">{selected.name}</span>
-                        {" - "}
-                        <span>{selected.phone}</span>
-                        {selected.gstNumber && (
-                          <>
-                            {" - "}
-                            <span className="text-green-600">
-                              GST: {selected.gstNumber}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-              {editingBill?.customerId && (
-                <div className="mt-2 text-xs text-zinc-500">
-                  Editing Bill for {editingBill.customerName} -{" "}
-                  {editingBill.customerPhone}
-                </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Add Individual Product
-              </label>
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    addItemToBill(e.target.value);
-                    e.target.value = "";
-                  }
-                }}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-                disabled={savingBill}
-              >
-                <option value="">Select individual product</option>
-                {products.map((product) => (
-                  <option
-                    key={product._id || product.id}
-                    value={product._id || product.id}
+            {/* Products Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Add Products</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Individual Product */}
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      addItemToBill(e.target.value);
+                      e.target.value = "";
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-900"
+                  disabled={savingBill}
+                >
+                  <option value="">Select individual product</option>
+                  {products.map((product) => (
+                    <option
+                      key={product._id || product.id}
+                      value={product._id || product.id}
+                    >
+                      #{product.serialNumber} - {product.name} - {product.metal}{" "}
+                      {product.purity} – {product.weight}g
+                    </option>
+                  ))}
+                </select>
+
+                {/* Bulk Inventory */}
+                <Button
+                  onClick={() => setShowBulkProductDialog(true)}
+                  variant="secondary"
+                  className="w-full flex items-center gap-2"
+                  disabled={savingBill}
+                >
+                  <Warehouse className="w-4 h-4" /> Add from Bulk Inventory
+                </Button>
+
+                {/* Custom Product */}
+                <div className="border-t border-zinc-200 dark:border-zinc-700 pt-3">
+                  <h4 className="text-sm font-medium mb-2">Custom Product</h4>
+
+                  {newItems.map((item, index) => (
+                    <div
+                      key={index}
+                      className="p-2 mb-2 rounded bg-zinc-50 dark:bg-zinc-800 text-sm"
+                    >
+                      <p>
+                        <strong>{item.productName}</strong> – {item.weight}g @{" "}
+                        {item.rate} ={" "}
+                        <span className="font-semibold">{item.amount}</span>
+                      </p>
+                    </div>
+                  ))}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="Name"
+                      value={customProductName}
+                      onChange={(e) => setCustomProductName([e.target.value])}
+                    />
+                    <Input
+                      placeholder="Weight"
+                      type="number"
+                      value={customProductWeight}
+                      onChange={(e) => setCustomProductWeight([e.target.value])}
+                    />
+                    <Input
+                      placeholder="Rate"
+                      value={customProductRate}
+                      onChange={(e) => setCustomProductRate([e.target.value])}
+                    />
+                    <Input
+                      placeholder="Price"
+                      type="number"
+                      value={customProductPrice}
+                      onChange={(e) => setCustomProductPrice([e.target.value])}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={addCustomProduct}
+                    variant="primary"
+                    className="w-full mt-3"
+                    disabled={savingBill}
                   >
-                    #{product.serialNumber} - {product.name} - {product.metal}{" "}
-                    {product.purity} - {product.weight}g
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                Add from Bulk Inventory
-              </label>
-              <Button
-                onClick={() => setShowBulkProductDialog(true)}
-                variant="secondary"
-                className="w-full flex items-center gap-2"
-                disabled={savingBill}
-              >
-                <Warehouse className="w-4 h-4" />
-                Create from Bulk
-              </Button>
-            </div>
+                    Add Custom Product
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Bill Items */}

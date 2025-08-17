@@ -6,6 +6,32 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: "sm" | "md" | "lg";
 }
 
+export const CardHeader: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  return (
+    <div className="border-b p-4">
+      <h2 className="text-lg font-semibold">{children}</h2>
+    </div>
+  );
+};
+
+export const CardTitle: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+  return (
+    <div className="p-4">
+      <h3 className="text-lg font-semibold">{children}</h3>
+    </div>
+  );
+};
+
+interface CardContentProps {
+  children?: React.ReactNode;
+  className?: string;
+}
+
+export const CardContent: React.FC<CardContentProps> = ({ children, className = "" }) => {
+  return <div className={`p-4 ${className}`}>{children}</div>;
+};
+
+
 export const Button: React.FC<ButtonProps> = ({
   children,
   variant = "primary",
