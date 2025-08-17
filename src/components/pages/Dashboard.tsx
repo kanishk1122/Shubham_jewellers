@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext"; // new
 import {
   ResponsiveContainer,
   LineChart,
@@ -61,6 +62,7 @@ const PIE_COLORS = [
 
 export const Dashboard: React.FC = () => {
   const router = useRouter();
+  const auth = useAuth(); // new
 
   // State for date range filter
   const [dateRange, setDateRange] = useState<
@@ -162,7 +164,9 @@ export const Dashboard: React.FC = () => {
         limit: "1000",
       });
 
-      const res = await fetch(`/api/bills?${qs.toString()}`);
+      const headers: any = {};
+      if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
+      const res = await fetch(`/api/bills?${qs.toString()}`, { headers });
       const data = await res.json();
 
       if (!data.success) throw new Error(data.error || "Failed to fetch bills");
@@ -185,7 +189,9 @@ export const Dashboard: React.FC = () => {
         limit: "1000",
       });
 
-      const res = await fetch(`/api/customers?${qs.toString()}`);
+      const headers: any = { "Content-Type": "application/json" };
+      if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
+      const res = await fetch(`/api/customers?${qs.toString()}`, { headers });
       const data = await res.json();
 
       if (!data.success)

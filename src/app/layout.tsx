@@ -6,6 +6,7 @@ import React from "react";
 import { Provider } from "react-redux";
 import { store } from "@/store";
 import { AppProviders } from "@/components/AppProviders";
+import { AuthProvider } from "@/contexts/AuthContext"; // new
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning={true}
       >
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          <AuthProvider>{children}</AuthProvider>
+        </AppProviders>
       </body>
     </html>
   );

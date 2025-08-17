@@ -27,7 +27,10 @@ const initialState: BillsState = {
 // params: { page?, limit?, startDate?, endDate?, paymentStatus?, search?, sort?, tag? }
 export const fetchBills = createAsyncThunk(
   "bills/fetchBills",
-  async (params: Record<string, any> | undefined, { rejectWithValue }: { rejectWithValue: any }) => {
+  async (
+    params: Record<string, any> | undefined,
+    { rejectWithValue }: { rejectWithValue: any }
+  ) => {
     try {
       let url = "/api/bills";
       if (params && Object.keys(params).length > 0) {
@@ -38,7 +41,11 @@ export const fetchBills = createAsyncThunk(
         });
         url += `?${qp.toString()}`;
       }
-      const res = await fetch(url);
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const headers: any = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(url, { headers });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Failed to fetch bills");
       // return structured payload with meta
@@ -58,7 +65,11 @@ export const fetchBills = createAsyncThunk(
 export const fetchBillById = createAsyncThunk(
   "bills/fetchBillById",
   async (id: string, { rejectWithValue }) => {
-    const res = await fetch(`/api/bills/${id}`);
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const headers: any = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`/api/bills/${id}`, { headers });
     const data = await res.json();
     if (!data.success)
       return rejectWithValue(data.error || "Failed to fetch bill");
@@ -69,9 +80,13 @@ export const fetchBillById = createAsyncThunk(
 export const createBill = createAsyncThunk(
   "bills/createBill",
   async (billData: Partial<Bill>, { rejectWithValue }) => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const headers: any = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch("/api/bills", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(billData),
     });
     const data = await res.json();
@@ -87,9 +102,13 @@ export const updateBill = createAsyncThunk(
     { id, billData }: { id: string; billData: Partial<Bill> },
     { rejectWithValue }
   ) => {
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const headers: any = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`/api/bills/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(billData),
     });
     const data = await res.json();
@@ -102,7 +121,11 @@ export const updateBill = createAsyncThunk(
 export const deleteBill = createAsyncThunk(
   "bills/deleteBill",
   async (id: string, { rejectWithValue }) => {
-    const res = await fetch(`/api/bills/${id}`, { method: "DELETE" });
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const headers: any = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`/api/bills/${id}`, { method: "DELETE", headers });
     const data = await res.json();
     if (!data.success)
       return rejectWithValue(data.error || "Failed to delete bill");

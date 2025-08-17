@@ -1,15 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Customer from "@/models/Customer";
+import { verifyToken, getUserFromAuthHeader } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
+    // --- AUTH: require Bearer token ---
+    const authHeader =
+      request.headers.get("authorization") ||
+      request.headers.get("Authorization");
+    const payload = verifyToken(
+      authHeader ? authHeader.replace(/^Bearer\s+/i, "") : undefined
+    );
+    if (!payload || !payload.id) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50", 10), 200); // max 200 per page
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "50", 10),
+      200
+    ); // max 200 per page
 
     let query: any = {};
 
@@ -54,6 +72,21 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
+    // --- AUTH: require Bearer token (only admins can create new customers in this system) ---
+    const authHeader =
+      request.headers.get("authorization") ||
+      request.headers.get("Authorization");
+    const payload = verifyToken(
+      authHeader ? authHeader.replace(/^Bearer\s+/i, "") : undefined
+    );
+    if (!payload || !payload.id) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+    // allow admins or users (optional): for now allow any authenticated user
+
     const body = await request.json();
     const { name, phone, email, address, gstNumber, panNumber, notes } = body;
 
@@ -78,7 +111,6 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
-    
 
     const customer = new Customer({
       name,

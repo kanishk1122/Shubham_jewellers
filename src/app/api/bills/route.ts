@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import BillModel from "@/models/Bill";
 import mongoose from "mongoose";
+import { verifyToken } from "@/lib/auth";
 
 export async function GET(request?: NextRequest) {
   try {
+    // --- AUTH: if request provided verify token ---
+    if (request) {
+      const authHeader =
+        request.headers.get("authorization") ||
+        request.headers.get("Authorization");
+      const token = authHeader
+        ? authHeader.replace(/^Bearer\s+/i, "")
+        : undefined;
+      const payload = verifyToken(token);
+      if (!payload || !payload.id) {
+        return NextResponse.json(
+          { success: false, error: "Unauthorized" },
+          { status: 401 }
+        );
+      }
+    }
+
     // support both direct call and NextRequest (for tests)
     const url = request ? new URL(request.url) : null;
     const params = url ? url.searchParams : new URLSearchParams();
@@ -97,6 +115,21 @@ export async function GET(request?: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // AUTH: require token for creating bills
+    const authHeader =
+      request.headers.get("authorization") ||
+      request.headers.get("Authorization");
+    const token = authHeader
+      ? authHeader.replace(/^Bearer\s+/i, "")
+      : undefined;
+    const payload = verifyToken(token);
+    if (!payload || !payload.id) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const billData = await request.json();
 
     const billNumber = (await BillModel.countDocuments()) + 1; // Generate a new bill number

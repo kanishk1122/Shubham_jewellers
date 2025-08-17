@@ -13,6 +13,7 @@ import {
   Coins,
   Loader2,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext"; // new import
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -119,6 +120,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const auth = useAuth(); // use auth
 
   // Today's summary state
   const [todaySummary, setTodaySummary] = useState<TodaySummary>({
@@ -132,12 +134,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Function to fetch today's summary data
   const fetchTodaySummary = async () => {
     try {
+      // If user not logged in, skip fetching
+      if (!auth || auth.loading) return;
+      if (!auth.token) {
+        // redirect to login if not on login page
+        if (!pathname?.startsWith("/login")) router.push("/login");
+        return;
+      }
       // Get today's date in ISO format (YYYY-MM-DD)
       const today = new Date().toISOString().split("T")[0];
 
-      // Fetch today's bills
+      // Fetch today's bills with Authorization header
       const response = await fetch(
-        `/api/bills?startDate=${today}&endDate=${today}&limit=1000`
+        `/api/bills?startDate=${today}&endDate=${today}&limit=1000`,
+        { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       const data = await response.json();
 
@@ -176,13 +186,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   // Fetch summary on initial load and then every 5 minutes
   useEffect(() => {
+    // redirect if not authenticated (unless on /login)
+    if (!auth.loading && !auth.user && !pathname?.startsWith("/login")) {
+      router.push("/login");
+      return;
+    }
     fetchTodaySummary();
 
     // Set up automatic refresh every 5 minutes
     const intervalId = setInterval(fetchTodaySummary, 5 * 60 * 1000);
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [auth.loading, auth.user, auth.token, pathname]); // depend on auth
 
   const getActiveTab = () => {
     if (pathname === "/") return "dashboard";
