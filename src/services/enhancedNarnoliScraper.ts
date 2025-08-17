@@ -1,5 +1,7 @@
 "use client";
 
+import axios from "axios";
+
 // Enhanced web scraping service for Narnoli Corporation using TypeScript
 // This is similar to Beautiful Soup in Python but for TypeScript/JavaScript
 
@@ -244,10 +246,10 @@ class EnhancedWebScraper {
       for (const proxy of this.corsProxies) {
         try {
           console.log(`📡 Trying proxy: ${proxy}`);
-          const response = await fetch(`${proxy}${encodeURIComponent(url)}`);
+          const response = await axios.get(`${proxy}${encodeURIComponent(url)}`);
 
-          if (response.ok) {
-            html = await response.text();
+          if (response.status === 200) {
+            html = response.data  ;
             usedProxy = proxy;
             console.log(`✅ Successfully fetched HTML using ${proxy}`);
             break;

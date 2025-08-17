@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 type User = {
   id: string;
@@ -43,11 +44,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const fetchMe = async (tkn: string) => {
     try {
       setLoading(true);
-      const res = await fetch("/api/auth/me", {
+      
+      const res = await axios.get("/api/auth/me", {
         headers: { Authorization: `Bearer ${tkn}` },
       });
-      const json = await res.json();
-      if (res.ok && json.success) {
+      const json = res.data;
+      if (res.status === 200 && json.success) {
         setUser({
           id: json.data._id || json.data.id,
           name: json.data.name,
@@ -79,13 +81,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const login = async (identifier: string, password: string) => {
     try {
       setLoading(true);
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
+      const res = await axios.post("/api/auth/login", {
+        identifier,
+        password,
       });
-      const json = await res.json();
-      if (res.ok && json.success && json.data?.token) {
+      const json = res.data;
+      if (res.status === 200 && json.success && json.data?.token) {
         const tkn = json.data.token;
         localStorage.setItem("token", tkn);
         setToken(tkn);

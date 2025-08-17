@@ -36,6 +36,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import PuppeteerQuickRatesWidget from "@/components/PuppeteerQuickRatesWidget";
+import axios from "axios";
 
 // Define color schemes for consistency
 const COLORS = {
@@ -166,8 +167,8 @@ export const Dashboard: React.FC = () => {
 
       const headers: any = {};
       if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
-      const res = await fetch(`/api/bills?${qs.toString()}`, { headers });
-      const data = await res.json();
+      const res = await axios.get(`/api/bills?${qs.toString()}`, { headers });
+      const data = res.data;
 
       if (!data.success) throw new Error(data.error || "Failed to fetch bills");
 
@@ -191,8 +192,8 @@ export const Dashboard: React.FC = () => {
 
       const headers: any = { "Content-Type": "application/json" };
       if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
-      const res = await fetch(`/api/customers?${qs.toString()}`, { headers });
-      const data = await res.json();
+      const res = await axios.get(`/api/customers?${qs.toString()}`, { headers });
+      const data = res.data;
 
       if (!data.success)
         throw new Error(data.error || "Failed to fetch customers");

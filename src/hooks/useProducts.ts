@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState, useEffect, useCallback } from "react";
 
 export interface Product {
@@ -60,8 +61,8 @@ export const useProducts = () => {
           url.searchParams.set("category", filters.category);
         if (filters?.metal) url.searchParams.set("metal", filters.metal);
 
-        const response = await fetch(url.toString());
-        const result: ProductResponse = await response.json();
+        const response = await axios.get(url.toString());
+        const result: ProductResponse = response.data;
 
         if (result.success && Array.isArray(result.data)) {
           setProducts(result.data);
@@ -87,15 +88,9 @@ export const useProducts = () => {
       >
     ) => {
       try {
-        const response = await fetch("/api/products", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productData),
-        });
+        const response = await axios.post("/api/products", productData);
 
-        const result: ProductResponse = await response.json();
+        const result: ProductResponse = response.data;
 
         if (result.success && result.data && !Array.isArray(result.data)) {
           setProducts((prev) => [result.data as Product, ...prev]);
@@ -121,15 +116,9 @@ export const useProducts = () => {
   const updateProduct = useCallback(
     async (productId: string, productData: Partial<Product>) => {
       try {
-        const response = await fetch(`/api/products/${productId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productData),
-        });
+        const response = await axios.put(`/api/products/${productId}`, productData);
 
-        const result: ProductResponse = await response.json();
+        const result: ProductResponse = response.data;
 
         if (result.success && result.data && !Array.isArray(result.data)) {
           setProducts((prev) =>
@@ -160,11 +149,9 @@ export const useProducts = () => {
   // Delete product
   const deleteProduct = useCallback(async (productId: string) => {
     try {
-      const response = await fetch(`/api/products/${productId}`, {
-        method: "DELETE",
-      });
+      const response = await axios.delete(`/api/products/${productId}`);
 
-      const result: ProductResponse = await response.json();
+      const result: ProductResponse = response.data;
 
       if (result.success) {
         setProducts((prev) =>

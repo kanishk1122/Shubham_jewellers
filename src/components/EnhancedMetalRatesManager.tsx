@@ -14,13 +14,9 @@ import {
 } from "@/components/ui";
 import ExcelActions from "@/components/ExcelActions";
 import { NarnoliRatesDisplay } from "@/components/NarnoliRatesDisplay";
-import { NarnoliDebugPanel } from "@/components/NarnoliDebugPanel";
-import { EnhancedScrapingTestPanel } from "@/components/EnhancedScrapingTestPanel";
-import BeautifulSoupTestPanel from "@/components/BeautifulSoupTestPanel";
-import SPAScrapingTestPanel from "@/components/SPAScrapingTestPanel";
-import PuppeteerTestPanel from "@/components/PuppeteerTestPanel";
 import EnhancedPuppeteerRatesDisplay from "@/components/EnhancedPuppeteerRatesDisplay";
 import PuppeteerLiveRatesWidget from "@/components/PuppeteerLiveRatesWidget";
+import axios from "axios";
 import {
   PlusCircle,
   RefreshCw,
@@ -74,9 +70,9 @@ export const EnhancedMetalRatesManager: React.FC = () => {
   const loadRatesFromDB = async () => {
     setLoadingRates(true);
     try {
-      const response = await fetch("/api/metal-rates");
-      if (response.ok) {
-        const result = await response.json();
+      const response = await axios.get("/api/metal-rates");
+      if (response.status === 200) {
+        const result = response.data;
         if (result.success) {
           setLocalRates(result.data);
         }
@@ -101,16 +97,10 @@ export const EnhancedMetalRatesManager: React.FC = () => {
         source: "manual",
       };
 
-      const response = await fetch("/api/metal-rates", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newRateData),
-      });
+      const response = await axios.post("/api/metal-rates", newRateData);
 
-      if (response.ok) {
-        const result = await response.json();
+      if (response.status === 200) {
+        const result = response.data;
         if (result.success) {
           setLocalRates([...localRates, result.data]);
           resetForm();
@@ -148,16 +138,10 @@ export const EnhancedMetalRatesManager: React.FC = () => {
       };
 
       const rateId = editingRate._id || editingRate.id;
-      const response = await fetch(`/api/metal-rates/${rateId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      });
+      const response = await axios.put(`/api/metal-rates/${rateId}`, updateData);
 
-      if (response.ok) {
-        const result = await response.json();
+      if (response.status === 200) {
+        const result = response.data;
         if (result.success) {
           setLocalRates(
             localRates.map((rate) =>

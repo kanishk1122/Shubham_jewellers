@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { RefreshCw, Target, CheckCircle, XCircle } from "lucide-react";
+import axios from "axios";
 
 interface TestResult {
   success: boolean;
@@ -17,8 +18,8 @@ export default function TestScraperPage() {
   const testScraper = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/scrape-narnoli");
-      const data = await response.json();
+      const response = await axios.get("/api/test-scraper");
+      const data = response.data;
       setResult(data);
     } catch (error) {
       setResult({

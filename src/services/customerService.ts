@@ -1,5 +1,6 @@
 import connectDB from "@/lib/mongodb";
 import Customer, { ICustomer } from "@/models/Customer";
+import axios from "axios";
 
 interface Customer {
   _id?: string;
@@ -27,10 +28,10 @@ export class CustomerService {
     error?: string;
   }> {
     try {
-      const response = await fetch(this.API_BASE);
-      const result = await response.json();
+      const response = await axios.get(this.API_BASE);
+      const result = response.data;
 
-      if (response.ok) {
+      if (response.status === 200) {
         return { success: true, data: result.data };
       } else {
         return {
@@ -52,15 +53,11 @@ export class CustomerService {
     error?: string;
   }> {
     try {
-      const response = await fetch(this.API_BASE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(customerData),
-      });
+      const response = await axios.post(this.API_BASE, customerData);
 
-      const result = await response.json();
+      const result = response.data;
 
-      if (response.ok) {
+      if (response.status === 201) {
         return { success: true, data: result.data };
       } else {
         return {
@@ -85,15 +82,11 @@ export class CustomerService {
     error?: string;
   }> {
     try {
-      const response = await fetch(`${this.API_BASE}/${customerId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(customerData),
-      });
+      const response = await axios.put(`${this.API_BASE}/${customerId}`, customerData);
 
-      const result = await response.json();
+      const result = response.data;
 
-      if (response.ok) {
+      if (response.status === 200) {
         return { success: true, data: result.data };
       } else {
         return {
@@ -113,15 +106,12 @@ export class CustomerService {
     customerId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await fetch(`${this.API_BASE}/${customerId}`, {
-        method: "DELETE",
-      });
+      const response = await axios.delete(`${this.API_BASE}/${customerId}`);
 
-      const result = await response.json();
-
-      if (response.ok) {
+      if (response.status === 200 ) {
         return { success: true };
       } else {
+        const result = response.data;
         return {
           success: false,
           error: result.error || "Failed to delete customer",
@@ -141,10 +131,10 @@ export class CustomerService {
     error?: string;
   }> {
     try {
-      const response = await fetch(`${this.API_BASE}/${customerId}`);
-      const result = await response.json();
+      const response = await axios.get(`${this.API_BASE}/${customerId}`);
+      const result = response.data;
 
-      if (response.ok) {
+      if (response.status === 200) {
         return { success: true, data: result.data };
       } else {
         return {
@@ -166,12 +156,10 @@ export class CustomerService {
     error?: string;
   }> {
     try {
-      const response = await fetch(
-        `${this.API_BASE}/search?q=${encodeURIComponent(query)}`
-      );
-      const result = await response.json();
+      const response = await axios.get(`${this.API_BASE}/search?q=${encodeURIComponent(query)}`);
+      const result = response.data;
 
-      if (response.ok) {
+      if (response.status === 200) {
         return { success: true, data: result.data };
       } else {
         return {

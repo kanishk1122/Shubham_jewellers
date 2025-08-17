@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { Bill, PaymentStatus } from "@/types/billing";
 import { BillingCalculator } from "@/utils/billing";
 import { Button, Input, Card, Badge, Modal } from "@/components/ui";
@@ -339,13 +340,13 @@ export const BillHistory: React.FC = () => {
 
   React.useEffect(() => {
     setLoading(true);
-    fetch("/api/bills")
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch bills");
+    axios
+      .get("/api/bills")
+      .then((res) => {
+        if (res.status !== 200) throw new Error("Failed to fetch bills");
         console.log("Fetching bills...");
-        const data = await res.json();
-        setBills(data.data || []);
-        console.log("Bills loaded:", data.data);
+        setBills(res.data.data || []);
+        console.log("Bills loaded:", res.data.data);
         setError(null);
       })
       .catch((err) => setError(err.message || "Error loading bills"))

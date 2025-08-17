@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState, useEffect, useCallback } from "react";
 
 export interface Category {
@@ -34,8 +35,8 @@ export const useCategories = () => {
       const url = new URL("/api/categories", window.location.origin);
       if (activeOnly) url.searchParams.set("activeOnly", "true");
 
-      const response = await fetch(url.toString());
-      const result: CategoryResponse = await response.json();
+      const response = await axios.get(url.toString());
+      const result: CategoryResponse = response.data;
 
       if (result.success && Array.isArray(result.data)) {
         setCategories(result.data);
@@ -59,15 +60,9 @@ export const useCategories = () => {
       >
     ) => {
       try {
-        const response = await fetch("/api/categories", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(categoryData),
-        });
+        const response = await axios.post("/api/categories", categoryData);
 
-        const result: CategoryResponse = await response.json();
+        const result: CategoryResponse = response.data;
 
         if (result.success && result.data && !Array.isArray(result.data)) {
           setCategories((prev) => [result.data as Category, ...prev]);
@@ -93,15 +88,9 @@ export const useCategories = () => {
   const updateCategory = useCallback(
     async (categoryId: string, categoryData: Partial<Category>) => {
       try {
-        const response = await fetch(`/api/categories/${categoryId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(categoryData),
-        });
+        const response = await axios.put(`/api/categories/${categoryId}`, categoryData);
 
-        const result: CategoryResponse = await response.json();
+        const result: CategoryResponse = response.data;
 
         if (result.success && result.data && !Array.isArray(result.data)) {
           setCategories((prev) =>
@@ -132,11 +121,9 @@ export const useCategories = () => {
   // Delete category
   const deleteCategory = useCallback(async (categoryId: string) => {
     try {
-      const response = await fetch(`/api/categories/${categoryId}`, {
-        method: "DELETE",
-      });
+      const response = await axios.delete(`/api/categories/${categoryId}`);
 
-      const result: CategoryResponse = await response.json();
+      const result: CategoryResponse = response.data;
 
       if (result.success) {
         setCategories((prev) =>

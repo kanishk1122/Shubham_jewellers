@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { RefreshCw, TrendingUp, Clock, Zap } from "lucide-react";
+import axios from "axios";
 
 interface PuppeteerRate {
   metal: string;
@@ -23,18 +24,17 @@ export default function PuppeteerQuickRatesWidget() {
   const fetchRates = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/scrape-narnoli", {
-        method: "GET",
+      const response = await axios.get("/api/scrape-narnoli", {
         headers: {
           "Cache-Control": "max-age=300",
         },
       });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = response.data;
       setRatesData({
         ...data,
         lastUpdated: new Date(),

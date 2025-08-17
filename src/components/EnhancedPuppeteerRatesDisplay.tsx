@@ -9,6 +9,7 @@ import {
   Clock,
   Zap,
 } from "lucide-react";
+import axios from "axios";
 
 interface NarnoliRate {
   metal: string;
@@ -43,18 +44,17 @@ export default function EnhancedPuppeteerRatesDisplay() {
   const fetchRates = async (useCache = true) => {
     setLoading(true);
     try {
-      const response = await fetch("/api/scrape-narnoli", {
-        method: "GET",
+      const response = await axios.get("/api/scrape-narnoli", {
         headers: {
           "Cache-Control": useCache ? "max-age=300" : "no-cache",
         },
       });
 
-      if (!response.ok) {
+      if (!response.data.success) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = response.data;
       setRatesData({
         ...data,
         lastUpdated: new Date(),

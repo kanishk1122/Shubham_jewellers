@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext"; // new import
+import axios from "axios";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -122,6 +123,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const pathname = usePathname();
   const auth = useAuth(); // use auth
 
+  // derive user initials for avatar
+  const userInitials = auth?.user?.name
+    ? auth.user.name
+        .split(" ")
+        .map((p) => p[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "SJ";
+  const userName = auth?.user?.name || "Admin";
+
   // Today's summary state
   const [todaySummary, setTodaySummary] = useState<TodaySummary>({
     salesAmount: 0,
@@ -145,11 +157,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       const today = new Date().toISOString().split("T")[0];
 
       // Fetch today's bills with Authorization header
-      const response = await fetch(
+      const response = await axios.get(
         `/api/bills?startDate=${today}&endDate=${today}&limit=1000`,
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
-      const data = await response.json();
+      const data = response.data;
 
       if (!data.success) {
         throw new Error(data.error || "Failed to fetch today's summary");
@@ -434,28 +446,45 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </button>
 
               {/* Profile menu */}
-              <div className="relative">
-                <button className="flex items-center space-x-2 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                    SJ
-                  </div>
-                  <span className="hidden md:block text-sm font-medium">
-                    Admin
+              <div className="relative flex items-center gap-4">
+                {/* Show name + logout on md+ screens */}
+                <div className="hidden md:flex items-center gap-3">
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    {userName}
                   </span>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                  <button
+                    onClick={() => auth.logout()}
+                    className="text-sm px-3 py-1 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 hover:bg-red-100 dark:hover:bg-red-800 transition-colors"
+                    title="Logout"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+                    Logout
+                  </button>
+                </div>
+
+                {/* Avatar + name (kept for smaller screens) */}
+                <div className="relative">
+                  <button className="flex items-center space-x-2 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      {userInitials}
+                    </div>
+                    <span className="hidden md:block text-sm font-medium">
+                      {userName}
+                    </span>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

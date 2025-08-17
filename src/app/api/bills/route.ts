@@ -5,7 +5,7 @@ import { verifyToken } from "@/lib/auth";
 
 export async function GET(request?: NextRequest) {
   try {
-    // --- AUTH: if request provided verify token ---
+    // --- AUTH: if request provided verify token and admin role ---
     if (request) {
       const authHeader =
         request.headers.get("authorization") ||
@@ -18,6 +18,12 @@ export async function GET(request?: NextRequest) {
         return NextResponse.json(
           { success: false, error: "Unauthorized" },
           { status: 401 }
+        );
+      }
+      if (payload.role !== "admin") {
+        return NextResponse.json(
+          { success: false, error: "Forbidden: admin only" },
+          { status: 403 }
         );
       }
     }
@@ -115,7 +121,7 @@ export async function GET(request?: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // AUTH: require token for creating bills
+    // AUTH: require token and admin role for creating bills
     const authHeader =
       request.headers.get("authorization") ||
       request.headers.get("Authorization");
@@ -127,6 +133,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+    if (payload.role !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: admin only" },
+        { status: 403 }
       );
     }
 

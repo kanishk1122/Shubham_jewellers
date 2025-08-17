@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Card, Button } from "@/components/ui/enhanced";
+import axios from "axios";
 
 export const HTMLStructureAnalyzer: React.FC = () => {
   const [analysis, setAnalysis] = useState<any>(null);
@@ -39,11 +40,11 @@ export const HTMLStructureAnalyzer: React.FC = () => {
     // Method 1: AllOrigins proxy
     try {
       console.log("📡 Trying AllOrigins proxy...");
-      const response1 = await fetch(
+      const response1 = await axios.get(
         `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`
       );
-      if (response1.ok) {
-        const data1 = await response1.json();
+      if (response1.status === 200) {
+        const data1 = response1.data;
         const html1 = data1.contents || "";
 
         results.methods.push({
@@ -64,11 +65,11 @@ export const HTMLStructureAnalyzer: React.FC = () => {
     // Method 2: CodeTabs proxy
     try {
       console.log("📡 Trying CodeTabs proxy...");
-      const response2 = await fetch(
+      const response2 = await axios.get(
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
       );
-      if (response2.ok) {
-        const html2 = await response2.text();
+      if (response2.status === 200) {
+        const html2 = response2.data;
 
         results.methods.push({
           name: "CodeTabs",
@@ -88,11 +89,11 @@ export const HTMLStructureAnalyzer: React.FC = () => {
     // Method 3: CorsProxy.io
     try {
       console.log("📡 Trying CorsProxy.io...");
-      const response3 = await fetch(
+      const response3 = await axios.get(
         `https://corsproxy.io/?${encodeURIComponent(url)}`
       );
-      if (response3.ok) {
-        const html3 = await response3.text();
+      if (response3.status === 200) {
+        const html3 = response3.data;
 
         results.methods.push({
           name: "CorsProxy.io",

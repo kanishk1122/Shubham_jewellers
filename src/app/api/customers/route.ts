@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    // --- AUTH: require Bearer token ---
+    // --- AUTH: require Bearer token and admin role ---
     const authHeader =
       request.headers.get("authorization") ||
       request.headers.get("Authorization");
@@ -18,6 +18,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+    if (payload.role !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: admin only" },
+        { status: 403 }
       );
     }
 
@@ -72,7 +78,7 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    // --- AUTH: require Bearer token (only admins can create new customers in this system) ---
+    // --- AUTH: require Bearer token and admin role ---
     const authHeader =
       request.headers.get("authorization") ||
       request.headers.get("Authorization");
@@ -85,7 +91,12 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-    // allow admins or users (optional): for now allow any authenticated user
+    if (payload.role !== "admin") {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: admin only" },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const { name, phone, email, address, gstNumber, panNumber, notes } = body;

@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState, useEffect, useCallback } from "react";
 
 export interface Customer {
@@ -43,8 +44,8 @@ export const useCustomers = () => {
       const url = new URL("/api/customers", window.location.origin);
       if (search) url.searchParams.set("search", search);
 
-      const response = await fetch(url.toString());
-      const result: CustomerResponse = await response.json();
+      const response = await axios.get(url.toString());
+      const result: CustomerResponse = response.data;
 
       if (result.success && Array.isArray(result.data)) {
         setCustomers(result.data);
@@ -68,15 +69,9 @@ export const useCustomers = () => {
       >
     ) => {
       try {
-        const response = await fetch("/api/customers", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(customerData),
-        });
+        const response = await axios.post("/api/customers", customerData);
 
-        const result: CustomerResponse = await response.json();
+        const result: CustomerResponse = response.data;
 
         if (result.success && result.data && !Array.isArray(result.data)) {
           setCustomers((prev) => [result.data as Customer, ...prev]);
@@ -102,15 +97,8 @@ export const useCustomers = () => {
   const updateCustomer = useCallback(
     async (customerId: string, customerData: Partial<Customer>) => {
       try {
-        const response = await fetch(`/api/customers/${customerId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(customerData),
-        });
-
-        const result: CustomerResponse = await response.json();
+        const response = await axios.put(`/api/customers/${customerId}`, customerData);
+        const result: CustomerResponse = response.data;
 
         if (result.success && result.data && !Array.isArray(result.data)) {
           setCustomers((prev) =>
@@ -141,11 +129,8 @@ export const useCustomers = () => {
   // Delete customer
   const deleteCustomer = useCallback(async (customerId: string) => {
     try {
-      const response = await fetch(`/api/customers/${customerId}`, {
-        method: "DELETE",
-      });
-
-      const result: CustomerResponse = await response.json();
+      const response = await axios.delete(`/api/customers/${customerId}`);
+      const result: CustomerResponse = response.data;
 
       if (result.success) {
         setCustomers((prev) =>
@@ -175,15 +160,12 @@ export const useCustomers = () => {
     setError(null);
 
     try {
-      const response = await fetch("/api/customers/bulk", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ customers, options }),
+      const response = await axios.post("/api/customers/bulk", {
+        customers,
+        options,
       });
 
-      const result = await response.json();
+      const result = response.data;
 
       if (result.success) {
         // Refresh the customers list
@@ -209,12 +191,14 @@ export const useCustomers = () => {
   // Search customers
   const searchCustomers = async (searchTerm: string, page = 1, limit = 50) => {
     try {
-      const response = await fetch(
-        `/api/customers?search=${encodeURIComponent(
-          searchTerm
-        )}&page=${page}&limit=${limit}`
-      );
-      const result = await response.json();
+      const response = await axios.get("/api/customers", {
+        params: {
+          search: searchTerm,
+          page,
+          limit,
+        },
+      });
+      const result = response.data;
       return result;
     } catch (err) {
       return { success: false, data: [], error: "Search failed" };

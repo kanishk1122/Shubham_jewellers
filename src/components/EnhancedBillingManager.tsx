@@ -37,6 +37,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import type { Bill, BillItem } from "@/types/bill";
+import axios from "axios";
 
 interface Product {
   _id?: string;
@@ -352,20 +353,14 @@ export const EnhancedBillingManager: React.FC = () => {
             bulkProduct.remainingWeight - totalDeduction;
 
           // Use the PATCH endpoint to deduct weight
-          const response = await fetch(
+          const response = await axios.patch(
             `/api/bulk-products/${item.bulkProductId}`,
             {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                deductWeight: totalDeduction,
-              }),
+              deductWeight: totalDeduction,
             }
           );
 
-          const result = await response.json();
+          const result = await response.data;
 
           if (!result.success) {
             console.error("Failed to deduct weight:", result.error);

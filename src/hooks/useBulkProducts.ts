@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState, useEffect, useCallback } from "react";
 
 export interface BulkProduct {
@@ -59,8 +60,8 @@ export const useBulkProducts = () => {
         if (filters?.availableOnly)
           url.searchParams.set("availableOnly", "true");
 
-        const response = await fetch(url.toString());
-        const result: BulkProductResponse = await response.json();
+        const response = await axios.get(url.toString());
+        const result: BulkProductResponse = response.data;
 
         if (result.success && Array.isArray(result.data)) {
           setBulkProducts(result.data);
@@ -86,15 +87,9 @@ export const useBulkProducts = () => {
       >
     ) => {
       try {
-        const response = await fetch("/api/bulk-products", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productData),
-        });
+        const response = await axios.post("/api/bulk-products", productData);
+        const result: BulkProductResponse = response.data;
 
-        const result: BulkProductResponse = await response.json();
 
         if (result.success && result.data && !Array.isArray(result.data)) {
           setBulkProducts((prev) => [result.data as BulkProduct, ...prev]);
@@ -120,15 +115,9 @@ export const useBulkProducts = () => {
   const updateBulkProduct = useCallback(
     async (productId: string, productData: Partial<BulkProduct>) => {
       try {
-        const response = await fetch(`/api/bulk-products/${productId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(productData),
-        });
+        const response = await axios.put(`/api/bulk-products/${productId}`, productData);
 
-        const result: BulkProductResponse = await response.json();
+        const result: BulkProductResponse = response.data;
 
         if (result.success && result.data && !Array.isArray(result.data)) {
           setBulkProducts((prev) =>
@@ -159,11 +148,9 @@ export const useBulkProducts = () => {
   // Delete bulk product
   const deleteBulkProduct = useCallback(async (productId: string) => {
     try {
-      const response = await fetch(`/api/bulk-products/${productId}`, {
-        method: "DELETE",
-      });
+      const response = await axios.delete(`/api/bulk-products/${productId}`);
 
-      const result: BulkProductResponse = await response.json();
+      const result: BulkProductResponse = response.data;
 
       if (result.success) {
         setBulkProducts((prev) =>
@@ -189,15 +176,11 @@ export const useBulkProducts = () => {
   const deductWeight = useCallback(
     async (productId: string, weight: number) => {
       try {
-        const response = await fetch(`/api/bulk-products/${productId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ deductWeight: weight }),
+        const response = await axios.patch(`/api/bulk-products/${productId}`, {
+          deductWeight: weight,
         });
 
-        const result: BulkProductResponse = await response.json();
+        const result: BulkProductResponse = response.data;
 
         if (result.success && result.data && !Array.isArray(result.data)) {
           setBulkProducts((prev) =>
