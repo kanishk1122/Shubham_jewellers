@@ -692,48 +692,72 @@ export const EnhancedBillingManager: React.FC = () => {
   });
   const [creatingQuickCustomer, setCreatingQuickCustomer] = useState(false);
 
-  // Custom product states
-  const [customProductName, setCustomProductName] = useState<string[]>([""]);
-  const [customProductWeight, setCustomProductWeight] = useState<string[]>([
-    "",
-  ]);
-  const [customProductPurity, setCustomProductPurity] = useState<string[]>([
-    "",
-  ]);
-  const [customProductPrice, setCustomProductPrice] = useState<string[]>([""]);
-  const [customProductRate, setCustomProductRate] = useState<string[]>([""]);
-  let newItems: BillItem[] = [];
+  // Custom product states (single custom item inputs)
+  const [customProductName, setCustomProductName] = useState<string>("");
+  const [customProductWeight, setCustomProductWeight] = useState<string>("");
+  const [customProductRate, setCustomProductRate] = useState<string>("");
+  const [customProductMaking, setCustomProductMaking] = useState<string>("");
+  // preview item computed from inputs
+  const previewCustomItem: Partial<BillItem> = {
+    id: `PREVIEW-${Date.now()}`,
+    productId: `CUSTOM-PREVIEW`,
+    productSerialNumber: `CUSTOM-PREVIEW`,
+    productName: customProductName || "",
+    category: "Custom",
+    metal: "gold", // default metal for custom items
+    purity: "24K", // default purity to satisfy backend validation
+    weight: parseFloat(customProductWeight) || 0,
+    stoneWeight: 0,
+    netWeight: parseFloat(customProductWeight) || 0,
+    rate: parseFloat(customProductRate) || 0,
+    makingCharges: parseFloat(customProductMaking) || 0,
+    makingChargesType: "fixed",
+    wastage: 0,
+    wastageType: "percentage",
+    amount: 0,
+  };
 
   const addCustomProduct = () => {
-    if (!customProductName || !customProductWeight) return;
+    // require minimal fields
+    if (
+      !customProductName.trim() ||
+      !customProductWeight.trim() ||
+      !customProductRate.trim()
+    )
+      return;
 
-    newItems = customProductName.map((name, index) => ({
-      id: Date.now().toString(),
-      productId: "",
-      productSerialNumber: `CUSTOM-${Date.now()}`,
-      productName: name,
+    const idSuffix = Date.now().toString();
+    const newItem: BillItem = {
+      id: `CUSTOM-${idSuffix}`,
+      productId: `CUSTOM-${idSuffix}`, // ensure productId is a unique, non-empty string
+      productSerialNumber: `CUSTOM-${idSuffix}`,
+      productName: customProductName.trim(),
       category: "Custom",
       metal: "gold",
-      purity: "",
-      weight: parseFloat(customProductWeight[index]) || 0,
+      purity: "24K", // default purity to satisfy backend validation
+      weight: parseFloat(customProductWeight) || 0,
       stoneWeight: 0,
-      netWeight: parseFloat(customProductWeight[index]) || 0,
-      rate: parseFloat(customProductRate[index]) || 0,
-      makingCharges: 0,
+      netWeight: parseFloat(customProductWeight) || 0,
+      rate: parseFloat(customProductRate) || 0,
+      makingCharges: parseFloat(customProductMaking) || 0,
       makingChargesType: "fixed",
       wastage: 0,
       wastageType: "percentage",
       amount: 0,
-    }));
-    newItems.forEach((item) => {
-      item.amount = calculateItemAmount(item);
-    });
+    };
+
+    newItem.amount = calculateItemAmount(newItem);
+
     setCurrentBill((prev) => ({
       ...prev,
-      items: [...(prev.items || []), ...newItems],
+      items: [...(prev.items || []), newItem],
     }));
-    setCustomProductName([""]);
-    setCustomProductWeight([""]);
+
+    // reset inputs
+    setCustomProductName("");
+    setCustomProductWeight("");
+    setCustomProductRate("");
+    setCustomProductMaking("");
   };
 
   // Backend search handler for customer selection
@@ -1324,41 +1348,47 @@ export const EnhancedBillingManager: React.FC = () => {
                 <div className="border-t border-zinc-200 dark:border-zinc-700 pt-3">
                   <h4 className="text-sm font-medium mb-2">Custom Product</h4>
 
-                  {newItems.map((item, index) => (
-                    <div
-                      key={index}
-                      className="p-2 mb-2 rounded bg-zinc-50 dark:bg-zinc-800 text-sm"
-                    >
+                  {/* Preview (shows live calculated amount) */}
+                  {(customProductName ||
+                    customProductWeight ||
+                    customProductRate) && (
+                    <div className="p-2 mb-2 rounded bg-zinc-50 dark:bg-zinc-800 text-sm">
                       <p>
-                        <strong>{item.productName}</strong> – {item.weight}g @{" "}
-                        {item.rate} ={" "}
-                        <span className="font-semibold">{item.amount}</span>
+                        <strong>{previewCustomItem.productName}</strong> –{" "}
+                        {previewCustomItem.netWeight}g @{" "}
+                        {previewCustomItem.rate} ={" "}
+                        <span className="font-semibold">
+                          {calculateItemAmount(
+                            previewCustomItem as Partial<BillItem>
+                          )}
+                        </span>
                       </p>
                     </div>
-                  ))}
+                  )}
 
                   <div className="grid grid-cols-2 gap-2">
                     <Input
                       placeholder="Name"
                       value={customProductName}
-                      onChange={(e) => setCustomProductName([e.target.value])}
+                      onChange={(e) => setCustomProductName(e.target.value)}
                     />
                     <Input
-                      placeholder="Weight"
+                      placeholder="Weight (g)"
                       type="number"
                       value={customProductWeight}
-                      onChange={(e) => setCustomProductWeight([e.target.value])}
+                      onChange={(e) => setCustomProductWeight(e.target.value)}
                     />
                     <Input
                       placeholder="Rate"
+                      type="number"
                       value={customProductRate}
-                      onChange={(e) => setCustomProductRate([e.target.value])}
+                      onChange={(e) => setCustomProductRate(e.target.value)}
                     />
                     <Input
-                      placeholder="Price"
+                      placeholder="Making (optional)"
                       type="number"
-                      value={customProductPrice}
-                      onChange={(e) => setCustomProductPrice([e.target.value])}
+                      value={customProductMaking}
+                      onChange={(e) => setCustomProductMaking(e.target.value)}
                     />
                   </div>
 
@@ -1366,7 +1396,12 @@ export const EnhancedBillingManager: React.FC = () => {
                     onClick={addCustomProduct}
                     variant="primary"
                     className="w-full mt-3"
-                    disabled={savingBill}
+                    disabled={
+                      savingBill ||
+                      !customProductName.trim() ||
+                      !customProductWeight.trim() ||
+                      !customProductRate.trim()
+                    }
                   >
                     Add Custom Product
                   </Button>

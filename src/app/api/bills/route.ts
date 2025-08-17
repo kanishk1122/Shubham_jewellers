@@ -20,24 +20,47 @@ export async function POST(request: NextRequest) {
 
     const billNumber = (await BillModel.countDocuments()) + 1; // Generate a new bill number
 
-    // Fix: Ensure productId is a valid ObjectId or undefined/null for bulk items
+    // Ensure each item has required fields for the Bill schema:
+    // - productId (ObjectId)
+    // - purity (fallback)
     const sanitizedItems = (billData.items || []).map((item: any) => {
-      let productId = item.productId;
-      // If productId looks like a valid ObjectId, keep it, else set to undefined
-      if (
-        productId &&
-        typeof productId === "string" &&
-        mongoose.Types.ObjectId.isValid(productId) &&
-        String(new mongoose.Types.ObjectId(productId)) === productId
-      ) {
-        // valid ObjectId string
-        return { ...item, productId };
-      } else {
-        // Not a valid ObjectId (likely a bulk id or custom string)
-        // Remove productId so Mongoose doesn't try to cast it
-        const { productId, ...rest } = item;
-        return { ...rest };
+      const copy: any = { ...item };
+
+      // Ensure purity exists
+      if (!copy.purity) {
+        copy.purity = "24K";
       }
+
+      // Determine a productId:
+      // 1) If productId is a valid ObjectId string, use it (as ObjectId).
+      // 2) Else if bulkProductId is a valid ObjectId string, use that.
+      // 3) Otherwise generate a new ObjectId for custom items.
+      const makeObjectId = (val: any) => {
+        try {
+          return new mongoose.Types.ObjectId(val);
+        } catch {
+          return new mongoose.Types.ObjectId();
+        }
+      };
+
+      if (
+        copy.productId &&
+        typeof copy.productId === "string" &&
+        mongoose.Types.ObjectId.isValid(copy.productId)
+      ) {
+        copy.productId = makeObjectId(copy.productId);
+      } else if (
+        copy.bulkProductId &&
+        typeof copy.bulkProductId === "string" &&
+        mongoose.Types.ObjectId.isValid(copy.bulkProductId)
+      ) {
+        copy.productId = makeObjectId(copy.bulkProductId);
+      } else {
+        // Create a synthetic productId for custom items so schema validation passes
+        copy.productId = new mongoose.Types.ObjectId();
+      }
+
+      return copy;
     });
 
     const newBill = new BillModel({
@@ -81,5 +104,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-
