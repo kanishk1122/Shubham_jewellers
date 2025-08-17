@@ -96,6 +96,7 @@ export const EnhancedBillingManager: React.FC = () => {
     discount: 0,
     paymentMode: "cash",
     paymentStatus: "paid",
+    taxType: "cgst", // "cgst" (CGST+SGST) or "igst"
   });
   const [showBulkProductDialog, setShowBulkProductDialog] = useState(false);
   const [selectedBulkProduct, setSelectedBulkProduct] = useState<any>(null);
@@ -165,18 +166,31 @@ export const EnhancedBillingManager: React.FC = () => {
     return baseAmount + makingAmount + wastageAmount;
   };
 
-  // Calculate bill totals
+  // Calculate bill totals (supports CGST+SGST or IGST)
   const calculateBillTotals = (bill: Partial<Bill>) => {
     const subtotal =
-      bill.items?.reduce((sum, item) => sum + item.amount, 0) || 0;
+      bill.items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
     const discountAmount = bill.discount || 0;
     const discountedAmount = subtotal - discountAmount;
 
-    // GST calculations (3% CGST + 3% SGST for jewelry)
-    const gstRate = 3; // 3% each for CGST and SGST
-    const cgst = (discountedAmount * gstRate) / 100;
-    const sgst = (discountedAmount * gstRate) / 100;
-    const igst = 0; // IGST only for inter-state transactions
+    // Base GST % per part (3% CGST and 3% SGST) — IGST equals combined rate
+    const partRate = 3; // percent (CGST or SGST)
+    let cgst = 0;
+    let sgst = 0;
+    let igst = 0;
+
+    if (bill.taxType === "igst") {
+      // IGST is sum of CGST+SGST => 6% in this setup
+      igst = (discountedAmount * partRate * 2) / 100;
+    } else if (bill.taxType === "cgst") {
+      cgst = (discountedAmount * partRate) / 100;
+      sgst = (discountedAmount * partRate) / 100;
+    }
+    else {
+      igst = 0;
+      cgst = 0;
+      sgst = 0;
+    }
 
     const finalAmount = discountedAmount + cgst + sgst + igst;
 
@@ -408,7 +422,7 @@ export const EnhancedBillingManager: React.FC = () => {
         customerId: currentBill.customerId,
         customerName: customer.name,
         customerPhone: customer.phone,
-        customerGST: customer.gstNumber,
+        customerGST: customer.gstNumber || undefined, // GST remains optional
         items: currentBill.items || [],
         subtotal: totals.subtotal,
         cgst: totals.cgst,
@@ -421,6 +435,7 @@ export const EnhancedBillingManager: React.FC = () => {
         paymentStatus: currentBill.paymentStatus || "paid",
         notes: currentBill.notes,
         date: new Date().toISOString().split("T")[0],
+        taxType: currentBill.taxType || "cgst",
       };
 
       // Use Redux thunk
@@ -451,14 +466,13 @@ export const EnhancedBillingManager: React.FC = () => {
     }
   };
 
-  // Update bill using Redux thunk
+  // Update bill include taxType and igst values
   const handleUpdateBill = async () => {
     if (!editingBill || !currentBill.customerId || !currentBill.items?.length)
       return;
 
     setSavingBill(true);
     try {
-      // Fetch customer from backend
       const customer = await fetchCustomerById(
         currentBill.customerId as string
       );
@@ -474,7 +488,7 @@ export const EnhancedBillingManager: React.FC = () => {
         customerId: currentBill.customerId,
         customerName: customer.name,
         customerPhone: customer.phone,
-        customerGST: customer.gstNumber,
+        customerGST: customer.gstNumber || undefined,
         items: currentBill.items || [],
         subtotal: totals.subtotal,
         cgst: totals.cgst,
@@ -486,6 +500,7 @@ export const EnhancedBillingManager: React.FC = () => {
         paymentMode: currentBill.paymentMode || "cash",
         paymentStatus: currentBill.paymentStatus || "paid",
         notes: currentBill.notes,
+        taxType: currentBill.taxType || "cgst",
       };
 
       const billId = editingBill._id || editingBill.id!;
@@ -615,6 +630,11 @@ export const EnhancedBillingManager: React.FC = () => {
             <tr><td>Discount:</td><td>-₹${bill.discount.toLocaleString()}</td></tr>
             <tr><td>CGST (3%):</td><td>₹${bill.cgst.toLocaleString()}</td></tr>
             <tr><td>SGST (3%):</td><td>₹${bill.sgst.toLocaleString()}</td></tr>
+            ${
+              bill.igst && bill.igst > 0
+                ? `<tr><td>IGST (6%):</td><td>₹${bill.igst.toLocaleString()}</td></tr>`
+                : ""
+            }
             <tr class="total-row"><td><strong>Total Amount:</strong></td><td><strong>₹${bill.finalAmount.toLocaleString()}</strong></td></tr>
           </table>
         </div>
@@ -1631,6 +1651,25 @@ export const EnhancedBillingManager: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                      Tax Type
+                    </label>
+                    <select
+                      value={currentBill.taxType}
+                      onChange={(e) =>
+                        setCurrentBill((prev) => ({
+                          ...prev,
+                          taxType: e.target.value as "cgst" | "igst" | "none",
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                    >
+                      <option value="cgst">CGST + SGST (Intra-state)</option>
+                      <option value="igst">IGST (Inter-state)</option>
+                      <option value="none">No Tax</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                       Notes
                     </label>
                     <textarea
@@ -1687,6 +1726,17 @@ export const EnhancedBillingManager: React.FC = () => {
                       ₹{currentBillTotals.sgst.toLocaleString()}
                     </span>
                   </div>
+                  {/* Show IGST row only if > 0 */}
+                  {currentBillTotals.igst > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-zinc-600 dark:text-zinc-400">
+                        IGST (6%):
+                      </span>
+                      <span className="font-medium">
+                        ₹{currentBillTotals.igst.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                   <div className="border-t border-zinc-300 dark:border-zinc-600 pt-2">
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total Amount:</span>

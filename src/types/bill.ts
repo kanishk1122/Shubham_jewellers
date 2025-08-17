@@ -43,4 +43,5 @@ export interface Bill {
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+  taxType: "cgst" | "igst" | "none";
 }
