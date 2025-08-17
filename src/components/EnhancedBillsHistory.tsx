@@ -376,123 +376,151 @@ export const EnhancedBillsHistory: React.FC = () => {
       </Card>
 
       {/* Bills List */}
-      {loading ? (
-        <Card className="p-8 text-center text-zinc-500">Loading bills...</Card>
-      ) : error ? (
-        <Card className="p-8 text-center text-red-600">{error}</Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {sortedBills.map((bill) => (
-            <Card
-              key={bill.id}
-              className="p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4 mb-3">
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
-                      Bill #{bill.billNumber}
-                    </h3>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        bill.paymentStatus === "paid"
-                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
-                          : bill.paymentStatus === "pending"
-                          ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
-                          : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
-                      }`}
-                    >
-                      {bill.paymentStatus.charAt(0).toUpperCase() +
-                        bill.paymentStatus.slice(1)}
-                    </span>
-                    <span className="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                      {bill.paymentMode.replace("_", " ").toUpperCase()}
-                    </span>
-                  </div>
+     {loading ? (
+  <Card className="p-8 text-center text-zinc-500">Loading bills...</Card>
+) : error ? (
+  <Card className="p-8 text-center text-red-600">{error}</Card>
+) : (
+  <div className="overflow-x-auto">
+    <table className="min-w-full border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+      <thead className="bg-zinc-100 dark:bg-zinc-800 text-sm text-zinc-600 dark:text-zinc-300">
+        <tr>
+          <th className="px-4 py-3 text-left">Bill #</th>
+          <th className="px-4 py-3 text-left">Status</th>
+          <th className="px-4 py-3 text-left">Payment</th>
+          <th className="px-4 py-3 text-left">Customer</th>
+          <th className="px-4 py-3 text-left">Date</th>
+          <th className="px-4 py-3 text-left">Items</th>
+          <th className="px-4 py-3 text-left">Amount</th>
+          <th className="px-4 py-3 text-left">Tax (GST)</th>
+          <th className="px-4 py-3 text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 text-sm">
+        {sortedBills.map((bill) => (
+          <tr
+            key={bill.id}
+            className="hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            {/* Bill Number */}
+            <td className="px-4 py-3 font-medium text-zinc-900 dark:text-white">
+              #{bill.billNumber}
+            </td>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
-                    <div>
-                      <p className="text-zinc-500 dark:text-zinc-400">
-                        Customer
-                      </p>
-                      <p className="font-medium">{bill.customerName}</p>
-                      <p className="text-zinc-600 dark:text-zinc-400">
-                        {bill.customerPhone}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-500 dark:text-zinc-400">Date</p>
-                      <p className="font-medium">
-                        {new Date(bill.date).toLocaleDateString()}
-                      </p>
-                      <p className="text-zinc-600 dark:text-zinc-400">
-                        {new Date(bill.createdAt).toLocaleTimeString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-500 dark:text-zinc-400">Items</p>
-                      <p className="font-medium">{bill.items.length} item(s)</p>
-                      <p className="text-zinc-600 dark:text-zinc-400">
-                        {bill.items
-                          .reduce((sum, item) => sum + item.netWeight, 0)
-                          .toFixed(2)}
-                        g total
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-500 dark:text-zinc-400">Amount</p>
-                      <p className="font-bold text-green-600 dark:text-green-400">
-                        ₹{bill.finalAmount.toLocaleString()}
-                      </p>
-                      {bill.discount > 0 && (
-                        <p className="text-red-600 dark:text-red-400 text-xs">
-                          Discount: ₹{bill.discount.toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-zinc-500 dark:text-zinc-400">
-                        Tax (GST)
-                      </p>
-                      <p className="font-medium">
-                        ₹{(bill.cgst + bill.sgst + bill.igst).toLocaleString()}
-                      </p>
-                      <p className="text-zinc-600 dark:text-zinc-400 text-xs">
-                        CGST + SGST
-                      </p>
-                    </div>
-                  </div>
+            {/* Status */}
+            <td className="px-4 py-3">
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  bill.paymentStatus === "paid"
+                    ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
+                    : bill.paymentStatus === "pending"
+                    ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
+                    : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
+                }`}
+              >
+                {bill.paymentStatus.charAt(0).toUpperCase() +
+                  bill.paymentStatus.slice(1)}
+              </span>
+            </td>
 
-                  {bill.notes && (
-                    <div className="mt-3 p-2 bg-zinc-50 dark:bg-zinc-700 rounded text-sm">
-                      <p className="text-zinc-600 dark:text-zinc-400">
-                        <strong>Notes:</strong> {bill.notes}
-                      </p>
-                    </div>
-                  )}
-                </div>
+            {/* Payment Mode */}
+            <td className="px-4 py-3">
+              <span className="px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                {bill.paymentMode.replace("_", " ").toUpperCase()}
+              </span>
+            </td>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setSelectedBill(bill)}
-                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2"
-                    title="View Details"
-                  >
-                    <Eye className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => printBill(bill)}
-                    className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-2"
-                    title="Print Bill"
-                  >
-                    <Printer className="h-5 w-5" />
-                  </button>
-                </div>
+            {/* Customer */}
+            <td className="px-4 py-3">
+              <p className="font-medium">{bill.customerName}</p>
+              <p className="text-zinc-500 dark:text-zinc-400 text-xs">
+                {bill.customerPhone}
+              </p>
+            </td>
+
+            {/* Date */}
+            <td className="px-4 py-3">
+              <p>{new Date(bill.date).toLocaleDateString()}</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {new Date(bill.createdAt).toLocaleTimeString()}
+              </p>
+            </td>
+
+            {/* Items */}
+            <td className="px-4 py-3">
+              <p>{bill.items.length} item(s)</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {bill.items
+                  .reduce((sum, item) => sum + item.netWeight, 0)
+                  .toFixed(2)}
+                g
+              </p>
+            </td>
+
+            {/* Amount */}
+            <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
+              ₹{bill.finalAmount.toLocaleString()}
+              {bill.discount > 0 && (
+                <p className="text-red-600 dark:text-red-400 text-xs">
+                  –₹{bill.discount.toLocaleString()} (Disc.)
+                </p>
+              )}
+            </td>
+
+            {/* Tax */}
+            <td className="px-4 py-3">
+              <p>₹{(bill.cgst + bill.sgst + bill.igst).toLocaleString()}</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {bill.igst > 0 ? "IGST" : "CGST + SGST"}
+              </p>
+            </td>
+
+            {/* Actions */}
+            <td className="px-4 py-3 text-center">
+              <div className="flex justify-center gap-2">
+                <button
+                  onClick={() => setSelectedBill(bill)}
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
+                  title="View Details"
+                >
+                  <Eye className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => printBill(bill)}
+                  className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-1"
+                  title="Print"
+                >
+                  <Printer className="w-5 h-5" />
+                </button>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+            </td>
+          </tr>
+        ))}
+
+        {/* Notes Row (optional inline display) */}
+        {sortedBills.map(
+          (bill) =>
+            bill.notes && (
+              <tr
+                key={bill.id + "-notes"}
+                className="bg-zinc-50 dark:bg-zinc-800"
+              >
+                <td colSpan={9} className="px-4 py-2 text-sm">
+                  <strong className="text-zinc-700 dark:text-zinc-300">
+                    Notes:
+                  </strong>{" "}
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    {bill.notes}
+                  </span>
+                </td>
+              </tr>
+            )
+        )}
+      </tbody>
+    </table>
+  </div>
+)}
+
 
       {sortedBills.length === 0 && (
         <Card className="p-8 text-center">
