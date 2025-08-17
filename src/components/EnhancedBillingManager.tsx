@@ -111,7 +111,7 @@ export const EnhancedBillingManager: React.FC = () => {
   const loading =
     billsLoading || productsLoading || bulkLoading || customersLoading;
 
-    useEffect(() => {
+  useEffect(() => {
     // Load initial data
     const loadData = async () => {
       await dispatch(fetchBills());
@@ -436,7 +436,9 @@ export const EnhancedBillingManager: React.FC = () => {
 
         alert("Bill created successfully and inventory updated!");
       } else {
-        alert((result && result.error) || "Failed to create bill. Please try again.");
+        alert(
+          (result && result.error) || "Failed to create bill. Please try again."
+        );
       }
     } catch (error) {
       console.error("Failed to create bill:", error);
@@ -492,7 +494,9 @@ export const EnhancedBillingManager: React.FC = () => {
       if (result && !result.error) {
         resetForm();
       } else {
-        alert((result && result.error) || "Failed to update bill. Please try again.");
+        alert(
+          (result && result.error) || "Failed to update bill. Please try again."
+        );
       }
     } catch (error) {
       console.error("Failed to update bill:", error);
@@ -513,7 +517,9 @@ export const EnhancedBillingManager: React.FC = () => {
     if (result && !result.error) {
       // success
     } else {
-      alert((result && result.error) || "Failed to delete bill. Please try again.");
+      alert(
+        (result && result.error) || "Failed to delete bill. Please try again."
+      );
     }
   };
 
@@ -673,6 +679,16 @@ export const EnhancedBillingManager: React.FC = () => {
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // Quick add customer states
+  const [showQuickAddCustomerDialog, setShowQuickAddCustomerDialog] =
+    useState(false);
+  const [quickCustomerForm, setQuickCustomerForm] = useState({
+    name: "",
+    phone: "",
+    gstNumber: "",
+  });
+  const [creatingQuickCustomer, setCreatingQuickCustomer] = useState(false);
+
   // Backend search handler for customer selection
   const handleCustomerSearch = (term: string) => {
     setCustomerSearch(term);
@@ -696,6 +712,44 @@ export const EnhancedBillingManager: React.FC = () => {
         setCustomerSearchLoading(false);
       }
     }, 400);
+  };
+
+  // Quick-create customer (used from dropdown)
+  const createQuickCustomer = async () => {
+    if (!quickCustomerForm.name && !quickCustomerForm.phone) {
+      alert("Please enter name or phone");
+      return;
+    }
+
+    setCreatingQuickCustomer(true);
+    try {
+      const res = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(quickCustomerForm),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data?.data) {
+        alert(data?.error || "Failed to create customer");
+        return;
+      }
+
+      const newCustomer = data.data;
+      // reload customers and select new one
+      await loadCustomers();
+      setCurrentBill((prev) => ({
+        ...prev,
+        customerId: newCustomer._id || newCustomer.id,
+      }));
+      setCustomerSearch(`${newCustomer.name} - ${newCustomer.phone}`);
+      setShowQuickAddCustomerDialog(false);
+    } catch (err) {
+      console.error("Failed to create customer:", err);
+      alert("Failed to create customer. Please try again.");
+    } finally {
+      setCreatingQuickCustomer(false);
+    }
   };
 
   return (
@@ -1088,11 +1142,43 @@ export const EnhancedBillingManager: React.FC = () => {
                         Searching...
                       </div>
                     ) : customerSearchResults.length === 0 ? (
-                      <div className="p-2 text-sm text-zinc-500">
-                        No customers found
+                      <div className="p-2">
+                        <div className="p-2 text-sm text-zinc-500">
+                          No customers found
+                        </div>
+
+                        {/* Show "Add new customer" action when user has typed something */}
+                        {customerSearch.trim().length > 0 && (
+                          <div className="p-2">
+                            <button
+                              onClick={() => {
+                                // Pre-fill quick form: if term looks like phone, put in phone, else in name
+                                const term = customerSearch.trim();
+                                const isPhone = /^\+?\d{7,}$/.test(term);
+                                setQuickCustomerForm({
+                                  name: isPhone ? "" : term,
+                                  phone: isPhone ? term : "",
+                                  gstNumber: "",
+                                });
+                                setShowQuickAddCustomerDialog(true);
+                                setCustomerDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 rounded"
+                            >
+                              <span className="text-sm">
+                                ➕ Add new customer:{" "}
+                                <strong className="ml-1">
+                                  {customerSearch}
+                                </strong>
+                              </span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      customerSearchResults.map((customer) => (
+                      <>
+                      {
+                        customerSearchResults.map((customer) => (
                         <div
                           key={customer._id || customer.id}
                           className={`p-2 cursor-pointer hover:bg-blue-50 dark:hover:bg-zinc-700 ${
@@ -1123,6 +1209,35 @@ export const EnhancedBillingManager: React.FC = () => {
                           )}
                         </div>
                       ))
+                      
+                      }
+                      {customerSearch.trim().length > 0 && (
+                          <div className="p-2">
+                            <button
+                              onClick={() => {
+                                // Pre-fill quick form: if term looks like phone, put in phone, else in name
+                                const term = customerSearch.trim();
+                                const isPhone = /^\+?\d{7,}$/.test(term);
+                                setQuickCustomerForm({
+                                  name: isPhone ? "" : term,
+                                  phone: isPhone ? term : "",
+                                  gstNumber: "",
+                                });
+                                setShowQuickAddCustomerDialog(true);
+                                setCustomerDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 bg-blue-50 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-800 rounded"
+                            >
+                              <span className="text-sm">
+                                ➕ Add new customer:{" "}
+                                <strong className="ml-1">
+                                  {customerSearch}
+                                </strong>
+                              </span>
+                            </button>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -1537,7 +1652,13 @@ export const EnhancedBillingManager: React.FC = () => {
         <div className="grid grid-cols-1 gap-4">
           {filteredBills.map((bill) => (
             <Card
-              key={bill._id || bill.id}
+              key={
+                bill._id ||
+                bill.id ||
+                bill.billNumber ||
+                bill.date ||
+                Math.random()
+              }
               className="p-6 hover:shadow-lg transition-shadow"
             >
               <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -1686,6 +1807,82 @@ export const EnhancedBillingManager: React.FC = () => {
           </div>
         </Card>
       )}
+
+      {/* Quick Add Customer Dialog */}
+      <Dialog
+        open={showQuickAddCustomerDialog}
+        onOpenChange={setShowQuickAddCustomerDialog}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Customer</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                Name
+              </label>
+              <Input
+                value={quickCustomerForm.name}
+                onChange={(e) =>
+                  setQuickCustomerForm((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+                placeholder="Customer name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                Phone
+              </label>
+              <Input
+                value={quickCustomerForm.phone}
+                onChange={(e) =>
+                  setQuickCustomerForm((prev) => ({
+                    ...prev,
+                    phone: e.target.value,
+                  }))
+                }
+                placeholder="Phone number"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                GST (optional)
+              </label>
+              <Input
+                value={quickCustomerForm.gstNumber}
+                onChange={(e) =>
+                  setQuickCustomerForm((prev) => ({
+                    ...prev,
+                    gstNumber: e.target.value.toUpperCase(),
+                  }))
+                }
+                placeholder="GST number"
+                className="font-mono"
+              />
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button
+                onClick={createQuickCustomer}
+                disabled={creatingQuickCustomer}
+                className="flex-1"
+              >
+                {creatingQuickCustomer ? "Creating..." : "Create & Select"}
+              </Button>
+              <Button
+                onClick={() => setShowQuickAddCustomerDialog(false)}
+                variant="secondary"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
