@@ -14,7 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext"; // new import
-import axios from "axios";
+import { apiJson } from "@/lib/fetcher"; // <-- add this
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -156,17 +156,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       // Get today's date in ISO format (YYYY-MM-DD)
       const today = new Date().toISOString().split("T")[0];
 
-      // Fetch today's bills with Authorization header
-      const response = await axios.get(
-        `/api/bills?startDate=${today}&endDate=${today}&limit=1000`,
-        { headers: { Authorization: `Bearer ${auth.token}` } }
+      // Fetch using centralized helper which injects Authorization
+      const data = await apiJson(
+        `/api/bills?startDate=${today}&endDate=${today}&limit=1000`
       );
-      const data = response.data;
-
-      if (!data.success) {
-        throw new Error(data.error || "Failed to fetch today's summary");
-      }
-
       const bills = data.data || [];
 
       // Calculate summary metrics
@@ -498,3 +491,4 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     </div>
   );
 };
+export default Layout;

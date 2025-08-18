@@ -385,10 +385,8 @@ export const EnhancedBillingManager: React.FC = () => {
     customerId: string
   ): Promise<Customer | null> => {
     try {
-      const res = await fetch(`/api/customers/${customerId}`);
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data?.data || null;
+      const res = await axios.get(`/api/customers/${customerId}`);
+      return res.data?.data || null;
     } catch {
       return null;
     }

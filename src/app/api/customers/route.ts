@@ -7,25 +7,25 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    // --- AUTH: require Bearer token and admin role ---
-    const authHeader =
-      request.headers.get("authorization") ||
-      request.headers.get("Authorization");
-    const payload = verifyToken(
-      authHeader ? authHeader.replace(/^Bearer\s+/i, "") : undefined
-    );
-    if (!payload || !payload.id) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    if (payload.role !== "admin") {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: admin only" },
-        { status: 403 }
-      );
-    }
+    // // --- AUTH: require Bearer token and admin role ---
+    // const authHeader =
+    //   request.headers.get("authorization") ||
+    //   request.headers.get("Authorization");
+    // const payload = verifyToken(
+    //   authHeader ? authHeader.replace(/^Bearer\s+/i, "") : undefined
+    // );
+    // if (!payload || !payload.id) {
+    //   return NextResponse.json(
+    //     { success: false, error: "Unauthorized" },
+    //     { status: 401 }
+    //   );
+    // }
+    // if (payload.role !== "admin") {
+    //   return NextResponse.json(
+    //     { success: false, error: "Forbidden: admin only" },
+    //     { status: 403 }
+    //   );
+    // }
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");

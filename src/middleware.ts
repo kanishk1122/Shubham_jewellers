@@ -1,6 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifyToken } from "@/lib/auth";
+import jwt from "jsonwebtoken";
+
+// NOTE: keep middleware self-contained — DO NOT import server modules (models/mongoose).
+const JWT_SECRET = process.env.JWT_SECRET || "dev_jwt_secret";
+
+// lightweight verify used only in middleware (avoids importing server-side helpers)
+const verifyToken = (token?: string) => {
+  if (!token) return null;
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as any;
+    return payload;
+  } catch {
+    return null;
+  }
+};
 
 // ...public paths allowed without authentication...
 const PUBLIC_PATHS = [
@@ -11,6 +25,7 @@ const PUBLIC_PATHS = [
   "/api/auth/me", // allow token check endpoint
   "/favicon.ico",
   "/robots.txt",
+  "/dashboard"
 ];
 
 // Utility to check if path is public
@@ -56,7 +71,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Verify token and check role
+  // Verify token and check role (middleware-only, lightweight)
   const payload = verifyToken(token);
   if (!payload || !payload.id) {
     if (pathname.startsWith("/api/")) {

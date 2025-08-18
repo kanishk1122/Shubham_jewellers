@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { apiFetch, apiJson } from "@/lib/fetcher";
 import { Bill } from "@/types/bill";
 
 interface BillsState {
@@ -41,12 +42,7 @@ export const fetchBills = createAsyncThunk(
         });
         url += `?${qp.toString()}`;
       }
-      const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const headers: any = {};
-      if (token) headers.Authorization = `Bearer ${token}`;
-      const res = await fetch(url, { headers });
-      const data = await res.json();
+      const data = await apiJson(url);
       if (!data.success) throw new Error(data.error || "Failed to fetch bills");
       // return structured payload with meta
       return {
@@ -65,34 +61,29 @@ export const fetchBills = createAsyncThunk(
 export const fetchBillById = createAsyncThunk(
   "bills/fetchBillById",
   async (id: string, { rejectWithValue }) => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const headers: any = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(`/api/bills/${id}`, { headers });
-    const data = await res.json();
-    if (!data.success)
-      return rejectWithValue(data.error || "Failed to fetch bill");
-    return data.data as Bill;
+    try {
+      const data = await apiJson(`/api/bills/${id}`);
+      return data.data as Bill;
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Failed to fetch bill");
+    }
   }
 );
 
 export const createBill = createAsyncThunk(
   "bills/createBill",
   async (billData: Partial<Bill>, { rejectWithValue }) => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const headers: any = { "Content-Type": "application/json" };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch("/api/bills", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(billData),
-    });
-    const data = await res.json();
-    if (!data.success)
-      return rejectWithValue(data.error || "Failed to create bill");
-    return data.data as Bill;
+    try {
+      const res = await apiFetch("/api/bills", {
+        method: "POST",
+        body: JSON.stringify(billData),
+      });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data?.error || "Failed to create bill");
+      return data.data as Bill;
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Failed to create bill");
+    }
   }
 );
 
@@ -102,34 +93,31 @@ export const updateBill = createAsyncThunk(
     { id, billData }: { id: string; billData: Partial<Bill> },
     { rejectWithValue }
   ) => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const headers: any = { "Content-Type": "application/json" };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(`/api/bills/${id}`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(billData),
-    });
-    const data = await res.json();
-    if (!data.success)
-      return rejectWithValue(data.error || "Failed to update bill");
-    return data.data as Bill;
+    try {
+      const res = await apiFetch(`/api/bills/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(billData),
+      });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data?.error || "Failed to update bill");
+      return data.data as Bill;
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Failed to update bill");
+    }
   }
 );
 
 export const deleteBill = createAsyncThunk(
   "bills/deleteBill",
   async (id: string, { rejectWithValue }) => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    const headers: any = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(`/api/bills/${id}`, { method: "DELETE", headers });
-    const data = await res.json();
-    if (!data.success)
-      return rejectWithValue(data.error || "Failed to delete bill");
-    return id;
+    try {
+      const res = await apiFetch(`/api/bills/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) return rejectWithValue(data?.error || "Failed to delete bill");
+      return id;
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Failed to delete bill");
+    }
   }
 );
 
@@ -243,3 +231,4 @@ const billsSlice = createSlice({
 
 export const { setSelectedBill, clearError } = billsSlice.actions;
 export default billsSlice.reducer;
+export const selectBills = (state: { bills: BillsState }) => state.bills.bills;

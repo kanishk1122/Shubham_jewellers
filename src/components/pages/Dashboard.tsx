@@ -36,7 +36,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import PuppeteerQuickRatesWidget from "@/components/PuppeteerQuickRatesWidget";
-import axios from "axios";
+import axios from "@/lib/api";
 
 // Define color schemes for consistency
 const COLORS = {
@@ -192,7 +192,9 @@ export const Dashboard: React.FC = () => {
 
       const headers: any = { "Content-Type": "application/json" };
       if (auth?.token) headers.Authorization = `Bearer ${auth.token}`;
-      const res = await axios.get(`/api/customers?${qs.toString()}`, { headers });
+      const res = await axios.get(`/api/customers?${qs.toString()}`, {
+        headers,
+      });
       const data = res.data;
 
       if (!data.success)
