@@ -31,10 +31,13 @@ export async function PUT(
       .replace(/[\s_-]+/g, "-")
       .replace(/^-+|-+$/g, "");
 
+    // Await params to get the id
+    const { id } = await params;
+
     // Check if another category with same name or slug exists (excluding current category)
     const existingCategory = await Category.findOne({
       $or: [{ name }, { slug }],
-      _id: { $ne: params.id },
+      _id: { $ne: id },
     });
 
     if (existingCategory) {
@@ -48,7 +51,7 @@ export async function PUT(
     }
 
     const category = await Category.findByIdAndUpdate(
-      params.id,
+      id,
       {
         name,
         slug,
@@ -110,9 +113,12 @@ export async function DELETE(
       );
     }
 
+    // Await params to get the id
+    const { id } = await params;
+
     // Soft delete - set isActive to false
     const category = await Category.findByIdAndUpdate(
-      params.id,
+      id,
       { isActive: false },
       { new: true }
     );
