@@ -73,22 +73,23 @@ export const EnhancedProductManager: React.FC = () => {
   const categoriesLoading = categoriesState.loading;
   const categoriesError = categoriesState.error;
 
-  // small helpers to load slices (used for refresh / initial load)
-  const loadProducts = async (opts?: {
-    page?: number;
-    limit?: number;
-    sort?: string;
-  }) => {
-    const params: any = { page: opts?.page ?? 1, limit: opts?.limit ?? 100 };
-    if (opts?.sort) params.sort = opts.sort;
-    await dispatch(fetchProducts(params as any));
-  };
-  const loadBulkProducts = async () => {
+  // small helpers to load slices (memoized so they don't recreate each render)
+  const loadProducts = React.useCallback(
+    async (opts?: { page?: number; limit?: number; sort?: string }) => {
+      const params: any = { page: opts?.page ?? 1, limit: opts?.limit ?? 100 };
+      if (opts?.sort) params.sort = opts.sort;
+      await dispatch(fetchProducts(params as any));
+    },
+    [dispatch]
+  );
+
+  const loadBulkProducts = React.useCallback(async () => {
     await dispatch(fetchBulkProducts(undefined as any));
-  };
-  const loadCategories = async () => {
+  }, [dispatch]);
+
+  const loadCategories = React.useCallback(async () => {
     await dispatch(fetchCategories(undefined as any));
-  };
+  }, [dispatch]);
 
   const [activeTab, setActiveTab] = useState<"individual" | "bulk">(
     "individual"
@@ -156,14 +157,23 @@ export const EnhancedProductManager: React.FC = () => {
   }
 
   useEffect(() => {
-    // Load initial data
+    // Load initial data once (dependencies are stable)
     const loadData = async () => {
-      await dispatch(fetchBills());
-      await loadBulkProducts();
-      await loadCategories();
+      // fetch bills and lists in parallel where safe
+      try {
+        dispatch(fetchBills() as any);
+        await Promise.all([
+          loadProducts(),
+          loadBulkProducts(),
+          loadCategories(),
+        ]);
+      } catch (e) {
+        /* swallow here; slices handle errors */
+      }
     };
     loadData();
-  }, [dispatch, loadBulkProducts, loadCategories]);
+    // only re-run if dispatch or the stable callbacks change
+  }, [dispatch, loadProducts, loadBulkProducts, loadCategories]);
 
   // Get category icon by type for dropdown
   const getCategoryIconByType = (iconType: string) => {
@@ -270,7 +280,7 @@ export const EnhancedProductManager: React.FC = () => {
 
   // Get category icon dynamically (updated to handle new icon types)
   const getCategoryIcon = (categorySlug: string) => {
-    const category = categories.find((c : any) => c.slug === categorySlug);
+    const category = categories.find((c: any) => c.slug === categorySlug);
     if (category?.icon) {
       return getCategoryIconByType(category.icon);
     }
@@ -301,7 +311,7 @@ export const EnhancedProductManager: React.FC = () => {
   };
 
   // Filter products
-  const filteredProducts = products.filter((product : any) => {
+  const filteredProducts = products.filter((product: any) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -434,7 +444,9 @@ export const EnhancedProductManager: React.FC = () => {
     }
   }
 
-  async function handleUpdateCategory(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+  async function handleUpdateCategory(
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ): Promise<void> {
     event.preventDefault();
     if (!editingCategory) return;
     setSavingCategory(true);
@@ -455,7 +467,9 @@ export const EnhancedProductManager: React.FC = () => {
   }
 
   // Add missing handleAddCategory function
-  async function handleAddCategory(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+  async function handleAddCategory(
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ): Promise<void> {
     event.preventDefault();
     setSavingCategory(true);
     try {
@@ -515,7 +529,9 @@ export const EnhancedProductManager: React.FC = () => {
   }
 
   // Add missing handleAddBulkProduct function
-  async function handleAddBulkProduct(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+  async function handleAddBulkProduct(
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ): Promise<void> {
     event.preventDefault();
     setSavingProduct(true);
     try {
@@ -543,7 +559,9 @@ export const EnhancedProductManager: React.FC = () => {
   }
 
   // Add missing handleUpdateBulkProduct function
-  async function handleUpdateBulkProduct(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+  async function handleUpdateBulkProduct(
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ): Promise<void> {
     event.preventDefault();
     if (!editingBulkProduct) return;
     setSavingProduct(true);
@@ -569,7 +587,9 @@ export const EnhancedProductManager: React.FC = () => {
   }
 
   // Add missing handleAddProduct function
-  async function handleAddProduct(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+  async function handleAddProduct(
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ): Promise<void> {
     event.preventDefault();
     setSavingProduct(true);
     try {
@@ -589,9 +609,11 @@ export const EnhancedProductManager: React.FC = () => {
       setSavingProduct(false);
     }
   }
-  
+
   // Add missing handleUpdateProduct function
-  async function handleUpdateProduct(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+  async function handleUpdateProduct(
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ): Promise<void> {
     event.preventDefault();
     if (!editingProduct) return;
     setSavingProduct(true);
@@ -653,10 +675,10 @@ export const EnhancedProductManager: React.FC = () => {
       setSavingProduct(false);
     }
   }
-  
-    return (
-      <div className="space-y-6">
-        {/* Header */}
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
@@ -733,7 +755,7 @@ export const EnhancedProductManager: React.FC = () => {
 
           {/* Categories Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-            {categories.map((category : any) => (
+            {categories.map((category: any) => (
               <Card
                 key={category._id || category.id}
                 className="p-4 hover:shadow-md transition-shadow"
@@ -966,7 +988,7 @@ export const EnhancedProductManager: React.FC = () => {
         <>
           {/* Bulk Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {bulkProducts.map((product : any) => (
+            {bulkProducts.map((product: any) => (
               <Card
                 key={product._id || product.id}
                 className="p-6 hover:shadow-lg transition-shadow"
@@ -1151,7 +1173,7 @@ export const EnhancedProductManager: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                   >
-                    {categories.map((category : any) => (
+                    {categories.map((category: any) => (
                       <option
                         key={category._id || category.id}
                         value={category.slug}
@@ -1383,7 +1405,7 @@ export const EnhancedProductManager: React.FC = () => {
                     className="w-full px-3 py-2 pl-10 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                   >
                     <option value="all">All Categories</option>
-                    {categories.map((category : any) => (
+                    {categories.map((category: any) => (
                       <option
                         key={category._id || category.id}
                         value={category.slug}
@@ -1456,7 +1478,7 @@ export const EnhancedProductManager: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                   >
-                    {categories.map((category :any) => (
+                    {categories.map((category: any) => (
                       <option
                         key={category._id || category.id}
                         value={category.slug}
@@ -1613,7 +1635,7 @@ export const EnhancedProductManager: React.FC = () => {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product:any) => (
+            {filteredProducts.map((product: any) => (
               <Card
                 key={product._id || product.id}
                 className="p-6 hover:shadow-lg transition-shadow"
