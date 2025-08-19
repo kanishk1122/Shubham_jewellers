@@ -79,15 +79,15 @@ export const ExpenseManager: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, customStart, customEnd]);
 
-  const totalExpenses = useMemo(() => {
-    return (expensesState.expenses || []).reduce(
-      (s: number, e: any) => s + Number(e.amount || 0),
-      0
-    );
+  // Sum of expenses excluding purchase/exchange entries
+  const totalExpensesExcludingPurchases = useMemo(() => {
+    return (expensesState.expenses || [])
+      .filter((e: any) => e.category !== "purchase")
+      .reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
   }, [expensesState.expenses]);
 
+  // Sum of purchase/exchange entries (customer exchanges) — tracked separately
   const totalPurchases = useMemo(() => {
-    // purchases are expenses with category === 'purchase'
     return (expensesState.expenses || [])
       .filter((e: any) => e.category === "purchase")
       .reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
@@ -100,7 +100,8 @@ export const ExpenseManager: React.FC = () => {
     );
   }, [billsState.bills]);
 
-  const grossProfit = totalIncome - totalExpenses;
+  // P&L: income minus operational expenses (exclude purchases/exchanges)
+  const grossProfit = totalIncome - totalExpensesExcludingPurchases;
 
   const handleCreateExpense = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -195,8 +196,12 @@ export const ExpenseManager: React.FC = () => {
           </Button>
           <div className="text-sm text-zinc-600">
             Income: ₹{totalIncome.toLocaleString()} • Expenses: ₹
-            {totalExpenses.toLocaleString()} • P&L: ₹
+            {totalExpensesExcludingPurchases.toLocaleString()} • P&L: ₹
             {grossProfit.toLocaleString()}
+            {/* show today's exchanges separately */}
+            <div className="text-xs text-zinc-500 mt-1">
+              Today Exchange: ₹{totalPurchases.toLocaleString()}
+            </div>
           </div>
         </div>
       </Card>

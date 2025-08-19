@@ -24,7 +24,9 @@ interface LayoutProps {
 // Define interface for today's summary data (now includes expenses & profit)
 interface TodaySummary {
   salesAmount: number;
-  expensesAmount: number;
+  expensesAmount: number; // expenses excluding purchases/exchanges
+  exchangeAmount: number; // purchases / exchanges total
+  cashInHand: number; // salesAmount - expensesAmount
   profit: number;
   billsCount: number;
   pendingBillsCount: number;
@@ -148,6 +150,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [todaySummary, setTodaySummary] = useState<TodaySummary>({
     salesAmount: 0,
     expensesAmount: 0,
+    exchangeAmount: 0,
+    cashInHand: 0,
     profit: 0,
     billsCount: 0,
     pendingBillsCount: 0,
@@ -176,24 +180,32 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       const bills = billsResp.data || [];
       const expenses = expensesResp.data || [];
 
-      // Calculate summary metrics (sales, expenses, profit)
+      // Calculate summary metrics (sales, expenses excluding purchases, exchange amount)
       const salesAmount = bills.reduce(
         (sum: number, bill: any) => sum + (Number(bill.finalAmount) || 0),
         0
       );
-      const expensesAmount = expenses.reduce(
-        (s: number, ex: any) => s + (Number(ex.amount) || 0),
-        0
-      );
+      // expenses that are NOT purchases/exchanges
+      const expensesAmount = (expenses || [])
+        .filter((ex: any) => ex.category !== "purchase")
+        .reduce((s: number, ex: any) => s + (Number(ex.amount) || 0), 0);
+      // total of purchase/exchange entries (customer exchanges)
+      const exchangeAmount = (expenses || [])
+        .filter((ex: any) => ex.category === "purchase")
+        .reduce((s: number, ex: any) => s + (Number(ex.amount) || 0), 0);
       const billsCount = bills.length;
       const pendingBillsCount = bills.filter(
         (bill: any) => bill.paymentStatus === "pending"
       ).length;
 
+      const cashInHand = salesAmount - expensesAmount;
+
       setTodaySummary({
         salesAmount,
         expensesAmount,
-        profit: salesAmount - expensesAmount,
+        exchangeAmount,
+        cashInHand,
+        profit: cashInHand, // profit shown excludes exchanges
         billsCount,
         pendingBillsCount,
         isLoading: false,
@@ -353,16 +365,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-zinc-600 dark:text-zinc-400">
-                    Profit
+                    Today's Exchange
+                  </span>
+                  <button
+                    onClick={() => router.push("/expenses")}
+                    className="font-medium text-amber-600 dark:text-amber-400 hover:underline"
+                    title="View today's exchanges"
+                  >
+                    {formatCurrency(todaySummary.exchangeAmount)}
+                  </button>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Cash in hand
                   </span>
                   <span
                     className={`font-medium ${
-                      todaySummary.profit >= 0
+                      todaySummary.cashInHand >= 0
                         ? "text-green-600 dark:text-green-400"
                         : "text-red-600 dark:text-red-400"
                     }`}
                   >
-                    {formatCurrency(todaySummary.profit)}
+                    {formatCurrency(todaySummary.cashInHand)}
                   </span>
                 </div>
                 <div className="flex justify-between">

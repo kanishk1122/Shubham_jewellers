@@ -24,11 +24,19 @@ export async function GET(request: NextRequest) {
       filter.date = {};
       if (startDate) {
         const s = new Date(startDate);
-        if (!isNaN(s.getTime())) filter.date.$gte = s;
+        if (!isNaN(s.getTime())) {
+          // normalize to start of day (inclusive)
+          s.setHours(0, 0, 0, 0);
+          filter.date.$gte = s;
+        }
       }
       if (endDate) {
         const e = new Date(endDate);
-        if (!isNaN(e.getTime())) filter.date.$lte = e;
+        if (!isNaN(e.getTime())) {
+          // normalize to end of day (inclusive)
+          e.setHours(23, 59, 59, 999);
+          filter.date.$lte = e;
+        }
       }
       if (Object.keys(filter.date).length === 0) delete filter.date;
     }
