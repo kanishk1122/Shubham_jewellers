@@ -97,7 +97,10 @@ export const useCustomers = () => {
   const updateCustomer = useCallback(
     async (customerId: string, customerData: Partial<Customer>) => {
       try {
-        const response = await axios.put(`/api/customers/${customerId}`, customerData);
+        const response = await axios.put(
+          `/api/customers/${customerId}`,
+          customerData
+        );
         const result: CustomerResponse = response.data;
 
         if (result.success && result.data && !Array.isArray(result.data)) {
@@ -188,19 +191,21 @@ export const useCustomers = () => {
     }
   };
 
-  // Search customers
-  const searchCustomers = async (searchTerm: string, page = 1, limit = 50) => {
+  // Search customers (supports sort: "field" or "-field")
+  const searchCustomers = async (
+    searchTerm: string,
+    page = 1,
+    limit = 50,
+    sort: string | undefined = undefined
+  ) => {
     try {
-      const response = await axios.get("/api/customers", {
-        params: {
-          search: searchTerm,
-          page,
-          limit,
-        },
-      });
+      const params: any = { search: searchTerm, page, limit };
+      if (sort) params.sort = sort;
+      const response = await axios.get("/api/customers", { params });
       const result = response.data;
       return result;
     } catch (err) {
+      console.error("Customer search failed:", err);
       return { success: false, data: [], error: "Search failed" };
     }
   };

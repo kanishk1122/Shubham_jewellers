@@ -3,7 +3,7 @@
 import React from "react";
 import { EnhancedMetalRatesManager } from "@/components/EnhancedMetalRatesManager";
 import { EnhancedProductManager } from "@/components/EnhancedProductManager";
-import { EnhancedCustomerManager } from "@/components/EnhancedCustomerManager";
+import  EnhancedCustomerManager  from "@/components/EnhancedCustomerManager";
 import { EnhancedBillingManager } from "@/components/EnhancedBillingManager";
 import { EnhancedBillsHistory } from "@/components/EnhancedBillsHistory";
 

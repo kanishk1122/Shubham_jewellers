@@ -6,7 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface Customer {
   _id?: string;
@@ -31,6 +31,9 @@ interface Props {
   handleDeleteCustomer: (c: Customer) => void;
   getCustomerTypeLabel: (c: Customer) => string;
   getCustomerTypeIcon: (c: Customer) => React.ReactNode;
+  sortKey?: string;
+  sortDir?: "asc" | "desc";
+  onSort?: (key: string) => void;
 }
 
 export function CustomerTable({
@@ -40,8 +43,45 @@ export function CustomerTable({
   handleDeleteCustomer,
   getCustomerTypeLabel,
   getCustomerTypeIcon,
+  sortKey,
+  sortDir,
+  onSort,
 }: Props) {
   if (loading) return <p>Loading...</p>;
+
+  const SortHeader: React.FC<{
+    label: string;
+    field: string;
+    className?: string;
+  }> = ({ label, field, className }) => {
+    const active = sortKey === field;
+    return (
+      <div
+        className={`flex items-center gap-2 cursor-pointer select-none ${
+          className || ""
+        }`}
+        onClick={() => onSort && onSort(field)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") onSort && onSort(field);
+        }}
+      >
+        <span>{label}</span>
+        <span className="text-zinc-400">
+          {active ? (
+            sortDir === "asc" ? (
+              <ArrowUp className="w-3 h-3" />
+            ) : (
+              <ArrowDown className="w-3 h-3" />
+            )
+          ) : (
+            <ArrowUpDown className="w-3 h-3" />
+          )}
+        </span>
+      </div>
+    );
+  };
 
   return (
     <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
@@ -49,15 +89,25 @@ export function CustomerTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-40">Type</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Phone</TableHead>
+            <TableHead>
+              <SortHeader label="Name" field="name" />
+            </TableHead>
+            <TableHead>
+              <SortHeader label="Phone" field="phone" />
+            </TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Address</TableHead>
             <TableHead>GST</TableHead>
             <TableHead>PAN</TableHead>
-            <TableHead>Total Purchases</TableHead>
-            <TableHead>Last Purchase</TableHead>
-            <TableHead>Customer Since</TableHead>
+            <TableHead>
+              <SortHeader label="Total Purchases" field="totalPurchases" />
+            </TableHead>
+            <TableHead>
+              <SortHeader label="Last Purchase" field="lastPurchaseDate" />
+            </TableHead>
+            <TableHead>
+              <SortHeader label="Customer Since" field="createdAt" />
+            </TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -79,10 +129,14 @@ export function CustomerTable({
 
               {/* Contact */}
               <TableCell>{customer.phone}</TableCell>
-              <TableCell className="truncate max-w-[160px]">{customer.email || "-"}</TableCell>
+              <TableCell className="truncate max-w-[160px]">
+                {customer.email || "-"}
+              </TableCell>
 
               {/* Address */}
-              <TableCell className="truncate max-w-[200px]">{customer.address || "-"}</TableCell>
+              <TableCell className="truncate max-w-[200px]">
+                {customer.address || "-"}
+              </TableCell>
 
               {/* GST & PAN */}
               <TableCell>{customer.gstNumber || "-"}</TableCell>
@@ -96,11 +150,14 @@ export function CustomerTable({
               {/* Last Purchase */}
               <TableCell>
                 {customer.lastPurchaseDate
-                  ? new Date(customer.lastPurchaseDate).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })
+                  ? new Date(customer.lastPurchaseDate).toLocaleDateString(
+                      "en-IN",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      }
+                    )
                   : "-"}
               </TableCell>
 

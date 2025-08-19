@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { CustomerTable } from "./CustomerTable";
 
-export const EnhancedCustomerManager: React.FC = () => {
+const EnhancedCustomerManager: React.FC = () => {
   const {
     customers,
     loading,
@@ -152,17 +152,38 @@ export const EnhancedCustomerManager: React.FC = () => {
     setShowAddForm(false);
   };
 
+  // Sorting state: key matches backend field names (e.g. "name", "totalPurchases", "createdAt", "lastPurchaseDate")
+  const [sortKey, setSortKey] = useState<string>("updatedAt");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+    setCurrentPage(1);
+    // refetch according to current mode
+    if (backendSearchActive)
+      fetchBackendCustomers(searchTerm, 1, itemsPerPage, key, sortDir === "asc" ? "desc" : "asc");
+    else fetchAllCustomers(1, itemsPerPage, key, sortDir === "asc" ? "desc" : "asc");
+  };
+
   // Debounce search
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const fetchBackendCustomers = async (
     term: string,
     page: number,
-    limit: number
+    limit: number,
+    sortKeyParam: string = sortKey,
+    sortDirParam: "asc" | "desc" = sortDir
   ) => {
     setBackendSearchLoading(true);
     try {
-      const result = await searchCustomers(term, page, limit);
+      // pass sort param as 4th argument (backend hook should forward it to API as ?sort= or similar)
+      const result = await searchCustomers(term, page, limit, `${sortDirParam === "desc" ? "-" : ""}${sortKeyParam}`);
       setBackendCustomers(result.data || []);
       setBackendTotal(result.total || 0);
       setBackendTotalPages(result.totalPages || 1);
@@ -180,10 +201,15 @@ export const EnhancedCustomerManager: React.FC = () => {
   const [allTotal, setAllTotal] = useState(0);
   const [allTotalPages, setAllTotalPages] = useState(1);
 
-  const fetchAllCustomers = async (page: number, limit: number) => {
+  const fetchAllCustomers = async (
+    page: number,
+    limit: number,
+    sortKeyParam: string = sortKey,
+    sortDirParam: "asc" | "desc" = sortDir
+  ) => {
     setBackendSearchLoading(true);
     try {
-      const result = await searchCustomers("", page, limit);
+      const result = await searchCustomers("", page, limit, `${sortDirParam === "desc" ? "-" : ""}${sortKeyParam}`);
 
       setAllCustomers(result.data || []);
       setAllTotal(result.total || 0);
@@ -199,8 +225,8 @@ export const EnhancedCustomerManager: React.FC = () => {
 
   // On mount, load first page of all customers
   React.useEffect(() => {
-    fetchAllCustomers(currentPage, itemsPerPage);
-  }, [currentPage, itemsPerPage]);
+    fetchAllCustomers(currentPage, itemsPerPage, sortKey, sortDir);
+  }, [currentPage, itemsPerPage, sortKey, sortDir]);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -217,7 +243,7 @@ export const EnhancedCustomerManager: React.FC = () => {
     setBackendSearchActive(true);
 
     searchTimeout.current = setTimeout(() => {
-      fetchBackendCustomers(term, 1, itemsPerPage);
+      fetchBackendCustomers(term, 1, itemsPerPage, sortKey, sortDir);
       setCurrentPage(1);
     }, 400); // 400ms debounce
   };
@@ -239,7 +265,9 @@ export const EnhancedCustomerManager: React.FC = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     if (backendSearchActive) {
-      fetchBackendCustomers(searchTerm, page, itemsPerPage);
+      fetchBackendCustomers(searchTerm, page, itemsPerPage, sortKey, sortDir);
+    } else {
+      fetchAllCustomers(page, itemsPerPage, sortKey, sortDir);
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -248,117 +276,38 @@ export const EnhancedCustomerManager: React.FC = () => {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
     if (backendSearchActive) {
-      fetchBackendCustomers(searchTerm, 1, newItemsPerPage);
+      fetchBackendCustomers(searchTerm, 1, newItemsPerPage, sortKey, sortDir);
+    } else {
+      fetchAllCustomers(1, newItemsPerPage, sortKey, sortDir);
     }
   };
 
-  // Pagination component
-  const PaginationControls = () => {
-    if (totalPages <= 1) return null;
-
-    const getPageNumbers = () => {
-      const pages = [];
-      const maxVisible = 5;
-      if (totalPages <= maxVisible) {
-        for (let i = 1; i <= totalPages; i++) pages.push(i);
-      } else {
-        if (currentPage <= 3) {
-          for (let i = 1; i <= 4; i++) pages.push(i);
-          pages.push("...");
-          pages.push(totalPages);
-        } else if (currentPage >= totalPages - 2) {
-          pages.push(1);
-          pages.push("...");
-          for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-        } else {
-          pages.push(1);
-          pages.push("...");
-          for (let i = currentPage - 1; i <= currentPage + 1; i++)
-            pages.push(i);
-          pages.push("...");
-          pages.push(totalPages);
-        }
-      }
-      return pages;
-    };
-
-    return (
-      <Card className="p-4">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-            <span>Show</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-              className="px-2 py-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-            >
-              <option value={6}>6</option>
-              <option value={12}>12</option>
-              <option value={24}>24</option>
-              <option value={48}>48</option>
-              <option value={100}>100</option>
-              <option value={200}>200</option>
-            </select>
-            <span>per page</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-            <span>
-              Showing {startIndex + 1}-{Math.min(endIndex, totalCount)} of{" "}
-              {totalCount} customers
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              variant="secondary"
-              size="sm"
-            >
-              Previous
-            </Button>
-            {getPageNumbers().map((page, index) => (
-              <React.Fragment key={index}>
-                {page === "..." ? (
-                  <span className="px-2 py-1 text-zinc-500">...</span>
-                ) : (
-                  <Button
-                    onClick={() => handlePageChange(page as number)}
-                    variant={currentPage === page ? "primary" : "secondary"}
-                    size="sm"
-                    className="min-w-[32px]"
-                  >
-                    {page}
-                  </Button>
-                )}
-              </React.Fragment>
-            ))}
-            <Button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              variant="secondary"
-              size="sm"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      </Card>
-    );
-  };
-
-  const getCustomerTypeIcon = (customer: Customer) => {
-    if (customer.gstNumber) return <Building className="w-5 h-5" />; // Business customer
-    if (customer.totalPurchases > 100000) return <Star className="w-5 h-5" />; // VIP customer
-    if (customer.totalPurchases > 0) return <User className="w-5 h-5" />; // Regular customer
-    return <NewUserIcon className="w-5 h-5" />; // New customer
-  };
-
-  const getCustomerTypeLabel = (customer: Customer) => {
-    if (customer.gstNumber) return "Business";
-    if (customer.totalPurchases > 100000) return "VIP";
-    if (customer.totalPurchases > 0) return "Regular";
-    return "New";
-  };
+  // Small sort-control UI (placed next to search). You can remove or restyle as needed.
+  const SortControl = () => (
+    <div className="flex items-center gap-2">
+      <label className="text-sm text-zinc-600 dark:text-zinc-400">Sort by</label>
+      <select
+        value={`${sortDir}:${sortKey}`}
+        onChange={(e) => {
+          const [dir, key] = e.target.value.split(":");
+          setSortKey(key);
+          setSortDir(dir as "asc" | "desc");
+          setCurrentPage(1);
+          if (backendSearchActive)
+            fetchBackendCustomers(searchTerm, 1, itemsPerPage, key, dir as "asc" | "desc");
+          else fetchAllCustomers(1, itemsPerPage, key, dir as "asc" | "desc");
+        }}
+        className="px-2 py-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-sm"
+      >
+        <option value="desc:updatedAt">Latest</option>
+        <option value="desc:totalPurchases">Total Purchases (High → Low)</option>
+        <option value="asc:totalPurchases">Total Purchases (Low → High)</option>
+        <option value="desc:createdAt">Newest Customers</option>
+        <option value="asc:createdAt">Oldest Customers</option>
+        <option value="desc:lastPurchaseDate">Last Purchase (Recent)</option>
+      </select>
+    </div>
+  );
 
   // Handle Excel import
   const handleExcelImport = async (importedCustomers: Customer[]) => {
@@ -397,6 +346,68 @@ export const EnhancedCustomerManager: React.FC = () => {
   // Handle Dialog open state explicitly
   const isDialogOpen = showAddForm || !!editingCustomer;
 
+    const PaginationControls = () => {
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const maxVisible = 5;
+      if (totalPages <= maxVisible) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+      } else {
+        if (currentPage <= 3) {
+          for (let i = 1; i <= 4; i++) pages.push(i);
+          pages.push("...");
+          pages.push(totalPages);
+        } else if (currentPage >= totalPages - 2) {
+          pages.push(1);
+          pages.push("...");
+          for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+        } else {
+          pages.push(1);
+          pages.push("...");
+          for (let i = currentPage - 1; i <= currentPage + 1; i++)
+            pages.push(i);
+          pages.push("...");
+          pages.push(totalPages);
+        }
+      }
+      return pages;
+    };
+
+      function getCustomerTypeLabel(c: Customer): string {
+        if (c.gstNumber && c.gstNumber.trim() !== "") {
+          return "Business";
+        }
+        return "Individual";
+      }
+
+      function getCustomerTypeIcon(c: Customer): React.ReactNode {
+        if (c.gstNumber && c.gstNumber.trim() !== "") {
+          // Business customer
+          return <Building className="w-4 h-4 text-blue-600" />;
+        }
+        // Individual customer
+        return <User className="w-4 h-4 text-green-600" />;
+      }
+    }
+
+  function getCustomerTypeIcon(c: Customer): React.ReactNode {
+    if (c.gstNumber && c.gstNumber.trim() !== "") {
+     
+      return <Building className="w-4 h-4 text-blue-600" />;
+    }
+
+    return <User className="w-4 h-4 text-green-600" />;
+  }
+
+  function getCustomerTypeLabel(c: Customer): string {
+    if (c.gstNumber && c.gstNumber.trim() !== "") {
+      return "Business";
+    }
+    return "Individual";
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -421,6 +432,8 @@ export const EnhancedCustomerManager: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
+          {/* show sort control next to actions */}
+          <SortControl />
           <ExcelActions
             type="customers"
             data={customers}
@@ -478,6 +491,9 @@ export const EnhancedCustomerManager: React.FC = () => {
 
       {/* Pagination Controls - Top */}
       {!loading && filteredCustomers.length > 0 && <PaginationControls />}
+
+      {/* PaginationControls Component Definition */}
+    
 
       {/* Add/Edit Form Dialog */}
       <Dialog
@@ -642,6 +658,9 @@ export const EnhancedCustomerManager: React.FC = () => {
           handleDeleteCustomer={handleDeleteCustomer}
           getCustomerTypeLabel={getCustomerTypeLabel}
           getCustomerTypeIcon={getCustomerTypeIcon}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSort={toggleSort}
         />
       )}
 
@@ -721,4 +740,6 @@ export const EnhancedCustomerManager: React.FC = () => {
     </div>
   );
 };
-  
+
+export default EnhancedCustomerManager;
+    

@@ -7,8 +7,6 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-  
-
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search");
     const page = parseInt(searchParams.get("page") || "1", 10);
@@ -16,6 +14,17 @@ export async function GET(request: NextRequest) {
       parseInt(searchParams.get("limit") || "50", 10),
       200
     ); // max 200 per page
+
+    // support sort parameter e.g. ?sort=-totalPurchases or ?sort=createdAt
+    const sortParam = searchParams.get("sort") || "-updatedAt";
+
+    // build sort object
+    const sort: any = {};
+    if (sortParam.startsWith("-")) {
+      sort[sortParam.substring(1)] = -1;
+    } else {
+      sort[sortParam] = 1;
+    }
 
     let query: any = {};
 
@@ -31,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     const total = await Customer.countDocuments(query);
     const customers = await Customer.find(query)
-      .sort({ updatedAt: -1 })
+      .sort(sort)
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
