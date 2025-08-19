@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import BillModel from "@/models/Bill";
 import mongoose from "mongoose";
 import { verifyToken } from "@/lib/auth";
+import Customer from "@/models/Customer"; // <-- added import
 
 export async function GET(request?: NextRequest) {
   try {
@@ -121,27 +122,6 @@ export async function GET(request?: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    // AUTH: require token and admin role for creating bills
-    const authHeader =
-      request.headers.get("authorization") ||
-      request.headers.get("Authorization");
-    const token = authHeader
-      ? authHeader.replace(/^Bearer\s+/i, "")
-      : undefined;
-    const payload = verifyToken(token);
-    if (!payload || !payload.id) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    if (payload.role !== "admin") {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: admin only" },
-        { status: 403 }
-      );
-    }
-
     const billData = await request.json();
 
     const billNumber = (await BillModel.countDocuments()) + 1; // Generate a new bill number
@@ -312,6 +292,62 @@ export async function POST(request: NextRequest) {
     // Save
     const newBill = new BillModel(billPayload);
     const savedBill = await newBill.save();
+
+    // Update customer totals / last purchase date (best-effort)
+    try {
+      const finalAmt = Number(savedBill.finalAmount) || 0;
+      const purchaseDate = savedBill.date
+        ? new Date(savedBill.date)
+        : new Date();
+
+      let customerDoc = null;
+      // Try by customerId first
+      if (billPayload.customerId) {
+        try {
+          customerDoc = await Customer.findById(billPayload.customerId);
+        } catch {
+          customerDoc = null;
+        }
+      }
+
+      // Fallback: try by phone
+      if (!customerDoc && billPayload.customerPhone) {
+        customerDoc = await Customer.findOne({
+          phone: billPayload.customerPhone,
+        });
+      }
+
+      if (customerDoc) {
+        // update existing customer
+        customerDoc.totalPurchases =
+          (customerDoc.totalPurchases || 0) + finalAmt;
+        customerDoc.lastPurchaseDate = purchaseDate;
+        // optionally update name/gst if provided
+        if (billPayload.customerName)
+          customerDoc.name = billPayload.customerName;
+        if (billPayload.customerGST)
+          customerDoc.gstNumber = billPayload.customerGST;
+        customerDoc.isActive = true;
+        await customerDoc.save();
+      } else {
+        // create new customer if none found and we have minimal info (phone or name)
+        if (billPayload.customerPhone || billPayload.customerName) {
+          const newCustomer = new Customer({
+            name: billPayload.customerName || "Unknown",
+            phone: billPayload.customerPhone || `unknown-${Date.now()}`,
+            email: billPayload.customerEmail || undefined,
+            gstNumber: billPayload.customerGST || undefined,
+            totalPurchases: finalAmt,
+            lastPurchaseDate: purchaseDate,
+            isActive: true,
+          });
+          await newCustomer.save();
+        }
+      }
+    } catch (err) {
+      // non-fatal: log and continue returning bill result
+      console.error("Failed to update/create customer after bill save:", err);
+    }
 
     return NextResponse.json({
       success: true,
