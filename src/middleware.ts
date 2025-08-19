@@ -1,6 +1,7 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
 // ...public paths allowed without authentication...
 const PUBLIC_PATHS = [
@@ -15,8 +16,7 @@ const PUBLIC_PATHS = [
 const isPublicPath = (pathname: string) =>
   PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
-// NOTE: middleware runs in Edge runtime — avoid using Node-only modules (jwt.verify).
-// Verify the token by delegating to the server-side endpoint /api/auth/me which runs in Node.
+// NOTE: middleware runs in Edge runtime — use WebCrypto-friendly jwt verifier (jose).
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -42,7 +42,6 @@ export async function middleware(req: NextRequest) {
   if (authMatch) token = authMatch[1];
   else token = req.cookies.get("token")?.value;
 
-  // If no token found -> unauthorized
   if (!token) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
@@ -56,36 +55,29 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Verify token by calling server-side /api/auth/me (runs in Node, can verify JWT)
+  // token may be URL-encoded in cookie; decode safely
   try {
-    const verifyUrl = new URL("/api/auth/me", req.url);
-    const res = await axios.get(verifyUrl.toString(), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    const json = res.data;
+    token = decodeURIComponent(token);
+  } catch {
+    // ignore decode errors, use raw
+  }
 
-    // cosnole.log("middleware: token verification result:", json);
+  // Verify JWT using jose (Edge-compatible)
+  try {
+    const JWT_SECRET = process.env.JWT_SECRET || "dev_jwt_secret";
+    const secretKey = new TextEncoder().encode(JWT_SECRET);
 
-    if (!json.success) {
-      if (pathname.startsWith("/api/")) {
-        return NextResponse.json(
-          { success: false, error: "Unauthorized token invalid" },
-          { status: 401 }
-        );
-      }
-      const url = req.nextUrl.clone();
-      url.pathname = "/login";
-      url.search = `redirect=${encodeURIComponent(pathname)}`;
-      return NextResponse.redirect(url);
+    const { payload } = await jwtVerify(token, secretKey);
+    // payload should contain { id, role, iat, exp ... }
+    const id = (payload as any).id;
+    const role = (payload as any).role;
+
+    if (!id) {
+      throw new Error("Invalid token payload");
     }
-    // cosnole.log("middleware: token verification successful2:", json);
-
-    const payload = json.data as any;
 
     // Enforce admin-only access for protected areas
-    if (payload.role !== "admin") {
+    if (role !== "admin") {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json(
           { success: false, error: "Forbidden: admin only" },
@@ -101,10 +93,10 @@ export async function middleware(req: NextRequest) {
     // Authorized — let the request continue
     return NextResponse.next();
   } catch (err) {
-    // cosnole.error("middleware: token verification failed", err);
+    // verification failed
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
-        { success: false, error: "Unauthorized" },
+        { success: false, error: "Unauthorized token invalid" },
         { status: 401 }
       );
     }

@@ -40,13 +40,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(!!token);
 
+  // ensure axios sends cookies for same-origin requests
+  useEffect(() => {
+    try {
+      axios.defaults.withCredentials = true;
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // fetch /api/auth/me to validate token and load user
   const fetchMe = async (tkn: string) => {
     try {
       setLoading(true);
-      
+
+      // request includes credentials so server HttpOnly cookie will be sent automatically;
+      // also include Authorization header so either method works
       const res = await axios.get("/api/auth/me", {
         headers: { Authorization: `Bearer ${tkn}` },
+        withCredentials: true,
       });
       const json = res.data;
       if (res.status === 200 && json.success) {
@@ -81,15 +93,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const login = async (identifier: string, password: string) => {
     try {
       setLoading(true);
-      const res = await axios.post("/api/auth/login", {
-        identifier,
-        password,
-      });
+      // include credentials so browser accepts any Set-Cookie from server
+      const res = await axios.post(
+        "/api/auth/login",
+        { identifier, password },
+        { withCredentials: true }
+      );
       const json = res.data;
       if (res.status === 200 && json.success && json.data?.token) {
         const tkn = json.data.token;
+        // store token in localStorage for client-side fetchers
         localStorage.setItem("token", tkn);
         setToken(tkn);
+
+        // set axios defaults so subsequent axios calls include credentials and Authorization
+        try {
+          axios.defaults.withCredentials = true;
+          axios.defaults.headers = axios.defaults.headers || {};
+          axios.defaults.headers.common = axios.defaults.headers.common || {};
+          axios.defaults.headers.common["Authorization"] = `Bearer ${tkn}`;
+        } catch {
+          /* ignore */
+        }
+
         // set user from response if present
         if (json.data.user) setUser(json.data.user);
         else await fetchMe(tkn);

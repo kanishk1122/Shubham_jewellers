@@ -1,21 +1,9 @@
-// lib/fetcher.ts
-
-export const getToken = () => {
-  if (typeof window === "undefined") return undefined;
-  const t = localStorage.getItem("token");
-  if (t) return t;
-  const m = document.cookie.match(/(?:^|;\s*)token=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : undefined;
-};
-
 export async function apiFetch(
   input: RequestInfo,
   init?: RequestInit
 ): Promise<Response> {
   const headers = new Headers((init?.headers as HeadersInit) || {});
-  const token = getToken();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  // don't override content-type for FormData bodies
+
   if (
     !headers.has("Content-Type") &&
     !(init && init.body instanceof FormData)
@@ -25,7 +13,8 @@ export async function apiFetch(
   const res = await fetch(input, {
     ...init,
     headers,
-    credentials: "same-origin",
+    // include cookies for cross-origin scenarios too; server cookie is HttpOnly and will be sent
+    credentials: "include",
   });
   return res;
 }

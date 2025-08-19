@@ -37,20 +37,38 @@ export async function POST(request: NextRequest) {
 
     const token = signToken({ id: user._id.toString(), role: user.role });
 
-    NextResponse.cookies.set("token", token, { httpOnly: true });
-    return NextResponse.json({
-      success: true,
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
+    // create cookie string safely
+    const encodedToken = encodeURIComponent(token);
+    const maxAge = 60 * 60 * 24 * 7; // 7 days
+    const parts = [
+      `token=${encodedToken}`,
+      `Path=/`,
+      `Max-Age=${maxAge}`,
+      `HttpOnly`,
+      `SameSite=Lax`,
+    ];
+    if (process.env.NODE_ENV === "production") parts.push("Secure");
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+          },
+          token,
         },
-        token,
       },
-    });
+      {
+        headers: {
+          "Set-Cookie": parts.join("; "),
+        },
+      }
+    );
   } catch (err) {
     console.error(err);
     return NextResponse.json(
