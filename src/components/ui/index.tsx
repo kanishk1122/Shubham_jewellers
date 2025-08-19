@@ -6,7 +6,9 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: "sm" | "md" | "lg";
 }
 
-export const CardHeader: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+export const CardHeader: React.FC<React.PropsWithChildren<{}>> = ({
+  children,
+}) => {
   return (
     <div className="border-b p-4">
       <h2 className="text-lg font-semibold">{children}</h2>
@@ -14,7 +16,9 @@ export const CardHeader: React.FC<React.PropsWithChildren<{}>> = ({ children }) 
   );
 };
 
-export const CardTitle: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+export const CardTitle: React.FC<React.PropsWithChildren<{}>> = ({
+  children,
+}) => {
   return (
     <div className="p-4">
       <h3 className="text-lg font-semibold">{children}</h3>
@@ -27,10 +31,12 @@ interface CardContentProps {
   className?: string;
 }
 
-export const CardContent: React.FC<CardContentProps> = ({ children, className = "" }) => {
+export const CardContent: React.FC<CardContentProps> = ({
+  children,
+  className = "",
+}) => {
   return <div className={`p-4 ${className}`}>{children}</div>;
 };
-
 
 export const Button: React.FC<ButtonProps> = ({
   children,
@@ -100,37 +106,68 @@ export const Input: React.FC<InputProps> = ({
   );
 };
 
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
-  options: { value: string; label: string }[];
+  options?: SelectOption[]; // optional — callers may pass children instead
+  // convenience: callback that receives just the selected value
+  onValueChange?: (value: string) => void;
+  children?: React.ReactNode;
 }
 
 export const Select: React.FC<SelectProps> = ({
   label,
   error,
   options,
+  onValueChange,
   className = "",
+  children,
+  onChange,
   ...props
 }) => {
+  // unified change handler: call native onChange (if provided) and onValueChange (if provided)
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    try {
+      if (typeof onChange === "function") {
+        // forward the event to the original onChange handler
+        (onChange as any)(e);
+      }
+    } catch {
+      // ignore
+    }
+    if (typeof onValueChange === "function") {
+      onValueChange(e.target.value);
+    }
+  };
+
   return (
     <div className="mb-4">
       {label && (
-        <label className="block text-sm font-medium text-zinc-700 mb-1">
+        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
           {label}
         </label>
       )}
       <select
-        className={`w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+        className={`w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 ${
           error ? "border-red-300" : ""
         } ${className}`}
-        {...props}
+        onChange={handleChange}
+        {...(props as any)}
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
+        {/* If options prop provided, render them. Otherwise render children (native <option> nodes). */}
+        {options && options.length > 0
+          ? options.map((option) => (
+              // avoid forcing text color on <option>; let browser render normally
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))
+          : children}
       </select>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
     </div>

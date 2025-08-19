@@ -4,6 +4,7 @@ import productsReducer from "./slices/productsSlice";
 import billsReducer from "./slices/billsSlice";
 import bulkProductsReducer from "./slices/bulkProductsSlice";
 import categoriesReducer from "./slices/categoriesSlice";
+import expensesReducer from "./slices/expensesSlice";
 import { useDispatch, useSelector, TypedUseSelectorHook } from "react-redux";
 
 export const store = configureStore({
@@ -13,6 +14,7 @@ export const store = configureStore({
     bills: billsReducer,
     bulkProducts: bulkProductsReducer,
     categories: categoriesReducer,
+    expenses: expensesReducer,
   },
 });
 

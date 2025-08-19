@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Coins,
   Loader2,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext"; // new import
 import { apiJson } from "@/lib/fetcher"; // <-- add this
@@ -20,9 +21,11 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-// Define interface for today's summary data
+// Define interface for today's summary data (now includes expenses & profit)
 interface TodaySummary {
   salesAmount: number;
+  expensesAmount: number;
+  profit: number;
   billsCount: number;
   pendingBillsCount: number;
   isLoading: boolean;
@@ -64,6 +67,13 @@ const menuItems = [
     icon: <ClipboardList className="w-5 h-5" />,
     color: "text-orange-600 dark:text-orange-400",
     href: "/bills",
+  },
+  {
+    id: "expenses",
+    label: "Expenses",
+    icon: <TrendingUp className="w-5 h-5" />,
+    color: "text-red-600 dark:text-red-400",
+    href: "/expenses",
   },
   {
     id: "rates",
@@ -134,9 +144,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     : "SJ";
   const userName = auth?.user?.name || "Admin";
 
-  // Today's summary state
+  // Today's summary state (includes expenses & profit)
   const [todaySummary, setTodaySummary] = useState<TodaySummary>({
     salesAmount: 0,
+    expensesAmount: 0,
+    profit: 0,
     billsCount: 0,
     pendingBillsCount: 0,
     isLoading: true,
@@ -156,15 +168,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       // Get today's date in ISO format (YYYY-MM-DD)
       const today = new Date().toISOString().split("T")[0];
 
-      // Fetch using centralized helper which injects Authorization
-      const data = await apiJson(
-        `/api/bills?startDate=${today}&endDate=${today}&limit=1000`
-      );
-      const bills = data.data || [];
+      // Fetch bills and expenses for today in parallel
+      const [billsResp, expensesResp] = await Promise.all([
+        apiJson(`/api/bills?startDate=${today}&endDate=${today}&limit=1000`),
+        apiJson(`/api/expenses?startDate=${today}&endDate=${today}&limit=1000`),
+      ]);
+      const bills = billsResp.data || [];
+      const expenses = expensesResp.data || [];
 
-      // Calculate summary metrics
+      // Calculate summary metrics (sales, expenses, profit)
       const salesAmount = bills.reduce(
         (sum: number, bill: any) => sum + (Number(bill.finalAmount) || 0),
+        0
+      );
+      const expensesAmount = expenses.reduce(
+        (s: number, ex: any) => s + (Number(ex.amount) || 0),
         0
       );
       const billsCount = bills.length;
@@ -174,6 +192,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       setTodaySummary({
         salesAmount,
+        expensesAmount,
+        profit: salesAmount - expensesAmount,
         billsCount,
         pendingBillsCount,
         isLoading: false,
@@ -317,6 +337,32 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </span>
                   <span className="font-medium text-green-600 dark:text-green-400">
                     {formatCurrency(todaySummary.salesAmount)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Expenses
+                  </span>
+                  <button
+                    className="font-medium text-red-600 dark:text-red-400 hover:underline"
+                    onClick={() => router.push("/expenses")}
+                    title="View today's expenses"
+                  >
+                    {formatCurrency(todaySummary.expensesAmount)}
+                  </button>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-600 dark:text-zinc-400">
+                    Profit
+                  </span>
+                  <span
+                    className={`font-medium ${
+                      todaySummary.profit >= 0
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {formatCurrency(todaySummary.profit)}
                   </span>
                 </div>
                 <div className="flex justify-between">
