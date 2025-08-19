@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import type { Bill, BillItem } from "@/types/bill";
 import axios from "axios";
+import { apiFetch } from "@/lib/fetcher";
 
 interface Product {
   _id?: string;
@@ -709,6 +710,20 @@ export const EnhancedBillingManager: React.FC = () => {
   const [customProductWeight, setCustomProductWeight] = useState<string>("");
   const [customProductRate, setCustomProductRate] = useState<string>("");
   const [customProductMaking, setCustomProductMaking] = useState<string>("");
+  // New: custom product making mode and metal
+  const [customMakingMode, setCustomMakingMode] = useState<"perGram" | "fixed">(
+    "perGram"
+  );
+  const [customProductMetal, setCustomProductMetal] = useState<
+    "gold" | "silver" | "platinum"
+  >("gold");
+
+  // per-gram making rates (adjust values as needed)
+  const PER_GRAM_MAKING_RATE: Record<string, number> = {
+    gold: 600,
+    silver: 60,
+    platinum: 800,
+  };
   // preview item computed from inputs
   const previewCustomItem: Partial<BillItem> = {
     id: `PREVIEW-${Date.now()}`,
@@ -716,13 +731,17 @@ export const EnhancedBillingManager: React.FC = () => {
     productSerialNumber: `CUSTOM-PREVIEW`,
     productName: customProductName || "",
     category: "Custom",
-    metal: "gold", // default metal for custom items
+    metal: customProductMetal, // metal chosen by user
     purity: "24K", // default purity to satisfy backend validation
     weight: parseFloat(customProductWeight) || 0,
     stoneWeight: 0,
     netWeight: parseFloat(customProductWeight) || 0,
     rate: parseFloat(customProductRate) || 0,
-    makingCharges: parseFloat(customProductMaking) || 0,
+    makingCharges:
+      customMakingMode === "perGram"
+        ? (parseFloat(customProductWeight) || 0) *
+          (PER_GRAM_MAKING_RATE[customProductMetal] || 0)
+        : parseFloat(customProductMaking) || 0,
     makingChargesType: "fixed",
     wastage: 0,
     wastageType: "percentage",
@@ -745,13 +764,18 @@ export const EnhancedBillingManager: React.FC = () => {
       productSerialNumber: `CUSTOM-${idSuffix}`,
       productName: customProductName.trim(),
       category: "Custom",
-      metal: "gold",
+      metal: customProductMetal,
       purity: "24K", // default purity to satisfy backend validation
       weight: parseFloat(customProductWeight) || 0,
       stoneWeight: 0,
       netWeight: parseFloat(customProductWeight) || 0,
       rate: parseFloat(customProductRate) || 0,
-      makingCharges: parseFloat(customProductMaking) || 0,
+      // compute makingCharges according to mode
+      makingCharges:
+        customMakingMode === "perGram"
+          ? (parseFloat(customProductWeight) || 0) *
+            (PER_GRAM_MAKING_RATE[customProductMetal] || 0)
+          : parseFloat(customProductMaking) || 0,
       makingChargesType: "fixed",
       wastage: 0,
       wastageType: "percentage",
@@ -770,6 +794,9 @@ export const EnhancedBillingManager: React.FC = () => {
     setCustomProductWeight("");
     setCustomProductRate("");
     setCustomProductMaking("");
+    // reset metal and making mode to defaults if desired
+    setCustomMakingMode("perGram");
+    setCustomProductMetal("gold");
   };
 
   // Backend search handler for customer selection
@@ -810,9 +837,8 @@ export const EnhancedBillingManager: React.FC = () => {
 
     setCreatingQuickCustomer(true);
     try {
-      const res = await fetch("/api/customers", {
+      const res = await apiFetch("/api/customers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(quickCustomerForm),
       });
       const data = await res.json();
@@ -1403,7 +1429,7 @@ export const EnhancedBillingManager: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                     <Input
                       placeholder="Name"
                       value={customProductName}
@@ -1421,12 +1447,70 @@ export const EnhancedBillingManager: React.FC = () => {
                       value={customProductRate}
                       onChange={(e) => setCustomProductRate(e.target.value)}
                     />
-                    <Input
-                      placeholder="Making (optional)"
-                      type="number"
-                      value={customProductMaking}
-                      onChange={(e) => setCustomProductMaking(e.target.value)}
-                    />
+                    {/* Metal selector */}
+                    <select
+                      value={customProductMetal}
+                      onChange={(e) =>
+                        setCustomProductMetal(
+                          e.target.value as "gold" | "silver" | "platinum"
+                        )
+                      }
+                      className="px-2 py-2 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                    >
+                      <option value="gold">Gold</option>
+                      <option value="silver">Silver</option>
+                      <option value="platinum">Platinum</option>
+                    </select>
+                  </div>
+
+                  <div className="mt-2 flex flex-col md:flex-row md:items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium mr-2">
+                        Making charge mode:
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="makingMode"
+                          checked={customMakingMode === "perGram"}
+                          onChange={() => setCustomMakingMode("perGram")}
+                        />
+                        <span className="text-sm">Per-gram</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="makingMode"
+                          checked={customMakingMode === "fixed"}
+                          onChange={() => setCustomMakingMode("fixed")}
+                        />
+                        <span className="text-sm">Fixed</span>
+                      </label>
+                    </div>
+
+                    <div className="ml-auto text-sm text-zinc-600 dark:text-zinc-400">
+                      {customMakingMode === "perGram" ? (
+                        <div>
+                          Making: ₹
+                          {(parseFloat(customProductWeight) || 0) *
+                            (PER_GRAM_MAKING_RATE[customProductMetal] ||
+                              0)}{" "}
+                          (₹{PER_GRAM_MAKING_RATE[customProductMetal]}/g)
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span>Fixed Making:</span>
+                          <Input
+                            type="number"
+                            value={customProductMaking}
+                            onChange={(e) =>
+                              setCustomProductMaking(e.target.value)
+                            }
+                            className="w-32"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <Button
@@ -1999,7 +2083,7 @@ export const EnhancedBillingManager: React.FC = () => {
                 Phone
               </label>
               <Input
-                value={quickCustomerForm.phone }
+                value={quickCustomerForm.phone}
                 onChange={(e) =>
                   setQuickCustomerForm((prev) => ({
                     ...prev,
