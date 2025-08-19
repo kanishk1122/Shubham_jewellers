@@ -4,14 +4,15 @@ import MetalRate from "@/models/MetalRate";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
     const updateData = await request.json();
+    const { id } = await params;
 
     const updatedRate = await MetalRate.findByIdAndUpdate(
-      params.id,
+      id,
       updateData,
       { new: true }
     );
@@ -32,19 +33,20 @@ export async function PUT(
     );
   }
 }
-
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
     const deletedRate = await MetalRate.findByIdAndUpdate(
-      params.id,
+      id,
       { isActive: false },
       { new: true }
     );
+    
 
     if (!deletedRate) {
       return NextResponse.json(

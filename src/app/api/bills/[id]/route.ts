@@ -1,26 +1,31 @@
-import { NextRequest, NextResponse } from "next/server";
-import BillModel from "@/models/Bill";
+import { NextResponse } from "next/server";
 import mongoose from "mongoose";
+import BillModel from "@/models/Bill";
 
+// ✅ GET /api/bills/[id]
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+
   try {
-    const { id } = params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid or missing bill ID" },
         { status: 400 }
       );
     }
+
     const bill = await BillModel.findById(id);
+
     if (!bill) {
       return NextResponse.json(
         { success: false, error: "Bill not found" },
         { status: 404 }
       );
     }
+
     return NextResponse.json({ success: true, data: bill });
   } catch (error) {
     return NextResponse.json(
@@ -36,18 +41,21 @@ export async function GET(
   }
 }
 
+// ✅ PUT /api/bills/[id]
 export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+
   try {
-    const { id } = params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid or missing bill ID" },
         { status: 400 }
       );
     }
+
     const billData = await request.json();
     const updatedBill = await BillModel.findByIdAndUpdate(
       id,
@@ -57,12 +65,14 @@ export async function PUT(
       },
       { new: true, runValidators: true }
     );
+
     if (!updatedBill) {
       return NextResponse.json(
         { success: false, error: "Bill not found" },
         { status: 404 }
       );
     }
+
     return NextResponse.json({
       success: true,
       data: updatedBill,
@@ -82,25 +92,30 @@ export async function PUT(
   }
 }
 
+// ✅ DELETE /api/bills/[id]
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
+
   try {
-    const { id } = params;
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid or missing bill ID" },
         { status: 400 }
       );
     }
+
     const deletedBill = await BillModel.findByIdAndDelete(id);
+
     if (!deletedBill) {
       return NextResponse.json(
         { success: false, error: "Bill not found" },
         { status: 404 }
       );
     }
+
     return NextResponse.json({
       success: true,
       data: deletedBill,

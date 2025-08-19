@@ -4,30 +4,9 @@ import mongoose from "mongoose";
 import { verifyToken } from "@/lib/auth";
 import Customer from "@/models/Customer"; // <-- added import
 
-export async function GET(request?: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    // --- AUTH: if request provided verify token and admin role ---
-    // if (request) {
-    //   const authHeader =
-    //     request.headers.get("authorization") ||
-    //     request.headers.get("Authorization");
-    //   const token = authHeader
-    //     ? authHeader.replace(/^Bearer\s+/i, "")
-    //     : undefined;
-    //   const payload = verifyToken(token);
-    //   if (!payload || !payload.id) {
-    //     return NextResponse.json(
-    //       { success: false, error: "Unauthorized" },
-    //       { status: 401 }
-    //     );
-    //   }
-    //   if (payload.role !== "admin") {
-    //     return NextResponse.json(
-    //       { success: false, error: "Forbidden: admin only" },
-    //       { status: 403 }
-    //     );
-    //   }
-    // }
+
 
     // support both direct call and NextRequest (for tests)
     const url = request ? new URL(request.url) : null;

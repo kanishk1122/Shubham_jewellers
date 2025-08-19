@@ -4,10 +4,10 @@ import Customer from "@/models/Customer";
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   await connectDB();
-  const customerId = context.params.id;
+  const { id: customerId } = await context.params;
   if (!customerId) {
     return NextResponse.json(
       { success: false, error: "Customer ID is required" },
@@ -27,12 +27,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const { params } = context;
+    const params = await context.params;
 
     const body = await request.json();
     const { name, phone, email, address, gstNumber, panNumber, notes } = body;
@@ -107,12 +107,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
 
-    const { params } = context;
+    const params = await context.params;
 
     // Soft delete - set isActive to false
     const customer = await Customer.findByIdAndUpdate(
