@@ -186,8 +186,7 @@ export const EnhancedBillingManager: React.FC = () => {
     } else if (bill.taxType === "cgst") {
       cgst = (discountedAmount * partRate) / 100;
       sgst = (discountedAmount * partRate) / 100;
-    }
-    else {
+    } else {
       igst = 0;
       cgst = 0;
       sgst = 0;
@@ -804,6 +803,10 @@ export const EnhancedBillingManager: React.FC = () => {
       alert("Please enter name or phone");
       return;
     }
+    if (quickCustomerForm.phone.length < 10) {
+      alert("Please enter a valid phone number");
+      return;
+    }
 
     setCreatingQuickCustomer(true);
     try {
@@ -1283,6 +1286,27 @@ export const EnhancedBillingManager: React.FC = () => {
                               )}
                             </div>
                           ))}
+                          {customerSearch.trim().length > 0 && (
+                            <Button
+                              onClick={() => {
+                                const term = customerSearch.trim();
+                                const isPhone = /^\+?\d{7,}$/.test(term);
+                                setQuickCustomerForm({
+                                  name: isPhone ? "" : term,
+                                  phone: isPhone ? term : "",
+                                  gstNumber: "",
+                                });
+                                setShowQuickAddCustomerDialog(true);
+                                setCustomerDropdownOpen(false);
+                              }}
+                              variant="secondary"
+                              className="w-full justify-start mt-2 text-blue-600 hover:text-blue-700"
+                            >
+                              <PlusCircle className="w-4 h-4 mr-2" />
+                              Add new customer:{" "}
+                              <strong>{customerSearch}</strong>
+                            </Button>
+                          )}
                         </>
                       )}
                     </div>
@@ -1778,101 +1802,106 @@ export const EnhancedBillingManager: React.FC = () => {
       </Dialog>
 
       {/* Bills List */}
-     {!loading && (
-  <div className="overflow-x-auto">
-    <table className="min-w-full border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
-      <thead className="bg-zinc-100 dark:bg-zinc-800 text-sm text-zinc-600 dark:text-zinc-300">
-        <tr>
-          <th className="px-4 py-3 text-left">Bill #</th>
-          <th className="px-4 py-3 text-left">Customer</th>
-          <th className="px-4 py-3 text-left">Date</th>
-          <th className="px-4 py-3 text-left">Items</th>
-          <th className="px-4 py-3 text-left">Amount</th>
-          <th className="px-4 py-3 text-left">Status</th>
-          <th className="px-4 py-3 text-center">Actions</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 text-sm">
-        {filteredBills.map((bill) => (
-          <tr
-            key={bill._id || bill.id || bill.billNumber || bill.date || Math.random()}
-            className="hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-          >
-            {/* Bill Number */}
-            <td className="px-4 py-3 font-medium text-zinc-900 dark:text-white">
-              #{bill.billNumber}
-            </td>
-
-            {/* Customer */}
-            <td className="px-4 py-3">
-              <p className="font-medium">{bill.customerName}</p>
-              <p className="text-zinc-500 dark:text-zinc-400 text-xs">
-                {bill.customerPhone}
-              </p>
-            </td>
-
-            {/* Date */}
-            <td className="px-4 py-3">
-              {new Date(bill.date).toLocaleDateString()}
-            </td>
-
-            {/* Items */}
-            <td className="px-4 py-3">{bill.items.length} item(s)</td>
-
-            {/* Amount */}
-            <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
-              ₹{bill.finalAmount.toLocaleString()}
-            </td>
-
-            {/* Status */}
-            <td className="px-4 py-3">
-              <span
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  bill.paymentStatus === "paid"
-                    ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
-                    : bill.paymentStatus === "pending"
-                    ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
-                    : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
-                }`}
-              >
-                {bill.paymentStatus.charAt(0).toUpperCase() +
-                  bill.paymentStatus.slice(1)}
-              </span>
-            </td>
-
-            {/* Actions */}
-            <td className="px-4 py-3 text-center">
-              <div className="flex justify-center gap-2">
-                <button
-                  onClick={() => handleEditBill(bill)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
-                  title="Edit"
+      {!loading && (
+        <div className="overflow-x-auto">
+          <table className="min-w-full border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
+            <thead className="bg-zinc-100 dark:bg-zinc-800 text-sm text-zinc-600 dark:text-zinc-300">
+              <tr>
+                <th className="px-4 py-3 text-left">Bill #</th>
+                <th className="px-4 py-3 text-left">Customer</th>
+                <th className="px-4 py-3 text-left">Date</th>
+                <th className="px-4 py-3 text-left">Items</th>
+                <th className="px-4 py-3 text-left">Amount</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700 text-sm">
+              {filteredBills.map((bill) => (
+                <tr
+                  key={
+                    bill._id ||
+                    bill.id ||
+                    bill.billNumber ||
+                    bill.date ||
+                    Math.random()
+                  }
+                  className="hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
                 >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteBill(bill)}
-                  className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => printBill(bill)}
-                  className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-1"
-                  title="Print"
-                >
-                  <Printer className="w-4 h-4" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
+                  {/* Bill Number */}
+                  <td className="px-4 py-3 font-medium text-zinc-900 dark:text-white">
+                    #{bill.billNumber}
+                  </td>
 
+                  {/* Customer */}
+                  <td className="px-4 py-3">
+                    <p className="font-medium">{bill.customerName}</p>
+                    <p className="text-zinc-500 dark:text-zinc-400 text-xs">
+                      {bill.customerPhone}
+                    </p>
+                  </td>
+
+                  {/* Date */}
+                  <td className="px-4 py-3">
+                    {new Date(bill.date).toLocaleDateString()}
+                  </td>
+
+                  {/* Items */}
+                  <td className="px-4 py-3">{bill.items.length} item(s)</td>
+
+                  {/* Amount */}
+                  <td className="px-4 py-3 font-bold text-green-600 dark:text-green-400">
+                    ₹{bill.finalAmount.toLocaleString()}
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        bill.paymentStatus === "paid"
+                          ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300"
+                          : bill.paymentStatus === "pending"
+                          ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300"
+                          : "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300"
+                      }`}
+                    >
+                      {bill.paymentStatus.charAt(0).toUpperCase() +
+                        bill.paymentStatus.slice(1)}
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-4 py-3 text-center">
+                    <div className="flex justify-center gap-2">
+                      <button
+                        onClick={() => handleEditBill(bill)}
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-1"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBill(bill)}
+                        className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => printBill(bill)}
+                        className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 p-1"
+                        title="Print"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Empty State */}
       {!loading && filteredBills.length === 0 && (
@@ -1970,7 +1999,7 @@ export const EnhancedBillingManager: React.FC = () => {
                 Phone
               </label>
               <Input
-                value={quickCustomerForm.phone}
+                value={quickCustomerForm.phone }
                 onChange={(e) =>
                   setQuickCustomerForm((prev) => ({
                     ...prev,
