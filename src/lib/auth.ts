@@ -14,7 +14,7 @@ export const comparePassword = async (password: string, hash: string) =>
   bcrypt.compare(password, hash);
 
 export const signToken = (user: { id: string; role: string }) =>
-  jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
+  (jwt as any).sign({ id: user.id, role: user.role }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
   });
 

@@ -183,6 +183,7 @@ export const EnhancedCustomerManager: React.FC = () => {
     setBackendSearchLoading(true);
     try {
       const result = await searchCustomers("", page, limit);
+
       setAllCustomers(result.data || []);
       setAllTotal(result.total || 0);
       setAllTotalPages(result.totalPages || 1);
@@ -221,18 +222,17 @@ export const EnhancedCustomerManager: React.FC = () => {
   };
 
   // Use backend results if searching, otherwise use paginated allCustomers
-  const filteredCustomers = backendSearchActive
-    ? backendCustomers
-    : allCustomers;
+  const filteredCustomers = backendSearchActive ? backendCustomers : allCustomers;
   const totalPages = backendSearchActive ? backendTotalPages : allTotalPages;
   const totalCount = backendSearchActive ? backendTotal : allTotal;
 
   // Pagination calculations
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentCustomers = backendSearchActive
-    ? backendCustomers
-    : customers.slice(startIndex, endIndex);
+  // Render current page from the selected (filtered) dataset
+  const currentCustomers = filteredCustomers;
+
+  // console.table(currentCustomers);
 
   // Handle page change for backend search and normal mode
   const handlePageChange = (page: number) => {
@@ -834,3 +834,4 @@ export const EnhancedCustomerManager: React.FC = () => {
     </div>
   );
 };
+  
