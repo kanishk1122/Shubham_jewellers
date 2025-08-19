@@ -267,13 +267,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         } lg:translate-x-0 transition-transform duration-300 ease-in-out shadow-lg`}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-200 dark:border-zinc-700 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-zinc-200 bg-zinc-700">
           <div className="flex items-center text-white">
             <div className="text-2xl mr-2">
-              <Image src="/logo.png" alt="Logo" width={40} height={40} />
+              <Image src="/logo.png" alt="Logo" width={60} height={60} />
             </div>
-            <div>
-              <h1 className="text-lg font-bold">Shubham</h1>
+            <div className="text-[#FFD700]">
+              <h1 className="text-lg font-bold ">Shubham</h1>
               <p className="text-xs opacity-90">Jewellers</p>
             </div>
           </div>
