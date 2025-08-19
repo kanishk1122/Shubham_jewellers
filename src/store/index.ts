@@ -2,14 +2,17 @@ import { configureStore } from "@reduxjs/toolkit";
 import customersReducer from "./slices/customersSlice";
 import productsReducer from "./slices/productsSlice";
 import billsReducer from "./slices/billsSlice";
+import bulkProductsReducer from "./slices/bulkProductsSlice";
+import categoriesReducer from "./slices/categoriesSlice";
 import { useDispatch, useSelector, TypedUseSelectorHook } from "react-redux";
-
 
 export const store = configureStore({
   reducer: {
     customers: customersReducer,
     products: productsReducer,
     bills: billsReducer,
+    bulkProducts: bulkProductsReducer,
+    categories: categoriesReducer,
   },
 });
 

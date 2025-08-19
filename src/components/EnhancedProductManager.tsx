@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   Input,
@@ -11,9 +11,26 @@ import {
   DialogTitle,
 } from "@/components/ui";
 import ExcelActions from "@/components/ExcelActions";
-import { useProducts, type Product } from "@/hooks/useProducts";
-import { useBulkProducts, type BulkProduct } from "@/hooks/useBulkProducts";
-import { useCategories, type Category } from "@/hooks/useCategories";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  fetchProducts,
+  createProduct as createProductThunk,
+  updateProduct as updateProductThunk,
+  deleteProduct as deleteProductThunk,
+} from "@/store/slices/productsSlice";
+import { fetchBills } from "@/store/slices/billsSlice";
+import {
+  fetchBulkProducts,
+  createBulkProduct as createBulkProductThunk,
+  updateBulkProduct as updateBulkProductThunk,
+  deleteBulkProduct as deleteBulkProductThunk,
+} from "@/store/slices/bulkProductsSlice";
+import {
+  fetchCategories,
+  createCategory as createCategoryThunk,
+  updateCategory as updateCategoryThunk,
+  deleteCategory as deleteCategoryThunk,
+} from "@/store/slices/categoriesSlice";
 import {
   Package,
   Circle as RingIcon,
@@ -34,37 +51,44 @@ import {
   Settings,
   Plus,
 } from "lucide-react";
+import type { Product } from "@/types/product";
+import type { BulkProduct } from "@/types/bulkProduct";
+import type { Category } from "@/types/category";
 
 export const EnhancedProductManager: React.FC = () => {
-  const {
-    products,
-    loading: productsLoading,
-    error: productsError,
-    loadProducts,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-  } = useProducts();
+  const dispatch = useAppDispatch();
+  // products slice
+  const productsState: any = useAppSelector((s) => s.products);
+  const products = productsState.products || [];
+  const productsLoading = productsState.loading;
+  const productsError = productsState.error;
+  // bulk products slice
+  const bulkState: any = useAppSelector((s) => s.bulkProducts);
+  const bulkProducts = bulkState.bulkProducts || [];
+  const bulkLoading = bulkState.loading;
+  const bulkError = bulkState.error;
+  // categories slice
+  const categoriesState: any = useAppSelector((s) => s.categories);
+  const categories = categoriesState.categories || [];
+  const categoriesLoading = categoriesState.loading;
+  const categoriesError = categoriesState.error;
 
-  const {
-    bulkProducts,
-    loading: bulkLoading,
-    error: bulkError,
-    loadBulkProducts,
-    createBulkProduct,
-    updateBulkProduct,
-    deleteBulkProduct,
-  } = useBulkProducts();
-
-  const {
-    categories,
-    loading: categoriesLoading,
-    error: categoriesError,
-    loadCategories,
-    createCategory,
-    updateCategory,
-    deleteCategory,
-  } = useCategories();
+  // small helpers to load slices (used for refresh / initial load)
+  const loadProducts = async (opts?: {
+    page?: number;
+    limit?: number;
+    sort?: string;
+  }) => {
+    const params: any = { page: opts?.page ?? 1, limit: opts?.limit ?? 100 };
+    if (opts?.sort) params.sort = opts.sort;
+    await dispatch(fetchProducts(params as any));
+  };
+  const loadBulkProducts = async () => {
+    await dispatch(fetchBulkProducts(undefined as any));
+  };
+  const loadCategories = async () => {
+    await dispatch(fetchCategories(undefined as any));
+  };
 
   const [activeTab, setActiveTab] = useState<"individual" | "bulk">(
     "individual"
@@ -118,340 +142,8 @@ export const EnhancedProductManager: React.FC = () => {
     color: "#3B82F6",
   });
 
-  const handleAddProduct = async () => {
-    if (
-      !formData.name ||
-      !formData.purity ||
-      !formData.weight ||
-      !formData.makingCharges
-    )
-      return;
-
-    setSavingProduct(true);
-    try {
-      const result = await createProduct({
-        name: formData.name,
-        category: formData.category,
-        metal: formData.metal,
-        purity: formData.purity,
-        weight: parseFloat(formData.weight),
-        stoneWeight: formData.stoneWeight
-          ? parseFloat(formData.stoneWeight)
-          : undefined,
-        makingCharges: parseFloat(formData.makingCharges),
-        description: formData.description,
-        imageUrl: formData.imageUrl,
-      });
-
-      if (result.success) {
-        resetForm();
-      } else {
-        alert(result.error || "Failed to create product. Please try again.");
-      }
-    } catch (error) {
-      console.error("Failed to create product:", error);
-      alert("Failed to create product. Please try again.");
-    } finally {
-      setSavingProduct(false);
-    }
-  };
-
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setFormData({
-      name: product.name,
-      category: product.category,
-      metal: product.metal,
-      purity: product.purity,
-      weight: product.weight.toString(),
-      stoneWeight: product.stoneWeight?.toString() || "",
-      makingCharges: product.makingCharges.toString(),
-      description: product.description,
-      imageUrl: product.imageUrl || "",
-    });
-  };
-
-  const handleUpdateProduct = async () => {
-    if (
-      !editingProduct ||
-      !formData.name ||
-      !formData.purity ||
-      !formData.weight ||
-      !formData.makingCharges
-    )
-      return;
-
-    setSavingProduct(true);
-    try {
-      const productId = editingProduct._id || editingProduct.id!;
-      const result = await updateProduct(productId, {
-        name: formData.name,
-        category: formData.category,
-        metal: formData.metal,
-        purity: formData.purity,
-        weight: parseFloat(formData.weight),
-        stoneWeight: formData.stoneWeight
-          ? parseFloat(formData.stoneWeight)
-          : undefined,
-        makingCharges: parseFloat(formData.makingCharges),
-        description: formData.description,
-        imageUrl: formData.imageUrl,
-      });
-
-      if (result.success) {
-        resetForm();
-      } else {
-        alert(result.error || "Failed to update product. Please try again.");
-      }
-    } catch (error) {
-      console.error("Failed to update product:", error);
-      alert("Failed to update product. Please try again.");
-    } finally {
-      setSavingProduct(false);
-    }
-  };
-
-  const handleDeleteProduct = async (product: Product) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-
-    try {
-      const productId = product._id || product.id!;
-      const result = await deleteProduct(productId);
-      if (!result.success) {
-        alert(result.error || "Failed to delete product. Please try again.");
-      }
-    } catch (error) {
-      console.error("Failed to delete product:", error);
-      alert("Failed to delete product. Please try again.");
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      category: "ring",
-      metal: "gold",
-      purity: "",
-      weight: "",
-      stoneWeight: "",
-      makingCharges: "",
-      description: "",
-      imageUrl: "",
-    });
-    setEditingProduct(null);
-    setShowAddForm(false);
-  };
-
-  // Bulk product functions
-  const handleAddBulkProduct = async () => {
-    if (
-      !bulkFormData.name ||
-      !bulkFormData.purity ||
-      !bulkFormData.totalWeight ||
-      !bulkFormData.packageWeight ||
-      !bulkFormData.makingCharges
-    )
-      return;
-
-    setSavingProduct(true);
-    try {
-      const result = await createBulkProduct({
-        name: bulkFormData.name,
-        category: bulkFormData.category,
-        metal: bulkFormData.metal,
-        purity: bulkFormData.purity,
-        totalWeight: parseFloat(bulkFormData.totalWeight),
-        packageWeight: parseFloat(bulkFormData.packageWeight),
-        makingCharges: parseFloat(bulkFormData.makingCharges),
-        supplier: bulkFormData.supplier,
-        purchaseDate: bulkFormData.purchaseDate,
-        batchNumber: bulkFormData.batchNumber,
-        notes: bulkFormData.notes,
-      });
-
-      if (result.success) {
-        resetBulkForm();
-      } else {
-        alert(
-          result.error || "Failed to create bulk product. Please try again."
-        );
-      }
-    } catch (error) {
-      console.error("Failed to create bulk product:", error);
-      alert("Failed to create bulk product. Please try again.");
-    } finally {
-      setSavingProduct(false);
-    }
-  };
-
-  const handleEditBulkProduct = (product: BulkProduct) => {
-    setEditingBulkProduct(product);
-    setBulkFormData({
-      name: product.name,
-      category: product.category,
-      metal: product.metal,
-      purity: product.purity,
-      totalWeight: product.totalWeight.toString(),
-      packageWeight: product.packageWeight.toString(),
-      makingCharges: product.makingCharges.toString(),
-      supplier: product.supplier || "",
-      purchaseDate: product.purchaseDate.split("T")[0],
-      batchNumber: product.batchNumber || "",
-      notes: product.notes || "",
-    });
-    setShowAddForm(true); // Add this line to show the form
-  };
-
-  const handleUpdateBulkProduct = async () => {
-    if (!editingBulkProduct) return;
-
-    setSavingProduct(true);
-    try {
-      const productId = editingBulkProduct._id || editingBulkProduct.id!;
-      const result = await updateBulkProduct(productId, {
-        name: bulkFormData.name,
-        category: bulkFormData.category,
-        metal: bulkFormData.metal,
-        purity: bulkFormData.purity,
-        totalWeight: parseFloat(bulkFormData.totalWeight),
-        remainingWeight: editingBulkProduct.remainingWeight, // Keep existing remaining weight
-        packageWeight: parseFloat(bulkFormData.packageWeight),
-        makingCharges: parseFloat(bulkFormData.makingCharges),
-        supplier: bulkFormData.supplier,
-        purchaseDate: bulkFormData.purchaseDate,
-        batchNumber: bulkFormData.batchNumber,
-        notes: bulkFormData.notes,
-      });
-
-      if (result.success) {
-        resetBulkForm();
-      } else {
-        alert(
-          result.error || "Failed to update bulk product. Please try again."
-        );
-      }
-    } catch (error) {
-      console.error("Failed to update bulk product:", error);
-      alert("Failed to update bulk product. Please try again.");
-    } finally {
-      setSavingProduct(false);
-    }
-  };
-
-  const handleDeleteBulkProduct = async (product: BulkProduct) => {
-    if (!confirm("Are you sure you want to delete this bulk product?")) return;
-
-    try {
-      const productId = product._id || product.id!;
-      const result = await deleteBulkProduct(productId);
-      if (!result.success) {
-        alert(
-          result.error || "Failed to delete bulk product. Please try again."
-        );
-      }
-    } catch (error) {
-      console.error("Failed to delete bulk product:", error);
-      alert("Failed to delete bulk product. Please try again.");
-    }
-  };
-
-  const resetBulkForm = () => {
-    setBulkFormData({
-      name: "",
-      category: "ring",
-      metal: "gold",
-      purity: "",
-      totalWeight: "",
-      packageWeight: "",
-      makingCharges: "",
-      supplier: "",
-      purchaseDate: new Date().toISOString().split("T")[0],
-      batchNumber: "",
-      notes: "",
-    });
-    setEditingBulkProduct(null);
-    setShowAddForm(false);
-  };
-
-  // Category management functions
-  const handleAddCategory = async () => {
-    if (!categoryFormData.name) return;
-
-    setSavingCategory(true);
-    try {
-      const result = await createCategory({
-        name: categoryFormData.name,
-        description: categoryFormData.description,
-        icon: categoryFormData.icon,
-        color: categoryFormData.color,
-        isActive: true,
-      });
-
-      if (result.success) {
-        resetCategoryForm();
-      } else {
-        alert(result.error || "Failed to create category. Please try again.");
-      }
-    } catch (error) {
-      console.error("Failed to create category:", error);
-      alert("Failed to create category. Please try again.");
-    } finally {
-      setSavingCategory(false);
-    }
-  };
-
-  const handleEditCategory = (category: Category) => {
-    setEditingCategory(category);
-    setCategoryFormData({
-      name: category.name,
-      description: category.description || "",
-      icon: category.icon || "",
-      color: category.color || "#3B82F6",
-    });
-  };
-
-  const handleUpdateCategory = async () => {
-    if (!editingCategory || !categoryFormData.name) return;
-
-    setSavingCategory(true);
-    try {
-      const categoryId = editingCategory._id || editingCategory.id!;
-      const result = await updateCategory(categoryId, {
-        name: categoryFormData.name,
-        description: categoryFormData.description,
-        icon: categoryFormData.icon,
-        color: categoryFormData.color,
-      });
-
-      if (result.success) {
-        resetCategoryForm();
-      } else {
-        alert(result.error || "Failed to update category. Please try again.");
-      }
-    } catch (error) {
-      console.error("Failed to update category:", error);
-      alert("Failed to update category. Please try again.");
-    } finally {
-      setSavingCategory(false);
-    }
-  };
-
-  const handleDeleteCategory = async (category: Category) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
-
-    try {
-      const categoryId = category._id || category.id!;
-      const result = await deleteCategory(categoryId);
-      if (!result.success) {
-        alert(result.error || "Failed to delete category. Please try again.");
-      }
-    } catch (error) {
-      console.error("Failed to delete category:", error);
-      alert("Failed to delete category. Please try again.");
-    }
-  };
-
-  const resetCategoryForm = () => {
+  // Reset category form helper
+  function resetCategoryForm() {
     setCategoryFormData({
       name: "",
       description: "",
@@ -460,7 +152,18 @@ export const EnhancedProductManager: React.FC = () => {
     });
     setEditingCategory(null);
     setShowAddCategory(false);
-  };
+    setSavingCategory(false);
+  }
+
+  useEffect(() => {
+    // Load initial data
+    const loadData = async () => {
+      await dispatch(fetchBills());
+      await loadBulkProducts();
+      await loadCategories();
+    };
+    loadData();
+  }, [dispatch, loadBulkProducts, loadCategories]);
 
   // Get category icon by type for dropdown
   const getCategoryIconByType = (iconType: string) => {
@@ -567,7 +270,7 @@ export const EnhancedProductManager: React.FC = () => {
 
   // Get category icon dynamically (updated to handle new icon types)
   const getCategoryIcon = (categorySlug: string) => {
-    const category = categories.find((c) => c.slug === categorySlug);
+    const category = categories.find((c : any) => c.slug === categorySlug);
     if (category?.icon) {
       return getCategoryIconByType(category.icon);
     }
@@ -598,7 +301,7 @@ export const EnhancedProductManager: React.FC = () => {
   };
 
   // Filter products
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = products.filter((product : any) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -662,9 +365,298 @@ export const EnhancedProductManager: React.FC = () => {
     return `${supplierCode}-${nameCode}-${dateStr}-${hour}`;
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
+  function resetForm() {
+    setFormData({
+      name: "",
+      category: "ring",
+      metal: "gold",
+      purity: "",
+      weight: "",
+      stoneWeight: "",
+      makingCharges: "",
+      description: "",
+      imageUrl: "",
+    });
+    setEditingProduct(null);
+    setShowAddForm(false);
+    setSavingProduct(false);
+  }
+
+  // Add missing resetBulkForm function
+  function resetBulkForm() {
+    setBulkFormData({
+      name: "",
+      category: "ring",
+      metal: "gold",
+      purity: "",
+      totalWeight: "",
+      packageWeight: "",
+      makingCharges: "",
+      supplier: "",
+      purchaseDate: new Date().toISOString().split("T")[0],
+      batchNumber: "",
+      notes: "",
+    });
+    setEditingBulkProduct(null);
+    setShowAddForm(false);
+    setSavingProduct(false);
+  }
+
+  function handleEditCategory(category: any): void {
+    setEditingCategory(category);
+    setCategoryFormData({
+      name: category.name || "",
+      description: category.description || "",
+      icon: category.icon || "",
+      color: category.color || "#3B82F6",
+    });
+    setShowAddCategory(true);
+  }
+
+  async function handleDeleteCategory(category: any): Promise<void> {
+    if (!category) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete the category "${category.name}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setSavingCategory(true);
+    try {
+      await dispatch(deleteCategoryThunk(category._id || category.id) as any);
+      await loadCategories();
+      resetCategoryForm();
+    } catch (err) {
+      alert("Failed to delete category. Please try again.");
+    } finally {
+      setSavingCategory(false);
+    }
+  }
+
+  async function handleUpdateCategory(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+    event.preventDefault();
+    if (!editingCategory) return;
+    setSavingCategory(true);
+    try {
+      await dispatch(
+        updateCategoryThunk({
+          id: editingCategory._id ?? editingCategory.id ?? "",
+          categoryData: { ...categoryFormData },
+        }) as any
+      );
+      await loadCategories();
+      resetCategoryForm();
+    } catch (err) {
+      alert("Failed to update category. Please try again.");
+    } finally {
+      setSavingCategory(false);
+    }
+  }
+
+  // Add missing handleAddCategory function
+  async function handleAddCategory(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+    event.preventDefault();
+    setSavingCategory(true);
+    try {
+      await dispatch(
+        createCategoryThunk({
+          ...categoryFormData,
+        }) as any
+      );
+      await loadCategories();
+      resetCategoryForm();
+    } catch (err) {
+      alert("Failed to add category. Please try again.");
+    } finally {
+      setSavingCategory(false);
+    }
+  }
+
+  function handleEditBulkProduct(product: any): void {
+    setEditingBulkProduct(product);
+    setBulkFormData({
+      name: product.name || "",
+      category: product.category || "ring",
+      metal: product.metal || "gold",
+      purity: product.purity || "",
+      totalWeight: product.totalWeight?.toString() || "",
+      packageWeight: product.packageWeight?.toString() || "",
+      makingCharges: product.makingCharges?.toString() || "",
+      supplier: product.supplier || "",
+      purchaseDate: product.purchaseDate
+        ? new Date(product.purchaseDate).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
+      batchNumber: product.batchNumber || "",
+      notes: product.notes || "",
+    });
+    setShowAddForm(true);
+  }
+
+  // Add missing handleDeleteBulkProduct function
+  async function handleDeleteBulkProduct(product: any): Promise<void> {
+    if (!product) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete the bulk product "${product.name}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setSavingProduct(true);
+    try {
+      await dispatch(deleteBulkProductThunk(product._id || product.id) as any);
+      await loadBulkProducts();
+    } catch (err) {
+      alert("Failed to delete bulk product. Please try again.");
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+
+  // Add missing handleAddBulkProduct function
+  async function handleAddBulkProduct(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+    event.preventDefault();
+    setSavingProduct(true);
+    try {
+      const slug = generateBulkSlug(
+        bulkFormData.name,
+        bulkFormData.supplier,
+        bulkFormData.purchaseDate
+      );
+      await dispatch(
+        createBulkProductThunk({
+          ...bulkFormData,
+          totalWeight: Number(bulkFormData.totalWeight),
+          packageWeight: Number(bulkFormData.packageWeight),
+          makingCharges: Number(bulkFormData.makingCharges),
+          slug,
+        }) as any
+      );
+      await loadBulkProducts();
+      resetBulkForm();
+    } catch (err) {
+      alert("Failed to add bulk product. Please try again.");
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+
+  // Add missing handleUpdateBulkProduct function
+  async function handleUpdateBulkProduct(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+    event.preventDefault();
+    if (!editingBulkProduct) return;
+    setSavingProduct(true);
+    try {
+      await dispatch(
+        updateBulkProductThunk({
+          id: editingBulkProduct._id ?? editingBulkProduct.id ?? "",
+          bulkProductData: {
+            ...bulkFormData,
+            totalWeight: Number(bulkFormData.totalWeight),
+            packageWeight: Number(bulkFormData.packageWeight),
+            makingCharges: Number(bulkFormData.makingCharges),
+          },
+        }) as any
+      );
+      await loadBulkProducts();
+      resetBulkForm();
+    } catch (err) {
+      alert("Failed to update bulk product. Please try again.");
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+
+  // Add missing handleAddProduct function
+  async function handleAddProduct(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+    event.preventDefault();
+    setSavingProduct(true);
+    try {
+      await dispatch(
+        createProductThunk({
+          ...formData,
+          weight: Number(formData.weight),
+          stoneWeight: Number(formData.stoneWeight),
+          makingCharges: Number(formData.makingCharges),
+        }) as any
+      );
+      await loadProducts();
+      resetForm();
+    } catch (err) {
+      alert("Failed to add product. Please try again.");
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+  
+  // Add missing handleUpdateProduct function
+  async function handleUpdateProduct(event: React.MouseEvent<HTMLButtonElement, MouseEvent>): Promise<void> {
+    event.preventDefault();
+    if (!editingProduct) return;
+    setSavingProduct(true);
+    try {
+      await dispatch(
+        updateProductThunk({
+          id: editingProduct._id ?? editingProduct.id ?? "",
+          productData: {
+            ...formData,
+            weight: Number(formData.weight),
+            stoneWeight: Number(formData.stoneWeight),
+            makingCharges: Number(formData.makingCharges),
+          },
+        }) as any
+      );
+      await loadProducts();
+      resetForm();
+    } catch (err) {
+      alert("Failed to update product. Please try again.");
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+
+  // Add missing handleEditProduct function
+  function handleEditProduct(product: any): void {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name || "",
+      category: product.category || "ring",
+      metal: product.metal || "gold",
+      purity: product.purity || "",
+      weight: product.weight?.toString() || "",
+      stoneWeight: product.stoneWeight?.toString() || "",
+      makingCharges: product.makingCharges?.toString() || "",
+      description: product.description || "",
+      imageUrl: product.imageUrl || "",
+    });
+    setShowAddForm(true);
+  }
+
+  // Add missing handleDeleteProduct function
+  async function handleDeleteProduct(product: any): Promise<void> {
+    if (!product) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete the product "${product.name}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setSavingProduct(true);
+    try {
+      await dispatch(deleteProductThunk(product._id || product.id) as any);
+      await loadProducts();
+    } catch (err) {
+      alert("Failed to delete product. Please try again.");
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+  
+    return (
+      <div className="space-y-6">
+        {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white flex items-center gap-2">
@@ -741,7 +733,7 @@ export const EnhancedProductManager: React.FC = () => {
 
           {/* Categories Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-            {categories.map((category) => (
+            {categories.map((category : any) => (
               <Card
                 key={category._id || category.id}
                 className="p-4 hover:shadow-md transition-shadow"
@@ -974,7 +966,7 @@ export const EnhancedProductManager: React.FC = () => {
         <>
           {/* Bulk Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {bulkProducts.map((product) => (
+            {bulkProducts.map((product : any) => (
               <Card
                 key={product._id || product.id}
                 className="p-6 hover:shadow-lg transition-shadow"
@@ -1159,7 +1151,7 @@ export const EnhancedProductManager: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                   >
-                    {categories.map((category) => (
+                    {categories.map((category : any) => (
                       <option
                         key={category._id || category.id}
                         value={category.slug}
@@ -1391,7 +1383,7 @@ export const EnhancedProductManager: React.FC = () => {
                     className="w-full px-3 py-2 pl-10 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                   >
                     <option value="all">All Categories</option>
-                    {categories.map((category) => (
+                    {categories.map((category : any) => (
                       <option
                         key={category._id || category.id}
                         value={category.slug}
@@ -1464,7 +1456,7 @@ export const EnhancedProductManager: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                   >
-                    {categories.map((category) => (
+                    {categories.map((category :any) => (
                       <option
                         key={category._id || category.id}
                         value={category.slug}
@@ -1621,7 +1613,7 @@ export const EnhancedProductManager: React.FC = () => {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
+            {filteredProducts.map((product:any) => (
               <Card
                 key={product._id || product.id}
                 className="p-6 hover:shadow-lg transition-shadow"
@@ -1785,7 +1777,13 @@ export const EnhancedProductManager: React.FC = () => {
                 </div>
                 <div className="text-center">
                   <p className="font-semibold text-zinc-900 dark:text-white">
-                    {products.reduce((sum, p) => sum + p.weight, 0).toFixed(2)}g
+                    {products
+                      .reduce(
+                        (sum: number, p: Product) => sum + Number(p.weight),
+                        0
+                      )
+                      .toFixed(2)}
+                    g
                   </p>
                   <p className="text-zinc-600 dark:text-zinc-400">
                     Total Weight

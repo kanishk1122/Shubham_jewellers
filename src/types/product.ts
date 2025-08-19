@@ -1,18 +1,23 @@
 export interface Product {
   _id?: string;
   id?: string;
-  serialNumber: string;
-  slug: string;
   name: string;
-  category: string;
-  metal: "gold" | "silver" | "platinum";
-  purity: string;
-  weight: number;
+  serialNumber?: string;
+  slug?: string;
+  category?: string;
+  metal?: "gold" | "silver" | "platinum" | string;
+  purity?: string;
+  weight?: number;
   stoneWeight?: number;
-  makingCharges: number;
-  description?: string;
+  netWeight?: number;
+  makingCharges?: number;
+  makingChargesType?: "fixed" | "percentage";
+  wastage?: number;
+  wastageType?: "fixed" | "percentage";
+  rate?: number;
   imageUrl?: string;
-  isActive?: boolean;
+  description?: string;
   createdAt?: string;
   updatedAt?: string;
+  [key: string]: any;
 }
