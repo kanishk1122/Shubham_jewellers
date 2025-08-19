@@ -1,45 +1,30 @@
+import axios from "axios";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
-
-// NOTE: keep middleware self-contained — DO NOT import server modules (models/mongoose).
-const JWT_SECRET = process.env.JWT_SECRET || "dev_jwt_secret";
-
-// lightweight verify used only in middleware (avoids importing server-side helpers)
-const verifyToken = (token?: string) => {
-  if (!token) return null;
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as any;
-    return payload;
-  } catch {
-    return null;
-  }
-};
 
 // ...public paths allowed without authentication...
 const PUBLIC_PATHS = [
   "/login",
   "/api/auth/login",
-  "/api/auth/seed",
-  "/api/auth/register", // optional - keep if you want registration open
-  "/api/auth/me", // allow token check endpoint
+  "/api/auth/me",
   "/favicon.ico",
   "/robots.txt",
-  "/dashboard"
 ];
 
 // Utility to check if path is public
 const isPublicPath = (pathname: string) =>
   PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
-export function middleware(req: NextRequest) {
+// NOTE: middleware runs in Edge runtime — avoid using Node-only modules (jwt.verify).
+// Verify the token by delegating to the server-side endpoint /api/auth/me which runs in Node.
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Allow next internals and static files without auth
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/static/") ||
-    pathname.includes(".") // allow assets like .css/.png
+    pathname.includes(".")
   ) {
     return NextResponse.next();
   }
@@ -71,9 +56,52 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Verify token and check role (middleware-only, lightweight)
-  const payload = verifyToken(token);
-  if (!payload || !payload.id) {
+  // Verify token by calling server-side /api/auth/me (runs in Node, can verify JWT)
+  try {
+    const verifyUrl = new URL("/api/auth/me", req.url);
+    const res = await axios.get(verifyUrl.toString(), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const json = res.data;
+
+    // cosnole.log("middleware: token verification result:", json);
+
+    if (!json.success) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json(
+          { success: false, error: "Unauthorized token invalid" },
+          { status: 401 }
+        );
+      }
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = `redirect=${encodeURIComponent(pathname)}`;
+      return NextResponse.redirect(url);
+    }
+    // cosnole.log("middleware: token verification successful2:", json);
+
+    const payload = json.data as any;
+
+    // Enforce admin-only access for protected areas
+    if (payload.role !== "admin") {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json(
+          { success: false, error: "Forbidden: admin only" },
+          { status: 403 }
+        );
+      }
+      const url = req.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = `redirect=${encodeURIComponent(pathname)}`;
+      return NextResponse.redirect(url);
+    }
+
+    // Authorized — let the request continue
+    return NextResponse.next();
+  } catch (err) {
+    // cosnole.error("middleware: token verification failed", err);
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -85,23 +113,6 @@ export function middleware(req: NextRequest) {
     url.search = `redirect=${encodeURIComponent(pathname)}`;
     return NextResponse.redirect(url);
   }
-
-  // Enforce admin-only access for protected areas
-  if (payload.role !== "admin") {
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: admin only" },
-        { status: 403 }
-      );
-    }
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.search = `redirect=${encodeURIComponent(pathname)}`;
-    return NextResponse.redirect(url);
-  }
-
-  // Authorized — let the request continue
-  return NextResponse.next();
 }
 
 // Apply middleware to all routes except Next internals (static handled above)

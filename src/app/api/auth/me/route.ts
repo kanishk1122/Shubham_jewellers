@@ -30,7 +30,15 @@ export async function GET(request: NextRequest) {
         { success: false, error: "User not found" },
         { status: 404 }
       );
-    return NextResponse.json({ success: true, data: user });
+
+    const prepareuserData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+    };
+    return NextResponse.json({ success: true, data: prepareuserData });
   } catch (err) {
     console.error("GET /api/auth/me error:", err);
     return NextResponse.json(
