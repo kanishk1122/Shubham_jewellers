@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       sort[sortParam] = 1;
     }
 
-    let query: any = {};
+    let query: any = { isActive: true };
 
     if (search && search.trim().length > 0) {
       const regex = new RegExp(search.trim(), "i");
