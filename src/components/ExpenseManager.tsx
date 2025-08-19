@@ -223,7 +223,7 @@ export const ExpenseManager: React.FC = () => {
           />
           <Select
             value={form.category || "operational"}
-            onChange={(val: any) => setForm({ ...form, category: val })}
+            onValueChange={(val: any) => setForm({ ...form, category: val })}
             options={[
               { value: "operational", label: "Operational" },
               { value: "loan", label: "Loan" },
@@ -249,31 +249,37 @@ export const ExpenseManager: React.FC = () => {
             placeholder="Vendor / Payee"
           />
 
-          {/* purchase-specific fields */}
-          <Input
-            type="number"
-            step="0.01"
-            value={form.metalWeight || ""}
-            onChange={(ev) =>
-              setForm({
-                ...form,
-                metalWeight: ev.target.value
-                  ? Number(ev.target.value)
-                  : undefined,
-              })
-            }
-            placeholder="Metal weight (g) - optional"
-          />
-          <Select
-            value={form.metalType || ""}
-            onChange={(val: any) => setForm({ ...form, metalType: val })}
-            options={[
-              { value: "", label: "Metal type" },
-              { value: "gold", label: "Gold" },
-              { value: "silver", label: "Silver" },
-              { value: "platinum", label: "Platinum" },
-            ]}
-          />
+          {/* show metal-specific fields only when category is "purchase" */}
+          {form.category === "purchase" && (
+            <>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.metalWeight ?? ""}
+                onChange={(ev) =>
+                  setForm({
+                    ...form,
+                    metalWeight: ev.target.value
+                      ? Number(ev.target.value)
+                      : undefined,
+                  })
+                }
+                placeholder="Metal weight (g) - optional"
+              />
+              <Select
+                value={form.metalType || ""}
+                onValueChange={(val: any) =>
+                  setForm({ ...form, metalType: val })
+                }
+                options={[
+                  { value: "", label: "Metal type" },
+                  { value: "gold", label: "Gold" },
+                  { value: "silver", label: "Silver" },
+                  { value: "platinum", label: "Platinum" },
+                ]}
+              />
+            </>
+          )}
 
           <div className="md:col-span-3 flex gap-2 mt-2">
             <Button type="submit" className="flex items-center gap-2">
