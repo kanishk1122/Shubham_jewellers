@@ -46,7 +46,7 @@ import { Select,
   SelectContent,
   SelectItem,
 }
-from "@/components/ui/Select";
+from "@/components/ui/select";
 
 interface Product {
   _id?: string;

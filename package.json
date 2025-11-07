@@ -31,6 +31,7 @@
     "mongoose": "^8.16.3",
     "next": "15.3.5",
     "puppeteer": "^24.11.2",
+    "radix-ui": "^1.4.3",
     "react": "^19.0.0",
     "react-day-picker": "^9.9.0",
     "react-dom": "^19.0.0",
