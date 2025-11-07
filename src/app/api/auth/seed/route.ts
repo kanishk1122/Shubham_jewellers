@@ -35,15 +35,19 @@ export async function POST(request: NextRequest) {
       phone: adminPhone,
       passwordHash,
       role: "admin",
+      isActive: true,
     });
     await admin.save();
 
     const token = signToken({ id: admin._id.toString(), role: admin.role });
-    return NextResponse.json({
-      success: true,
-      message: "Admin user created",
-      data: { user: admin, token },
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Admin user created successfully",
+        data: { user: admin, token },
+      },
+      { status: 201 }
+    );
   } catch (err) {
     console.error("Seed error:", err);
     return NextResponse.json(

@@ -10,8 +10,8 @@ import { User, Lock, Loader2 } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
+  const [identifier, setIdentifier] = useState("admin@example.com");
+  const [password, setPassword] = useState("Admin@123");
   const [localLoading, setLocalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [remember, setRemember] = useState(false);
@@ -123,6 +123,7 @@ export default function LoginPage() {
                   className="pl-10"
                   aria-label="Email or phone"
                   autoComplete="username"
+
                 />
               </label>
 

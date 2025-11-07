@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start && npx puppeteer browsers install chrome",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed:admin": "node --loader ts-node/esm scripts/seedAdmin.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
@@ -21,6 +22,7 @@
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
     "framer-motion": "^12.23.12",
     "jose": "^6.0.12",
     "jsonwebtoken": "^9.0.2",
@@ -34,6 +36,7 @@
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0",
     "recharts": "^3.1.2",
+    "seed": "^0.4.4",
     "tailwind-merge": "^3.3.1",
     "uuid": "^11.1.0",
     "xlsx": "^0.18.5"
@@ -46,6 +49,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }

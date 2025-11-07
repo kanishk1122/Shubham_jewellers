@@ -491,7 +491,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <ThemeToggle />
 
               {/* Notifications */}
-              <button className="relative p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
+              {/* <button className="relative p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">
                 <svg
                   className="w-6 h-6"
                   fill="none"
@@ -506,7 +506,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   />
                 </svg>
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+              </button> */}
 
               {/* Profile menu */}
               <div className="relative flex items-center gap-4">
