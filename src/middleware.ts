@@ -10,6 +10,7 @@ const PUBLIC_PATHS = [
   "/api/auth/me",
   "/favicon.ico",
   "/robots.txt",
+  "/api/seed"
 ];
 
 // Utility to check if path is public

@@ -21,10 +21,12 @@ import {
   Cell,
   ComposedChart,
 } from "recharts";
-import { Card, Button, Input } from "@/components/ui/enhanced";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   ArrowRight,
-  Calendar,
+  Calendar as CalendarIcon,
   TrendingUp,
   TrendingDown,
   Users,
@@ -37,6 +39,10 @@ import {
 } from "lucide-react";
 import PuppeteerQuickRatesWidget from "@/components/PuppeteerQuickRatesWidget";
 import axios from "@/lib/api";
+import { motion, AnimatePresence } from "framer-motion";
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
 
 // Define color schemes for consistency
 const COLORS = {
@@ -560,10 +566,23 @@ export const Dashboard: React.FC = () => {
     return `₹${value.toLocaleString("en-IN")}`;
   };
 
+  const options = [
+    { value: "7d", label: "7D" },
+    { value: "30d", label: "30D" },
+    { value: "90d", label: "90D" },
+    { value: "1y", label: "1Y" },
+    { value: "custom", label: <CalendarIcon className="h-4 w-4" /> },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Dashboard Header with Controls */}
-      <div className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm border border-zinc-200 dark:border-zinc-700">
+      <motion.div
+        layout
+        className={`flex flex-col md:flex-row justify-between items-center bg-white dark:bg-zinc-800 rounded-xl p-4 shadow-sm border border-zinc-200 dark:border-zinc-700`}
+        transition={{ type: "spring", stiffness: 250, damping: 25 }}
+      >
+        {/* Title + Subtitle */}
         <div className="mb-4 md:mb-0">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
             Analytics Dashboard
@@ -573,85 +592,89 @@ export const Dashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Date Range Filter */}
-          <div className="flex items-center border border-zinc-200 dark:border-zinc-600 rounded-lg overflow-hidden">
+        {/* Right Side (Switcher + Inputs + Refresh) */}
+        <motion.div layout className="relative flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Date Range Switcher */}
+            <div className="relative flex items-center rounded-lg border border-zinc-200 dark:border-zinc-600 overflow-hidden shadow-inner">
+              {/* Sliding highlight */}
+              <motion.div
+                layoutId="dateRangeHighlight"
+                className="absolute inset-y-0 bg-zinc-200 dark:bg-zinc-700 rounded-lg"
+                initial={false}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                style={{
+                  width: `${100 / options.length}%`,
+                  left: `${
+                    options.findIndex((o) => o.value === dateRange) *
+                    (100 / options.length)
+                  }%`,
+                }}
+              />
+
+              {/* Buttons */}
+              {options.map((opt: any) => (
+                <Button
+                  key={opt.value}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDateRange(opt.value)}
+                  className={`relative z-10 w-16 rounded-none transition-colors ${
+                    dateRange === opt.value
+                      ? "text-black dark:text-white font-medium"
+                      : "text-zinc-500"
+                  }`}
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </div>
+
+            {/* Refresh Button */}
             <Button
-              variant={dateRange === "7d" ? "primary" : "ghost"}
+              variant="ghost"
               size="sm"
-              className="rounded-none"
-              onClick={() => setDateRange("7d")}
+              onClick={refreshData}
+              disabled={isRefreshing}
+              className="ml-2"
             >
-              7D
-            </Button>
-            <Button
-              variant={dateRange === "30d" ? "primary" : "ghost"}
-              size="sm"
-              className="rounded-none"
-              onClick={() => setDateRange("30d")}
-            >
-              30D
-            </Button>
-            <Button
-              variant={dateRange === "90d" ? "primary" : "ghost"}
-              size="sm"
-              className="rounded-none"
-              onClick={() => setDateRange("90d")}
-            >
-              90D
-            </Button>
-            <Button
-              variant={dateRange === "1y" ? "primary" : "ghost"}
-              size="sm"
-              className="rounded-none"
-              onClick={() => setDateRange("1y")}
-            >
-              1Y
-            </Button>
-            <Button
-              variant={dateRange === "custom" ? "primary" : "ghost"}
-              size="sm"
-              className="rounded-none"
-              onClick={() => setDateRange("custom")}
-            >
-              <Calendar className="h-4 w-4" />
+              <RefreshCw
+                className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+              Refresh
             </Button>
           </div>
 
-          {/* Custom Date Range */}
-          {dateRange === "custom" && (
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={customDateStart}
-                onChange={(e) => setCustomDateStart(e.target.value)}
-                className="w-36 h-9 px-2"
-              />
-              <span className="text-zinc-500">to</span>
-              <Input
-                type="date"
-                value={customDateEnd}
-                onChange={(e) => setCustomDateEnd(e.target.value)}
-                className="w-36 h-9 px-2"
-              />
-            </div>
-          )}
-
-          {/* Refresh Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={refreshData}
-            disabled={isRefreshing}
-            className="ml-2"
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-1 ${isRefreshing ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </Button>
-        </div>
-      </div>
+          {/* Animated Custom Date Range */}
+          <AnimatePresence initial={false}>
+            {dateRange === "custom" && (
+              <motion.div
+                key="custom-date"
+                initial={{ opacity: 0, height: 0, y: -10 }}
+                animate={{ opacity: 1, height: "auto", y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -10 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="flex items-center gap-2 overflow-hidden"
+              >
+                <Input
+                  type="date"
+                  value={customDateStart}
+                  onChange={(e) => setCustomDateStart(e.target.value)}
+                  className="w-36 h-9 px-2 shadow-inner rounded-lg"
+                />
+                <span className="text-zinc-500">to</span>
+                <Input
+                  type="date"
+                  value={customDateEnd}
+                  onChange={(e) => setCustomDateEnd(e.target.value)}
+                  className="w-36 h-9 px-2 shadow-inner rounded-lg"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

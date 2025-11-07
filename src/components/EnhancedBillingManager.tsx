@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+ 
 } from "@/components/ui";
 import { useMetalRates } from "@/services/metalRatesService";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -39,6 +40,13 @@ import {
 import type { Bill, BillItem } from "@/types/bill";
 import axios from "axios";
 import { apiFetch } from "@/lib/fetcher";
+import { Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+}
+from "@/components/ui/Select";
 
 interface Product {
   _id?: string;
@@ -919,29 +927,35 @@ export const EnhancedBillingManager: React.FC = () => {
 
       {/* Search and Filters */}
       {!loading && (
-        <Card className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <Input
-                placeholder="Search bills by number, customer name, or phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-              />
+        <Card className="p-4 shadow-md rounded-2xl">
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Search Input */}
+              <div className="md:col-span-2">
+                <Input
+                  placeholder="Search bills by number, customer name, or phone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-700">
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="partial">Partial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-              >
-                <option value="all">All Status</option>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-                <option value="partial">Partial</option>
-              </select>
-            </div>
-          </div>
+          </CardContent>
         </Card>
       )}
 

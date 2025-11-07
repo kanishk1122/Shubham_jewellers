@@ -128,7 +128,7 @@ export function CustomerTable({
               <TableCell className="font-medium">{customer.name}</TableCell>
 
               {/* Contact */}
-              <TableCell>{customer.phone}</TableCell>
+              <TableCell>{customer.phone.slice(0, 3) + customer.phone.slice(3).replace(/(\d{4})(\d{4})/, "x")}</TableCell>
               <TableCell className="truncate max-w-[160px]">
                 {customer.email || "-"}
               </TableCell>
