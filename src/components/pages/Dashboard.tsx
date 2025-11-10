@@ -40,9 +40,12 @@ import {
 import PuppeteerQuickRatesWidget from "@/components/PuppeteerQuickRatesWidget";
 import axios from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Define color schemes for consistency
 const COLORS = {
@@ -584,10 +587,10 @@ export const Dashboard: React.FC = () => {
       >
         {/* Title + Subtitle */}
         <div className="mb-4 md:mb-0">
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             Analytics Dashboard
           </h1>
-          <p className="text-zinc-500 dark:text-zinc-400">
+          <p className="text-zinc-700 dark:text-zinc-300">
             Last updated: {lastUpdated.toLocaleString()}
           </p>
         </div>
@@ -622,8 +625,8 @@ export const Dashboard: React.FC = () => {
                   onClick={() => setDateRange(opt.value)}
                   className={`relative z-10 w-16 rounded-none transition-colors ${
                     dateRange === opt.value
-                      ? "text-black dark:text-white font-medium"
-                      : "text-zinc-500"
+                      ? "text-zinc-900 dark:text-zinc-100 font-medium"
+                      : "text-zinc-600 dark:text-zinc-400"
                   }`}
                 >
                   {opt.label}
@@ -682,10 +685,10 @@ export const Dashboard: React.FC = () => {
         <Card className="p-5 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">
                 Sales This Week
               </p>
-              <h3 className="text-2xl font-bold mt-1">
+              <h3 className="text-2xl font-bold mt-1 text-zinc-900 dark:text-zinc-100">
                 {formatCurrency(salesThisWeek)}
               </h3>
               <div className="flex items-center gap-1 mt-1">
@@ -701,7 +704,7 @@ export const Dashboard: React.FC = () => {
                         {weekGrowthPct}%
                       </span>
                     )}
-                    <span className="text-zinc-400 text-xs ml-1">
+                    <span className="text-zinc-600 dark:text-zinc-400 text-xs ml-1">
                       vs last week
                     </span>
                   </>
@@ -731,10 +734,10 @@ export const Dashboard: React.FC = () => {
         <Card className="p-5 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">
                 Sales This Month
               </p>
-              <h3 className="text-2xl font-bold mt-1">
+              <h3 className="text-2xl font-bold mt-1 text-zinc-900 dark:text-zinc-100">
                 {formatCurrency(salesThisMonth)}
               </h3>
               <div className="flex items-center gap-1 mt-1">
@@ -751,7 +754,7 @@ export const Dashboard: React.FC = () => {
                         {monthGrowthPct}%
                       </span>
                     )}
-                    <span className="text-zinc-400 text-xs ml-1">
+                    <span className="text-zinc-600 dark:text-zinc-400 text-xs ml-1">
                       vs last month
                     </span>
                   </>
@@ -781,10 +784,12 @@ export const Dashboard: React.FC = () => {
         <Card className="p-5 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">
                 New Customers (Month)
               </p>
-              <h3 className="text-2xl font-bold mt-1">+{customersThisMonth}</h3>
+              <h3 className="text-2xl font-bold mt-1 text-zinc-900 dark:text-zinc-100">
+                +{customersThisMonth}
+              </h3>
               <div className="flex items-center gap-1 mt-1">
                 {customerMonthGrowthPct !== null && (
                   <>
@@ -799,7 +804,7 @@ export const Dashboard: React.FC = () => {
                         {customerMonthGrowthPct}%
                       </span>
                     )}
-                    <span className="text-zinc-400 text-xs ml-1">
+                    <span className="text-zinc-600 dark:text-zinc-400 text-xs ml-1">
                       vs last month
                     </span>
                   </>
@@ -827,10 +832,10 @@ export const Dashboard: React.FC = () => {
         <Card className="p-5 border border-zinc-200 dark:border-zinc-700 shadow-sm hover:shadow-md transition-shadow duration-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">
                 Month-End Projection
               </p>
-              <h3 className="text-2xl font-bold mt-1">
+              <h3 className="text-2xl font-bold mt-1 text-zinc-900 dark:text-zinc-100">
                 {projection.predictedMonthTotal === null
                   ? "Calculating..."
                   : formatCurrency(projection.predictedMonthTotal)}
@@ -849,7 +854,7 @@ export const Dashboard: React.FC = () => {
                         Downward trend
                       </span>
                     )}
-                    <span className="text-zinc-400 text-xs ml-1">
+                    <span className="text-zinc-600 dark:text-zinc-400 text-xs ml-1">
                       {projection.details.daysRemaining} days left
                     </span>
                   </>
@@ -873,7 +878,7 @@ export const Dashboard: React.FC = () => {
                   }}
                 />
               </div>
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-zinc-600 dark:text-zinc-400">
                 {Math.round(projection.details.confidence)}% confidence
               </span>
             </div>
@@ -885,7 +890,9 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sales Trend Chart (Larger) */}
         <Card className="p-6 border border-zinc-200 dark:border-zinc-700 col-span-2 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Sales Trend</h3>
+          <h3 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-zinc-100">
+            Sales Trend
+          </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={dailySalesData}>
@@ -946,7 +953,9 @@ export const Dashboard: React.FC = () => {
 
         {/* Sales by Category - Pie Chart */}
         <Card className="p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Sales by Category</h3>
+          <h3 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-zinc-100">
+            Sales by Category
+          </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -985,7 +994,9 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Performance */}
         <Card className="p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Monthly Performance</h3>
+          <h3 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-zinc-100">
+            Monthly Performance
+          </h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlySalesData}>
@@ -1006,7 +1017,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Customer Growth */}
         <Card className="p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">
+          <h3 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-zinc-100">
             Customer Acquisition Trend
           </h3>
           <div className="h-72">
@@ -1048,7 +1059,9 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Quick Actions */}
         <Card className="col-span-2 p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+          <h3 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-zinc-100">
+            Quick Actions
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button
               variant="secondary"
@@ -1059,8 +1072,10 @@ export const Dashboard: React.FC = () => {
                 <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="text-left">
-                <h4 className="font-medium mb-1">Create New Bill</h4>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <h4 className="font-medium mb-1 text-zinc-900 dark:text-zinc-100">
+                  Create New Bill
+                </h4>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
                   Start billing process for customers
                 </p>
               </div>
@@ -1076,8 +1091,10 @@ export const Dashboard: React.FC = () => {
                 <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div className="text-left">
-                <h4 className="font-medium mb-1">Manage Products</h4>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <h4 className="font-medium mb-1 text-zinc-900 dark:text-zinc-100">
+                  Manage Products
+                </h4>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
                   Add and update jewelry items
                 </p>
               </div>
@@ -1093,8 +1110,10 @@ export const Dashboard: React.FC = () => {
                 <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="text-left">
-                <h4 className="font-medium mb-1">Manage Customers</h4>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <h4 className="font-medium mb-1 text-zinc-900 dark:text-zinc-100">
+                  Manage Customers
+                </h4>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
                   View and edit your customer database
                 </p>
               </div>
@@ -1114,13 +1133,7 @@ export const Dashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* Metal Rates Card */}
-        <Card className="p-6 border border-zinc-200 dark:border-zinc-700 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Live Metal Rates</h3>
-          <div className="h-[280px] overflow-auto">
-            <PuppeteerQuickRatesWidget />
-          </div>
-        </Card>
+       
       </div>
     </div>
   );

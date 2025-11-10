@@ -1,112 +1,128 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 type Theme = "light" | "dark" | "system";
 
-interface ThemeContextType {
+type ThemeContextType = {
   theme: Theme;
-  actualTheme: "light" | "dark";
+  resolvedTheme: "light" | "dark";
+  setTheme: (t: Theme) => void;
   toggleTheme: () => void;
-  setTheme: (theme: Theme) => void;
-}
+};
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    // If we're in a development environment, throw the error
-    if (
-      typeof window !== "undefined" &&
-      process.env.NODE_ENV === "development"
-    ) {
-      throw new Error("useTheme must be used within a ThemeProvider");
-    }
-    // Fallback for production or SSR
-    return {
-      theme: "light" as Theme,
-      actualTheme: "light" as "light" | "dark",
-      toggleTheme: () => {},
-      setTheme: () => {},
-    };
-  }
-  return context;
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
+  return ctx;
 };
 
-interface ThemeProviderProps {
-  children: React.ReactNode;
+const STORAGE_KEY = "theme_preference";
+
+function getSystemTheme(): "light" | "dark" {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>("system");
-  const [actualTheme, setActualTheme] = useState<"light" | "dark">("light");
-  const [mounted, setMounted] = useState(false);
+function applyThemeClass(resolved: "light" | "dark") {
+  if (typeof document === "undefined") return;
+  const el = document.documentElement;
+  if (resolved === "dark") {
+    el.classList.add("dark");
+    // optional: set color-scheme for browser form controls
+    el.style.colorScheme = "dark";
+  } else {
+    el.classList.remove("dark");
+    el.style.colorScheme = "light";
+  }
+}
 
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [theme, setThemeState] = useState<Theme>(() => {
+    try {
+      const saved =
+        typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY);
+      return (saved as Theme) || "system";
+    } catch {
+      return "system";
+    }
+  });
+
+  const resolvedTheme = useMemo<"light" | "dark">(() => {
+    if (theme === "system") return getSystemTheme();
+    return theme === "dark" ? "dark" : "light";
+  }, [theme]);
+
+  // apply on mount and when resolvedTheme changes
   useEffect(() => {
-    // Check for saved theme
-    const savedTheme = localStorage.getItem("theme") as Theme;
-    const initialTheme = savedTheme || "system";
+    applyThemeClass(resolvedTheme);
+  }, [resolvedTheme]);
 
-    setThemeState(initialTheme);
-    setMounted(true);
-  }, []);
-
+  // listen to system theme changes when theme === 'system'
   useEffect(() => {
-    if (!mounted) return;
+    if (typeof window === "undefined" || !window.matchMedia) return;
 
-    const updateActualTheme = () => {
-      let newActualTheme: "light" | "dark";
-
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => {
       if (theme === "system") {
-        newActualTheme = window.matchMedia("(prefers-color-scheme: dark)")
-          .matches
-          ? "dark"
-          : "light";
-      } else {
-        newActualTheme = theme;
-      }
-
-      setActualTheme(newActualTheme);
-      document.documentElement.classList.remove("light", "dark");
-      document.documentElement.classList.add(newActualTheme);
-      localStorage.setItem("theme", theme);
-    };
-
-    updateActualTheme();
-
-    // Listen for system theme changes
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = () => {
-      if (theme === "system") {
-        updateActualTheme();
+        applyThemeClass(getSystemTheme());
       }
     };
+    mq.addEventListener
+      ? mq.addEventListener("change", handler)
+      : mq.addListener(handler);
+    return () =>
+      mq.removeEventListener
+        ? mq.removeEventListener("change", handler)
+        : mq.removeListener(handler);
+  }, [theme]);
 
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme, mounted]);
+  // safe setter that persists preference
+  const setTheme = (t: Theme) => {
+    try {
+      setThemeState(t);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(STORAGE_KEY, t);
+      }
+    } catch {
+      setThemeState(t);
+    }
+  };
 
   const toggleTheme = () => {
-    const themeOrder: Theme[] = ["light", "dark", "system"];
-    const currentIndex = themeOrder.indexOf(theme);
-    const nextIndex = (currentIndex + 1) % themeOrder.length;
-    setThemeState(themeOrder[nextIndex]);
+    // cycle: light -> dark -> system -> light
+    setThemeState((prev) => {
+      const next: Theme =
+        prev === "light" ? "dark" : prev === "dark" ? "system" : "light";
+      try {
+        localStorage.setItem(STORAGE_KEY, next);
+      } catch {}
+      return next;
+    });
   };
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-  };
-
-  if (!mounted) {
-    return <div className="min-h-screen bg-white dark:bg-zinc-900" />;
-  }
-
-  return (
-    <ThemeContext.Provider
-      value={{ theme, actualTheme, toggleTheme, setTheme }}
-    >
-      <div className={actualTheme}>{children}</div>
-    </ThemeContext.Provider>
+  const ctx = useMemo(
+    () => ({
+      theme,
+      resolvedTheme,
+      setTheme,
+      toggleTheme,
+    }),
+    [theme, resolvedTheme]
   );
+
+  return <ThemeContext.Provider value={ctx}>{children}</ThemeContext.Provider>;
 };

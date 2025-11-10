@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Ensure Tailwind's dark: utilities rely on the .dark selector (class strategy).
+   This makes dark: apply when <html class="dark"> is present (used by the inline script). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

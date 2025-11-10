@@ -35,6 +35,28 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning={true}
       >
+        {/* Inline script to set html.dark early to avoid FOUC.
+            It respects localStorage.theme = "light"|"dark" or falls back to system preference.
+            Keep this small and synchronous so it runs before React hydration. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var ls = null;
+                  try { ls = localStorage.getItem('theme'); } catch (e) {}
+                  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  var useDark = ls === 'dark' || (ls === null && prefersDark);
+                  if (useDark) document.documentElement.classList.add('dark');
+                  else document.documentElement.classList.remove('dark');
+                } catch (e) {
+                  // noop
+                }
+              })();
+            `,
+          }}
+        />
+
         <AppProviders>
           <AuthProvider>{children}</AuthProvider>
         </AppProviders>

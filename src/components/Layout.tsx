@@ -87,7 +87,29 @@ const menuItems = [
 ];
 
 const ThemeToggle: React.FC = () => {
-  const { theme, actualTheme, toggleTheme } = useTheme();
+  // Be defensive: ThemeContext implementations vary. Support common shapes:
+  // { theme, resolvedTheme, actualTheme, toggleTheme, setTheme }
+  const themeCtx: any = useTheme() || {};
+  const theme = themeCtx.theme ?? themeCtx.resolvedTheme ?? "system";
+  const actualTheme =
+    themeCtx.actualTheme ?? themeCtx.resolvedTheme ?? theme ?? "system";
+
+  // toggleTheme fallback: if ctx provides toggleTheme use it, otherwise cycle via setTheme
+  const toggleTheme =
+    themeCtx.toggleTheme ??
+    (() => {
+      try {
+        if (typeof themeCtx.setTheme === "function") {
+          // Simple cycle: light -> dark -> system -> light
+          const current = themeCtx.theme ?? themeCtx.resolvedTheme ?? "system";
+          if (current === "light") themeCtx.setTheme("dark");
+          else if (current === "dark") themeCtx.setTheme("system");
+          else themeCtx.setTheme("light");
+        }
+      } catch {
+        /* noop */
+      }
+    });
 
   const getThemeIcon = () => {
     switch (theme) {
@@ -111,7 +133,7 @@ const ThemeToggle: React.FC = () => {
       case "system":
         return `System (${actualTheme})`;
       default:
-        return "Dark";
+        return "Theme";
     }
   };
 
