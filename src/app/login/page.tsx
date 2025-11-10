@@ -10,7 +10,7 @@ import { User, Lock, Loader2 } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
-  const [identifier, setIdentifier] = useState("admin@example.com");
+  const [identifier, setIdentifier] = useState("admin@shubhamjewellers.com");
   const [password, setPassword] = useState("Admin@123");
   const [localLoading, setLocalLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
